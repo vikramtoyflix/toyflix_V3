@@ -75,9 +75,6 @@ import { preloadCriticalResources, monitorCoreWebVitals } from '@/utils/seo/perf
 import { BusinessSchema } from "@/components/seo/BusinessSchema";
 import { FAQSchema } from "@/components/seo/FAQSchema";
 import { ServiceSchema } from "@/components/seo/ServiceSchema";
-import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
-import { StatusBar, Style } from '@capacitor/status-bar';
 
 // Prefetch homepage toys as soon as app loads so "Rent premium toys" carousel has data on first load/refresh
 function PrefetchHomeToys() {
@@ -151,44 +148,45 @@ function App() {
       setTimeout(initAnalytics, 2000);
     }
 
-    // Initialize Push Notifications
+    // Initialize Push Notifications — dynamically imported so Capacitor SDK is
+    // never bundled into the web build (only loaded on native platforms)
     const initPush = async () => {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          // Configure Status Bar
-          await StatusBar.setOverlaysWebView({ overlay: false });
-          await StatusBar.setStyle({ style: Style.Dark });
-          await StatusBar.setBackgroundColor({ color: '#FFFFFF' });
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) return;
 
-          const permission = await PushNotifications.requestPermissions();
-          if (permission.receive === 'granted') {
-            await PushNotifications.register();
-          }
-        } catch (error) {
-          console.error('Error initializing push notifications:', error);
+      try {
+        const [{ StatusBar, Style }, { PushNotifications }] = await Promise.all([
+          import('@capacitor/status-bar'),
+          import('@capacitor/push-notifications'),
+        ]);
+
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setBackgroundColor({ color: '#FFFFFF' });
+
+        const permission = await PushNotifications.requestPermissions();
+        if (permission.receive === 'granted') {
+          await PushNotifications.register();
         }
+
+        PushNotifications.addListener('registration', (token) => {
+          console.log('Push registration success, token: ' + token.value);
+        });
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Error on registration: ' + JSON.stringify(error));
+        });
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Push received: ' + JSON.stringify(notification));
+        });
+        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+          console.log('Push action performed: ' + JSON.stringify(notification));
+        });
+      } catch (error) {
+        console.error('Error initializing push notifications:', error);
       }
     };
 
     initPush();
-
-    if (Capacitor.isNativePlatform()) {
-      PushNotifications.addListener('registration', (token) => {
-        console.log('Push registration success, token: ' + token.value);
-      });
-
-      PushNotifications.addListener('registrationError', (error) => {
-        console.error('Error on registration: ' + JSON.stringify(error));
-      });
-
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Push received: ' + JSON.stringify(notification));
-      });
-
-      PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('Push action performed: ' + JSON.stringify(notification));
-      });
-    }
   }, []);
 
   return (

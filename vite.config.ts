@@ -24,14 +24,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Performance optimizations
   build: {
-    // Enable source maps for debugging in production
+    // Target modern browsers only - eliminates legacy JS polyfills (~57KB savings)
+    target: ['chrome89', 'firefox89', 'safari15', 'edge89'],
     sourcemap: mode === 'development',
-    // Optimize bundle size
     rollupOptions: {
       output: {
-        // Manual chunk splitting for better caching
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['@tanstack/react-query', 'lucide-react'],
@@ -41,7 +39,6 @@ export default defineConfig(({ mode }) => ({
           forms: ['react-hook-form', 'zod', '@hookform/resolvers'],
           charts: ['recharts'],
         },
-        // Optimize chunk naming for caching
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
           return `js/${facadeModuleId}-[hash].js`;
@@ -60,11 +57,8 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Compress output
     minify: true,
-    // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable CSS code splitting
     cssCodeSplit: true,
   },
   // Optimize dependency pre-bundling
@@ -77,20 +71,14 @@ export default defineConfig(({ mode }) => ({
       'lucide-react',
       '@supabase/supabase-js',
     ],
-    // Force pre-bundling of these packages
     force: mode === 'development',
   },
-  // CSS optimization
   css: {
     devSourcemap: mode === 'development',
   },
-  // Enable esbuild optimizations
   esbuild: {
-    // Remove console and debugger in production
     drop: mode === 'production' ? ['console', 'debugger'] : [],
-    // Enable tree shaking
     treeShaking: true,
-    // Additional optimizations
     minifyIdentifiers: mode === 'production',
     minifySyntax: mode === 'production',
     minifyWhitespace: mode === 'production',

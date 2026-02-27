@@ -16,17 +16,6 @@ import {
   TrendingUp, DollarSign, AlertCircle, CheckCircle, Send
 } from "lucide-react";
 import { supabaseAdmin } from "@/integrations/supabase/adminClient";
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-
-// Extend jsPDF type for autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-    lastAutoTable: { finalY: number };
-  }
-}
 
 interface ExportManagerProps {
   orders: any[];
@@ -105,8 +94,12 @@ const ExportManager = ({ orders, selectedOrderIds, filters }: ExportManagerProps
   const generatePDFInvoice = async (order: any) => {
     try {
       setIsExporting(true);
-      
-      const pdf = new jsPDF();
+
+      const [{ default: jsPDF }, ] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+      const pdf = new jsPDF() as any;
       const pageWidth = pdf.internal.pageSize.width;
       
       // Header
@@ -143,7 +136,7 @@ const ExportManager = ({ orders, selectedOrderIds, filters }: ExportManagerProps
         `₹${toy.unit_price || 0}`
       ]) || [];
       
-      (pdf as any).autoTable({
+      pdf.autoTable({
         startY: 150,
         head: [['#', 'Item', 'Qty', 'Price', 'Total']],
         body: tableData,
@@ -153,7 +146,7 @@ const ExportManager = ({ orders, selectedOrderIds, filters }: ExportManagerProps
       });
       
       // Totals
-      const finalY = (pdf as any).lastAutoTable.finalY + 20;
+      const finalY = pdf.lastAutoTable.finalY + 20;
       pdf.setFontSize(12);
       pdf.text(`Subtotal: ₹${order.total_amount || 0}`, pageWidth - 80, finalY);
       if (order.discount_amount) {
@@ -188,7 +181,9 @@ const ExportManager = ({ orders, selectedOrderIds, filters }: ExportManagerProps
   const generateExcelReport = async (ordersToExport: any[]) => {
     try {
       setIsExporting(true);
-      
+
+      const XLSX = await import('xlsx');
+
       // Prepare data for Excel
       const excelData = ordersToExport.map(order => {
         const customerName = order.custom_user?.first_name || order.custom_user?.last_name 
