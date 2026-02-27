@@ -10,10 +10,6 @@ import { FEATURE_FLAGS } from "@/config/features";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import TestimonialsCarousel from "@/components/TestimonialsCarousel";
 import ToyCarousel from "@/components/ToyCarousel";
-// Critical above-the-fold components — eagerly imported to avoid JS waterfall
-// that adds ~1,900ms Element Render Delay on LCP
-import HeroCarousel from "@/components/HeroCarousel";
-import Header from "@/components/Header";
 
 // Error fallback component for failed imports
 const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErrorBoundary?: () => void }) => (
@@ -33,13 +29,16 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErro
   </div>
 );
 
-// Below-the-fold components — lazy loaded
+
+// Lazy load heavy components for better performance
 const HomeCarousel = React.lazy(() => import("@/components/HomeCarousel"));
 const RideOnToysCarousel = React.lazy(() => import("@/components/RideOnToysCarousel"));
 const Footer = React.lazy(() => import("@/components/Footer"));
 const WhyChooseUs = React.lazy(() => import("@/components/WhyChooseUs"));
+const Header = React.lazy(() => import("@/components/Header"));
 const PremiumPartners = React.lazy(() => import("@/components/PremiumPartners"));
 const CertifiedBy = React.lazy(() => import("@/components/CertifiedBy"));
+const HeroCarousel = React.lazy(() => import("@/components/HeroCarousel"));
 const MobileLayout = React.lazy(() => import("@/components/mobile/MobileLayout"));
 const MobilePullToRefresh = React.lazy(() => import("@/components/mobile/MobilePullToRefresh"));
 
@@ -156,10 +155,18 @@ const Index = () => {
       )}
       
       <div className="min-h-screen bg-cream">
-        <Header />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Suspense fallback={<ComponentLoader text="Loading header..." />}>
+          <Header />
+        </Suspense>
+      </ErrorBoundary>
 
       <main>
-        <HeroCarousel />
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<ComponentLoader text="Loading hero carousel..." />}>
+            <HeroCarousel />
+          </Suspense>
+        </ErrorBoundary>
         <section className="bg-white">
           <ToyCarousel />
           <div ref={rideOnSectionRef}>
