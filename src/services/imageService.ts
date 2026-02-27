@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-import { s3Service } from "./s3Service";
 
 export interface ImageUploadResult {
   success: boolean;
@@ -131,71 +129,32 @@ export const imageService = {
   },
 
   /**
-   * Download an image from a URL and upload it to S3 storage
+   * Download an image from a URL and upload it to S3 storage.
+   * AWS SDK loaded dynamically so it's excluded from the customer-facing bundle.
    */
   async downloadAndUploadImage(imageUrl: string, fileName: string): Promise<ImageUploadResult> {
     try {
-      console.log(`Downloading image from: ${imageUrl}`);
-      
-      // Download the image
       const response = await fetch(imageUrl);
-      if (!response.ok) {
-        return { success: false, error: `Failed to download image: ${response.statusText}` };
-      }
-
+      if (!response.ok) return { success: false, error: `Failed to download image: ${response.statusText}` };
       const blob = await response.blob();
-      
-      // Check if it's actually an image
-      if (!blob.type.startsWith('image/')) {
-        return { success: false, error: 'URL does not point to a valid image' };
-      }
-
-      console.log(`Downloaded image blob, type: ${blob.type}, size: ${blob.size} bytes`);
-
-      // Upload to S3 using the new service
-      const result = await s3Service.uploadBlob(blob, fileName);
-      
-      if (result.success) {
-        console.log(`Successfully uploaded image to S3: ${result.url}`);
-      } else {
-        console.error(`Failed to upload to S3: ${result.error}`);
-      }
-
-      return result;
+      if (!blob.type.startsWith('image/')) return { success: false, error: 'URL does not point to a valid image' };
+      const { s3Service } = await import('./s3Service');
+      return await s3Service.uploadBlob(blob, fileName);
     } catch (error) {
-      const errorMessage = `Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage
-      };
+      return { success: false, error: `Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
 
   /**
-   * Upload a file directly to S3 storage
+   * Upload a file directly to S3 storage.
+   * AWS SDK loaded dynamically so it's excluded from the customer-facing bundle.
    */
   async uploadFile(file: File, fileName?: string): Promise<ImageUploadResult> {
     try {
-      console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
-      
-      // Use S3 service for file upload
-      const result = await s3Service.uploadFile(file, fileName);
-      
-      if (result.success) {
-        console.log(`Successfully uploaded file to S3: ${result.url}`);
-      } else {
-        console.error(`Failed to upload file to S3: ${result.error}`);
-      }
-
-      return result;
+      const { s3Service } = await import('./s3Service');
+      return await s3Service.uploadFile(file, fileName);
     } catch (error) {
-      const errorMessage = `File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error(errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage
-      };
+      return { success: false, error: `File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   },
 

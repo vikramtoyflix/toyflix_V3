@@ -130,20 +130,26 @@ const AnalyticsTracker = () => {
 function App() {
   // Initialize all tracking and performance monitoring
   useEffect(() => {
-    if (FEATURE_FLAGS.GOOGLE_ANALYTICS) {
-      initializeGA();
-      // Also initialize GTM to maintain compatibility with old website tracking
-      initializeGTM();
-    }
-
-    // Initialize Meta Pixel with your existing Pixel ID
-    initializeMetaPixel();
-
-    // Preload critical resources for better performance
+    // Preload critical resources immediately (fonts, images)
     preloadCriticalResources();
 
-    // Monitor Core Web Vitals for SEO insights
+    // Monitor Core Web Vitals immediately (lightweight)
     monitorCoreWebVitals();
+
+    // Defer all analytics until browser is idle to avoid blocking JS execution
+    const initAnalytics = () => {
+      if (FEATURE_FLAGS.GOOGLE_ANALYTICS) {
+        initializeGA();
+        initializeGTM();
+      }
+      initializeMetaPixel();
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(initAnalytics, { timeout: 4000 });
+    } else {
+      setTimeout(initAnalytics, 2000);
+    }
 
     // Initialize Push Notifications
     const initPush = async () => {
