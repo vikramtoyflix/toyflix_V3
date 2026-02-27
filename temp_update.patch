@@ -1,0 +1,92 @@
+--- a/src/components/admin/subscription-management/UserSubscriptionCard.tsx
++++ b/src/components/admin/subscription-management/UserSubscriptionCard.tsx
+@@ -17,7 +17,8 @@ import {
+   Plus,
+   Trash2,
+   MoreVertical,
+   Loader2,
+-  AlertTriangle
++  AlertTriangle,
++  ShoppingCart
+ } from 'lucide-react';
+ import { format, formatDistanceToNow } from 'date-fns';
+ import { 
+@@ -39,6 +40,7 @@ import { Tables } from '@/integrations/supabase/types';
+ import { toast } from 'sonner';
+ import { SubscriptionService } from '@/services/subscriptionService';
+ import { useCustomAuth } from '@/hooks/useCustomAuth';
++import AdminOrderCreationModal from './AdminOrderCreationModal';
+ import SelectionWindowControls from './SelectionWindowControls';
+ 
+ type BaseUser = Tables<'custom_users'>;
+@@ -80,6 +82,7 @@ const UserSubscriptionCard: React.FC<UserSubscriptionCardProps> = ({
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [subscriptionToDelete, setSubscriptionToDelete] = useState<string | null>(null);
+   const [isDeleting, setIsDeleting] = useState(false);
++  const [orderCreationModalOpen, setOrderCreationModalOpen] = useState(false);
+   const { user: currentUser } = useCustomAuth();
+ 
+   const getStatusColor = (status: string) => {
+@@ -128,6 +131,17 @@ const UserSubscriptionCard: React.FC<UserSubscriptionCardProps> = ({
+     setDeleteDialogOpen(true);
+   };
+ 
++  // Add handler for order creation
++  const handleCreateOrder = () => {
++    setOrderCreationModalOpen(true);
++  };
++
++  // Add handler for order creation success
++  const handleOrderCreated = () => {
++    toast.success('Order created successfully!');
++    // Trigger a refresh of the subscription data if needed
++    window.location.reload(); // Or implement a proper refresh mechanism
++  };
++
+   const handleDeleteConfirm = async () => {
+     if (!subscriptionToDelete) return;
+ 
+@@ -215,6 +229,12 @@ const UserSubscriptionCard: React.FC<UserSubscriptionCardProps> = ({
+                     Add Subscription
+                   </DropdownMenuItem>
+                   {activeSubscription && (
++                    <>
++                      <DropdownMenuItem onClick={handleCreateOrder}>
++                        <ShoppingCart className="w-4 h-4 mr-2" />
++                        Create New Order
++                      </DropdownMenuItem>
++                      <DropdownMenuSeparator />
+                     <DropdownMenuItem 
+                       onClick={() => handleDeleteClick(activeSubscription.id)}
+                       className="text-red-600 hover:text-red-700"
+@@ -222,6 +242,7 @@ const UserSubscriptionCard: React.FC<UserSubscriptionCardProps> = ({
+                       <Trash2 className="w-4 h-4 mr-2" />
+                       Delete Active Subscription
+                     </DropdownMenuItem>
++                    </>
+                   )}
+                   {allSubscriptions.length > 1 && (
+                     <>
+@@ -522,6 +543,21 @@ const UserSubscriptionCard: React.FC<UserSubscriptionCardProps> = ({
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
++
++      {/* Admin Order Creation Modal */}
++      {activeSubscription && (
++        <AdminOrderCreationModal
++          open={orderCreationModalOpen}
++          onOpenChange={setOrderCreationModalOpen}
++          userId={user.id}
++          userInfo={{
++            full_name: user.full_name,
++            phone: user.phone,
++            email: user.email
++          }}
++          activeSubscription={activeSubscription}
++          onOrderCreated={handleOrderCreated}
++        />
++      )}
+     </>
+   );
+ };

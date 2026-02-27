@@ -1,0 +1,1647 @@
+[
+  {
+    "timestamp": "2025-06-24T21:05:19.353Z",
+    "type": "info",
+    "message": "🚀 Starting Direct WooCommerce to Staging Migration..."
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.587Z",
+    "type": "success",
+    "message": "Connected to PostgreSQL database"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.616Z",
+    "type": "success",
+    "message": "Found 9 staging tables"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.616Z",
+    "type": "info",
+    "message": "  • migration_batches"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.616Z",
+    "type": "info",
+    "message": "  • migration_summary"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • order_items_staging"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • orders_staging"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • payments_staging"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • product_mapping_summary"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • product_toy_mapping"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • subscriptions_staging"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.617Z",
+    "type": "info",
+    "message": "  • users_staging"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.645Z",
+    "type": "success",
+    "message": "Created migration batch: migration_2025-06-24T21-05-19-352Z"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.645Z",
+    "type": "info",
+    "message": "📝 Phase 1: Migrating users to staging..."
+  },
+  {
+    "timestamp": "2025-06-24T21:05:19.645Z",
+    "type": "info",
+    "message": "Starting to fetch all users from WordPress..."
+  },
+  {
+    "timestamp": "2025-06-24T21:05:21.055Z",
+    "type": "info",
+    "message": "Fetched page 1: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:22.398Z",
+    "type": "info",
+    "message": "Fetched page 2: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:23.738Z",
+    "type": "info",
+    "message": "Fetched page 3: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:25.059Z",
+    "type": "info",
+    "message": "Fetched page 4: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:26.399Z",
+    "type": "info",
+    "message": "Fetched page 5: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:27.861Z",
+    "type": "info",
+    "message": "Fetched page 6: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:29.224Z",
+    "type": "info",
+    "message": "Fetched page 7: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:30.597Z",
+    "type": "info",
+    "message": "Fetched page 8: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:32.035Z",
+    "type": "info",
+    "message": "Fetched page 9: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:33.395Z",
+    "type": "info",
+    "message": "Fetched page 10: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:34.839Z",
+    "type": "info",
+    "message": "Fetched page 11: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:36.336Z",
+    "type": "info",
+    "message": "Fetched page 12: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:37.794Z",
+    "type": "info",
+    "message": "Fetched page 13: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:39.283Z",
+    "type": "info",
+    "message": "Fetched page 14: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:40.799Z",
+    "type": "info",
+    "message": "Fetched page 15: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:42.328Z",
+    "type": "info",
+    "message": "Fetched page 16: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:43.809Z",
+    "type": "info",
+    "message": "Fetched page 17: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:45.330Z",
+    "type": "info",
+    "message": "Fetched page 18: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:46.898Z",
+    "type": "info",
+    "message": "Fetched page 19: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:48.359Z",
+    "type": "info",
+    "message": "Fetched page 20: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:49.924Z",
+    "type": "info",
+    "message": "Fetched page 21: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:51.504Z",
+    "type": "info",
+    "message": "Fetched page 22: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:53.024Z",
+    "type": "info",
+    "message": "Fetched page 23: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:54.901Z",
+    "type": "info",
+    "message": "Fetched page 24: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:56.503Z",
+    "type": "info",
+    "message": "Fetched page 25: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:58.152Z",
+    "type": "info",
+    "message": "Fetched page 26: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:05:59.790Z",
+    "type": "info",
+    "message": "Fetched page 27: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:01.442Z",
+    "type": "info",
+    "message": "Fetched page 28: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:03.141Z",
+    "type": "info",
+    "message": "Fetched page 29: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:04.828Z",
+    "type": "info",
+    "message": "Fetched page 30: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:06.482Z",
+    "type": "info",
+    "message": "Fetched page 31: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:08.263Z",
+    "type": "info",
+    "message": "Fetched page 32: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:09.997Z",
+    "type": "info",
+    "message": "Fetched page 33: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:11.739Z",
+    "type": "info",
+    "message": "Fetched page 34: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:13.493Z",
+    "type": "info",
+    "message": "Fetched page 35: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:15.329Z",
+    "type": "info",
+    "message": "Fetched page 36: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:17.151Z",
+    "type": "info",
+    "message": "Fetched page 37: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:18.971Z",
+    "type": "info",
+    "message": "Fetched page 38: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:20.893Z",
+    "type": "info",
+    "message": "Fetched page 39: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:22.720Z",
+    "type": "info",
+    "message": "Fetched page 40: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:24.539Z",
+    "type": "info",
+    "message": "Fetched page 41: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:26.330Z",
+    "type": "info",
+    "message": "Fetched page 42: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:28.220Z",
+    "type": "info",
+    "message": "Fetched page 43: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:30.410Z",
+    "type": "info",
+    "message": "Fetched page 44: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:32.322Z",
+    "type": "info",
+    "message": "Fetched page 45: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:34.194Z",
+    "type": "info",
+    "message": "Fetched page 46: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:36.179Z",
+    "type": "info",
+    "message": "Fetched page 47: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:38.162Z",
+    "type": "info",
+    "message": "Fetched page 48: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:40.221Z",
+    "type": "info",
+    "message": "Fetched page 49: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:42.204Z",
+    "type": "info",
+    "message": "Fetched page 50: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:44.180Z",
+    "type": "info",
+    "message": "Fetched page 51: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:46.218Z",
+    "type": "info",
+    "message": "Fetched page 52: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:48.239Z",
+    "type": "info",
+    "message": "Fetched page 53: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:50.289Z",
+    "type": "info",
+    "message": "Fetched page 54: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:52.394Z",
+    "type": "info",
+    "message": "Fetched page 55: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:54.532Z",
+    "type": "info",
+    "message": "Fetched page 56: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:56.660Z",
+    "type": "info",
+    "message": "Fetched page 57: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:06:58.824Z",
+    "type": "info",
+    "message": "Fetched page 58: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:01.082Z",
+    "type": "info",
+    "message": "Fetched page 59: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:03.326Z",
+    "type": "info",
+    "message": "Fetched page 60: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:05.577Z",
+    "type": "info",
+    "message": "Fetched page 61: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:07.763Z",
+    "type": "info",
+    "message": "Fetched page 62: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:10.021Z",
+    "type": "info",
+    "message": "Fetched page 63: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:12.295Z",
+    "type": "info",
+    "message": "Fetched page 64: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:14.654Z",
+    "type": "info",
+    "message": "Fetched page 65: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:17.036Z",
+    "type": "info",
+    "message": "Fetched page 66: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:19.310Z",
+    "type": "info",
+    "message": "Fetched page 67: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:21.523Z",
+    "type": "info",
+    "message": "Fetched page 68: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:23.840Z",
+    "type": "info",
+    "message": "Fetched page 69: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:26.149Z",
+    "type": "info",
+    "message": "Fetched page 70: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:28.543Z",
+    "type": "info",
+    "message": "Fetched page 71: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:30.962Z",
+    "type": "info",
+    "message": "Fetched page 72: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:33.347Z",
+    "type": "info",
+    "message": "Fetched page 73: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:35.847Z",
+    "type": "info",
+    "message": "Fetched page 74: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:38.341Z",
+    "type": "info",
+    "message": "Fetched page 75: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:40.795Z",
+    "type": "info",
+    "message": "Fetched page 76: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:43.310Z",
+    "type": "info",
+    "message": "Fetched page 77: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:45.767Z",
+    "type": "info",
+    "message": "Fetched page 78: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:48.317Z",
+    "type": "info",
+    "message": "Fetched page 79: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:50.946Z",
+    "type": "info",
+    "message": "Fetched page 80: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:53.559Z",
+    "type": "info",
+    "message": "Fetched page 81: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:56.116Z",
+    "type": "info",
+    "message": "Fetched page 82: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:07:58.744Z",
+    "type": "info",
+    "message": "Fetched page 83: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:01.392Z",
+    "type": "info",
+    "message": "Fetched page 84: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:04.088Z",
+    "type": "info",
+    "message": "Fetched page 85: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:06.800Z",
+    "type": "info",
+    "message": "Fetched page 86: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:09.534Z",
+    "type": "info",
+    "message": "Fetched page 87: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:12.276Z",
+    "type": "info",
+    "message": "Fetched page 88: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:15.039Z",
+    "type": "info",
+    "message": "Fetched page 89: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:17.740Z",
+    "type": "info",
+    "message": "Fetched page 90: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:20.449Z",
+    "type": "info",
+    "message": "Fetched page 91: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:23.262Z",
+    "type": "info",
+    "message": "Fetched page 92: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:26.192Z",
+    "type": "info",
+    "message": "Fetched page 93: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:29.047Z",
+    "type": "info",
+    "message": "Fetched page 94: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:31.973Z",
+    "type": "info",
+    "message": "Fetched page 95: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:34.812Z",
+    "type": "info",
+    "message": "Fetched page 96: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:37.703Z",
+    "type": "info",
+    "message": "Fetched page 97: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:40.680Z",
+    "type": "info",
+    "message": "Fetched page 98: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:43.646Z",
+    "type": "info",
+    "message": "Fetched page 99: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:46.724Z",
+    "type": "info",
+    "message": "Fetched page 100: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:49.777Z",
+    "type": "info",
+    "message": "Fetched page 101: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:52.876Z",
+    "type": "info",
+    "message": "Fetched page 102: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:55.895Z",
+    "type": "info",
+    "message": "Fetched page 103: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:08:58.951Z",
+    "type": "info",
+    "message": "Fetched page 104: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:01.997Z",
+    "type": "info",
+    "message": "Fetched page 105: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:05.089Z",
+    "type": "info",
+    "message": "Fetched page 106: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:08.263Z",
+    "type": "info",
+    "message": "Fetched page 107: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:11.380Z",
+    "type": "info",
+    "message": "Fetched page 108: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:14.405Z",
+    "type": "info",
+    "message": "Fetched page 109: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:17.753Z",
+    "type": "info",
+    "message": "Fetched page 110: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:21.085Z",
+    "type": "info",
+    "message": "Fetched page 111: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:24.241Z",
+    "type": "info",
+    "message": "Fetched page 112: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:27.450Z",
+    "type": "info",
+    "message": "Fetched page 113: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:30.655Z",
+    "type": "info",
+    "message": "Fetched page 114: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:33.913Z",
+    "type": "info",
+    "message": "Fetched page 115: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:37.298Z",
+    "type": "info",
+    "message": "Fetched page 116: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:40.734Z",
+    "type": "info",
+    "message": "Fetched page 117: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:44.003Z",
+    "type": "info",
+    "message": "Fetched page 118: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:47.380Z",
+    "type": "info",
+    "message": "Fetched page 119: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:50.713Z",
+    "type": "info",
+    "message": "Fetched page 120: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:54.128Z",
+    "type": "info",
+    "message": "Fetched page 121: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:09:57.461Z",
+    "type": "info",
+    "message": "Fetched page 122: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:00.844Z",
+    "type": "info",
+    "message": "Fetched page 123: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:04.269Z",
+    "type": "info",
+    "message": "Fetched page 124: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:07.652Z",
+    "type": "info",
+    "message": "Fetched page 125: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:11.091Z",
+    "type": "info",
+    "message": "Fetched page 126: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:14.605Z",
+    "type": "info",
+    "message": "Fetched page 127: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:18.050Z",
+    "type": "info",
+    "message": "Fetched page 128: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:21.548Z",
+    "type": "info",
+    "message": "Fetched page 129: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:25.103Z",
+    "type": "info",
+    "message": "Fetched page 130: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:28.604Z",
+    "type": "info",
+    "message": "Fetched page 131: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:32.107Z",
+    "type": "info",
+    "message": "Fetched page 132: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:35.603Z",
+    "type": "info",
+    "message": "Fetched page 133: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:39.188Z",
+    "type": "info",
+    "message": "Fetched page 134: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:42.791Z",
+    "type": "info",
+    "message": "Fetched page 135: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:46.398Z",
+    "type": "info",
+    "message": "Fetched page 136: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:50.065Z",
+    "type": "info",
+    "message": "Fetched page 137: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:53.995Z",
+    "type": "info",
+    "message": "Fetched page 138: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:10:57.853Z",
+    "type": "info",
+    "message": "Fetched page 139: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:01.538Z",
+    "type": "info",
+    "message": "Fetched page 140: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:05.273Z",
+    "type": "info",
+    "message": "Fetched page 141: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:08.992Z",
+    "type": "info",
+    "message": "Fetched page 142: 50 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:12.704Z",
+    "type": "info",
+    "message": "Fetched page 143: 10 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:12.704Z",
+    "type": "success",
+    "message": "Total users fetched: 7110"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:12.712Z",
+    "type": "info",
+    "message": "Transformed 7054 valid users out of 7110 total"
+  },
+  {
+    "timestamp": "2025-06-24T21:11:12.712Z",
+    "type": "info",
+    "message": "Inserting 7054 users to staging..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:14.083Z",
+    "type": "info",
+    "message": "Inserted 50 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:15.420Z",
+    "type": "info",
+    "message": "Inserted 100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:16.722Z",
+    "type": "error",
+    "message": "Error inserting user 7283: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:11:16.776Z",
+    "type": "info",
+    "message": "Inserted 150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:18.116Z",
+    "type": "info",
+    "message": "Inserted 200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:19.454Z",
+    "type": "info",
+    "message": "Inserted 250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:20.794Z",
+    "type": "info",
+    "message": "Inserted 300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:22.142Z",
+    "type": "info",
+    "message": "Inserted 350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:23.481Z",
+    "type": "info",
+    "message": "Inserted 400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:24.816Z",
+    "type": "info",
+    "message": "Inserted 450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:26.153Z",
+    "type": "info",
+    "message": "Inserted 500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:27.488Z",
+    "type": "info",
+    "message": "Inserted 550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:28.821Z",
+    "type": "info",
+    "message": "Inserted 600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:30.149Z",
+    "type": "info",
+    "message": "Inserted 650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:31.494Z",
+    "type": "info",
+    "message": "Inserted 700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:32.814Z",
+    "type": "info",
+    "message": "Inserted 750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:34.156Z",
+    "type": "info",
+    "message": "Inserted 800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:35.491Z",
+    "type": "info",
+    "message": "Inserted 850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:36.824Z",
+    "type": "info",
+    "message": "Inserted 900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:38.162Z",
+    "type": "info",
+    "message": "Inserted 950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:39.497Z",
+    "type": "info",
+    "message": "Inserted 1000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:40.827Z",
+    "type": "info",
+    "message": "Inserted 1050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:42.160Z",
+    "type": "info",
+    "message": "Inserted 1100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:43.494Z",
+    "type": "info",
+    "message": "Inserted 1150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:44.826Z",
+    "type": "info",
+    "message": "Inserted 1200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:46.161Z",
+    "type": "info",
+    "message": "Inserted 1250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:47.504Z",
+    "type": "info",
+    "message": "Inserted 1300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:48.838Z",
+    "type": "info",
+    "message": "Inserted 1350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:50.165Z",
+    "type": "info",
+    "message": "Inserted 1400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:51.505Z",
+    "type": "info",
+    "message": "Inserted 1450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:52.836Z",
+    "type": "info",
+    "message": "Inserted 1500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:54.170Z",
+    "type": "info",
+    "message": "Inserted 1550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:55.512Z",
+    "type": "info",
+    "message": "Inserted 1600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:56.847Z",
+    "type": "info",
+    "message": "Inserted 1650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:58.172Z",
+    "type": "info",
+    "message": "Inserted 1700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:11:59.489Z",
+    "type": "info",
+    "message": "Inserted 1750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:00.798Z",
+    "type": "info",
+    "message": "Inserted 1800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:02.111Z",
+    "type": "info",
+    "message": "Inserted 1850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:03.419Z",
+    "type": "info",
+    "message": "Inserted 1900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:04.747Z",
+    "type": "info",
+    "message": "Inserted 1950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:06.094Z",
+    "type": "info",
+    "message": "Inserted 2000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:06.796Z",
+    "type": "error",
+    "message": "Error inserting user 5213: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:07.470Z",
+    "type": "info",
+    "message": "Inserted 2050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:08.823Z",
+    "type": "info",
+    "message": "Inserted 2100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:10.175Z",
+    "type": "info",
+    "message": "Inserted 2150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:11.527Z",
+    "type": "info",
+    "message": "Inserted 2200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:12.881Z",
+    "type": "info",
+    "message": "Inserted 2250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:14.229Z",
+    "type": "info",
+    "message": "Inserted 2300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:15.785Z",
+    "type": "info",
+    "message": "Inserted 2350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:17.359Z",
+    "type": "info",
+    "message": "Inserted 2400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:18.707Z",
+    "type": "info",
+    "message": "Inserted 2450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:20.054Z",
+    "type": "info",
+    "message": "Inserted 2500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:21.395Z",
+    "type": "info",
+    "message": "Inserted 2550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:22.743Z",
+    "type": "info",
+    "message": "Inserted 2600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:24.091Z",
+    "type": "info",
+    "message": "Inserted 2650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:25.423Z",
+    "type": "info",
+    "message": "Inserted 2700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:26.770Z",
+    "type": "info",
+    "message": "Inserted 2750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:28.107Z",
+    "type": "info",
+    "message": "Inserted 2800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:29.448Z",
+    "type": "info",
+    "message": "Inserted 2850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:30.784Z",
+    "type": "info",
+    "message": "Inserted 2900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:32.127Z",
+    "type": "info",
+    "message": "Inserted 2950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:32.470Z",
+    "type": "error",
+    "message": "Error inserting user 4247: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:33.485Z",
+    "type": "info",
+    "message": "Inserted 3000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:34.832Z",
+    "type": "info",
+    "message": "Inserted 3050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:36.175Z",
+    "type": "info",
+    "message": "Inserted 3100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:37.521Z",
+    "type": "info",
+    "message": "Inserted 3150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:38.869Z",
+    "type": "info",
+    "message": "Inserted 3200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:40.210Z",
+    "type": "info",
+    "message": "Inserted 3250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:41.386Z",
+    "type": "error",
+    "message": "Error inserting user 3909: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:41.574Z",
+    "type": "info",
+    "message": "Inserted 3300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:42.926Z",
+    "type": "info",
+    "message": "Inserted 3350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:42.952Z",
+    "type": "error",
+    "message": "Error inserting user 3851: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:43.601Z",
+    "type": "error",
+    "message": "Error inserting user 3827: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:44.340Z",
+    "type": "info",
+    "message": "Inserted 3400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:45.678Z",
+    "type": "info",
+    "message": "Inserted 3450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:47.016Z",
+    "type": "info",
+    "message": "Inserted 3500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:48.358Z",
+    "type": "info",
+    "message": "Inserted 3550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:48.650Z",
+    "type": "error",
+    "message": "Error inserting user 3633: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:48.702Z",
+    "type": "error",
+    "message": "Error inserting user 3631: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:12:49.746Z",
+    "type": "info",
+    "message": "Inserted 3600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:51.071Z",
+    "type": "info",
+    "message": "Inserted 3650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:52.407Z",
+    "type": "info",
+    "message": "Inserted 3700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:53.768Z",
+    "type": "info",
+    "message": "Inserted 3750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:55.118Z",
+    "type": "info",
+    "message": "Inserted 3800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:56.460Z",
+    "type": "info",
+    "message": "Inserted 3850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:57.787Z",
+    "type": "info",
+    "message": "Inserted 3900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:59.129Z",
+    "type": "info",
+    "message": "Inserted 3950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:12:59.766Z",
+    "type": "error",
+    "message": "Error inserting user 3205: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:00.482Z",
+    "type": "info",
+    "message": "Inserted 4000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:01.822Z",
+    "type": "info",
+    "message": "Inserted 4050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:03.204Z",
+    "type": "info",
+    "message": "Inserted 4100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:04.538Z",
+    "type": "info",
+    "message": "Inserted 4150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:05.865Z",
+    "type": "info",
+    "message": "Inserted 4200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:07.190Z",
+    "type": "info",
+    "message": "Inserted 4250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:08.518Z",
+    "type": "info",
+    "message": "Inserted 4300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:09.847Z",
+    "type": "info",
+    "message": "Inserted 4350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:11.123Z",
+    "type": "error",
+    "message": "Error inserting user 2776: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:11.255Z",
+    "type": "info",
+    "message": "Inserted 4400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:12.599Z",
+    "type": "info",
+    "message": "Inserted 4450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:13.947Z",
+    "type": "info",
+    "message": "Inserted 4500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:14.590Z",
+    "type": "error",
+    "message": "Error inserting user 2642: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:15.308Z",
+    "type": "info",
+    "message": "Inserted 4550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:16.633Z",
+    "type": "info",
+    "message": "Inserted 4600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:17.971Z",
+    "type": "info",
+    "message": "Inserted 4650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:19.326Z",
+    "type": "info",
+    "message": "Inserted 4700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:20.669Z",
+    "type": "info",
+    "message": "Inserted 4750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:22.024Z",
+    "type": "info",
+    "message": "Inserted 4800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:22.108Z",
+    "type": "error",
+    "message": "Error inserting user 2352: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:23.628Z",
+    "type": "info",
+    "message": "Inserted 4850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:24.969Z",
+    "type": "info",
+    "message": "Inserted 4900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:26.312Z",
+    "type": "info",
+    "message": "Inserted 4950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:27.874Z",
+    "type": "info",
+    "message": "Inserted 5000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:28.407Z",
+    "type": "error",
+    "message": "Error inserting user 2122: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:28.459Z",
+    "type": "error",
+    "message": "Error inserting user 2120: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:29.484Z",
+    "type": "info",
+    "message": "Inserted 5050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:30.131Z",
+    "type": "error",
+    "message": "Error inserting user 2062: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:30.474Z",
+    "type": "error",
+    "message": "Error inserting user 2048: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:30.876Z",
+    "type": "info",
+    "message": "Inserted 5100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:31.437Z",
+    "type": "error",
+    "message": "Error inserting user 2007: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:32.244Z",
+    "type": "info",
+    "message": "Inserted 5150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:32.538Z",
+    "type": "error",
+    "message": "Error inserting user 1963: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:33.610Z",
+    "type": "info",
+    "message": "Inserted 5200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:34.966Z",
+    "type": "info",
+    "message": "Inserted 5250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:35.883Z",
+    "type": "error",
+    "message": "Error inserting user 1833: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:36.342Z",
+    "type": "info",
+    "message": "Inserted 5300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:36.884Z",
+    "type": "error",
+    "message": "Error inserting user 1793: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:37.715Z",
+    "type": "info",
+    "message": "Inserted 5350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:39.043Z",
+    "type": "info",
+    "message": "Inserted 5400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:40.375Z",
+    "type": "info",
+    "message": "Inserted 5450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:41.709Z",
+    "type": "info",
+    "message": "Inserted 5500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:43.058Z",
+    "type": "info",
+    "message": "Inserted 5550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:44.406Z",
+    "type": "info",
+    "message": "Inserted 5600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:45.754Z",
+    "type": "info",
+    "message": "Inserted 5650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:47.086Z",
+    "type": "info",
+    "message": "Inserted 5700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:48.414Z",
+    "type": "info",
+    "message": "Inserted 5750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:49.737Z",
+    "type": "info",
+    "message": "Inserted 5800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:51.081Z",
+    "type": "info",
+    "message": "Inserted 5850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:52.422Z",
+    "type": "info",
+    "message": "Inserted 5900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:52.823Z",
+    "type": "error",
+    "message": "Error inserting user 1177: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:13:53.796Z",
+    "type": "info",
+    "message": "Inserted 5950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:55.146Z",
+    "type": "info",
+    "message": "Inserted 6000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:56.488Z",
+    "type": "info",
+    "message": "Inserted 6050 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:57.823Z",
+    "type": "info",
+    "message": "Inserted 6100 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:59.152Z",
+    "type": "info",
+    "message": "Inserted 6150 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:13:59.779Z",
+    "type": "error",
+    "message": "Error inserting user 922: duplicate key value violates unique constraint \"users_staging_phone_key\""
+  },
+  {
+    "timestamp": "2025-06-24T21:14:00.735Z",
+    "type": "info",
+    "message": "Inserted 6200 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:02.069Z",
+    "type": "info",
+    "message": "Inserted 6250 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:03.405Z",
+    "type": "info",
+    "message": "Inserted 6300 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:04.737Z",
+    "type": "info",
+    "message": "Inserted 6350 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:06.073Z",
+    "type": "info",
+    "message": "Inserted 6400 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:07.409Z",
+    "type": "info",
+    "message": "Inserted 6450 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:08.762Z",
+    "type": "info",
+    "message": "Inserted 6500 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:10.109Z",
+    "type": "info",
+    "message": "Inserted 6550 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:11.457Z",
+    "type": "info",
+    "message": "Inserted 6600 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:12.798Z",
+    "type": "info",
+    "message": "Inserted 6650 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:14.135Z",
+    "type": "info",
+    "message": "Inserted 6700 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:15.472Z",
+    "type": "info",
+    "message": "Inserted 6750 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:16.812Z",
+    "type": "info",
+    "message": "Inserted 6800 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:18.156Z",
+    "type": "info",
+    "message": "Inserted 6850 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:19.504Z",
+    "type": "info",
+    "message": "Inserted 6900 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:20.849Z",
+    "type": "info",
+    "message": "Inserted 6950 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:22.197Z",
+    "type": "info",
+    "message": "Inserted 7000 users..."
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.066Z",
+    "type": "success",
+    "message": "User staging complete: 7032 successful, 22 failed"
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.875Z",
+    "type": "info",
+    "message": "Built user mapping for 7032 users"
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.901Z",
+    "type": "info",
+    "message": "Updated migration batch status: completed"
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.901Z",
+    "type": "success",
+    "message": "🎉 Staging migration completed!"
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.901Z",
+    "type": "info",
+    "message": "Users: 7032 successful, 22 failed"
+  },
+  {
+    "timestamp": "2025-06-24T21:14:23.901Z",
+    "type": "info",
+    "message": "Orders: 0 successful, 0 failed"
+  }
+]

@@ -1,0 +1,262 @@
+{
+  "project_info": {
+    "project_number": "775054934711",
+    "project_id": "toyflix-ac031",
+    "storage_bucket": "toyflix-ac031.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775054934711:android:4f1f8326b551654a864332",
+        "android_client_info": {
+          "package_name": "com.bommalu.toyrental"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "775054934711-9uihapu5sopq0ip0r18p404hs4dk4ic4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrental",
+            "certificate_hash": "6b96b486b84b6edcaba03adf18ee4a9dd76dc74d"
+          }
+        },
+        {
+          "client_id": "775054934711-9ujird0ipgagj7bi150ji0qrjqhnrc2g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrental",
+            "certificate_hash": "4b6f53bc1be5d5c00017f7f592d6eebf8db95842"
+          }
+        },
+        {
+          "client_id": "775054934711-ahfno90qu2nakbbqvjcnrb21u9eu4ocp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrental",
+            "certificate_hash": "6c2ce626452dbcd0cf2188ad57acbf7c38b19916"
+          }
+        },
+        {
+          "client_id": "775054934711-eephqefsa3iba3ek1112q34e909hj2do.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrental",
+            "certificate_hash": "021fc1d748db2755c4fd9e15a87530c5f2d07aac"
+          }
+        },
+        {
+          "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArvbvPnm0RkJ6VHbqqVmz7YPfLSbOI204"
+        },
+        {
+          "current_key": "AIzaSyD_-4pRDOwKXUoeUG1T0-XHf0i7NZy3jnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "775054934711-1c95c19kj39reavsoh9egndsj890v66r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bommalu.toyrental"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775054934711:android:d59cfe5c5f717478864332",
+        "android_client_info": {
+          "package_name": "com.bommalu.toyrentalapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "775054934711-4g3gr0q4dcigmtslbolnmgjba1o25026.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrentalapp",
+            "certificate_hash": "6fc9ee7367799ecba158898889820e3e3d9b62ed"
+          }
+        },
+        {
+          "client_id": "775054934711-8v6e7cbl46i23joj0vpjnk197sruiq4d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrentalapp",
+            "certificate_hash": "4d4f9141a5cc0dca14459202b6ce8a408b585343"
+          }
+        },
+        {
+          "client_id": "775054934711-cupph04osn87jc36urmn26t79nudv8jk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bommalu.toyrentalapp",
+            "certificate_hash": "972a766c03f32546bf6dae69537c8cd644e2e8e6"
+          }
+        },
+        {
+          "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArvbvPnm0RkJ6VHbqqVmz7YPfLSbOI204"
+        },
+        {
+          "current_key": "AIzaSyD_-4pRDOwKXUoeUG1T0-XHf0i7NZy3jnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "775054934711-1c95c19kj39reavsoh9egndsj890v66r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bommalu.toyrental"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775054934711:android:339dba297a3bafcc864332",
+        "android_client_info": {
+          "package_name": "com.toyflix"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArvbvPnm0RkJ6VHbqqVmz7YPfLSbOI204"
+        },
+        {
+          "current_key": "AIzaSyD_-4pRDOwKXUoeUG1T0-XHf0i7NZy3jnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "775054934711-1c95c19kj39reavsoh9egndsj890v66r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bommalu.toyrental"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775054934711:android:9fec51d4ff86fa1b864332",
+        "android_client_info": {
+          "package_name": "com.toyflix.in"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "775054934711-2nmi56kafuiqhcfqnmna7tf917kdj3i8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toyflix.in",
+            "certificate_hash": "972a766c03f32546bf6dae69537c8cd644e2e8e6"
+          }
+        },
+        {
+          "client_id": "775054934711-6gi2so36k46b6ciq6qgn11cdjdcf83vq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toyflix.in",
+            "certificate_hash": "0649cfd98c2462a62af4657f496a2d4c412dd2d2"
+          }
+        },
+        {
+          "client_id": "775054934711-73qttrcqe1tbfoqdt7822nlj6ko8k9gm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toyflix.in",
+            "certificate_hash": "021fc1d748db2755c4fd9e15a87530c5f2d07aac"
+          }
+        },
+        {
+          "client_id": "775054934711-e0teoej8suk9gm1biio6sfjjdod287oc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toyflix.in",
+            "certificate_hash": "4d4f9141a5cc0dca14459202b6ce8a408b585343"
+          }
+        },
+        {
+          "client_id": "775054934711-ucjhjfbqu7ac7eo6fentipdq6m0f5eit.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toyflix.in",
+            "certificate_hash": "6fc9ee7367799ecba158898889820e3e3d9b62ed"
+          }
+        },
+        {
+          "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArvbvPnm0RkJ6VHbqqVmz7YPfLSbOI204"
+        },
+        {
+          "current_key": "AIzaSyD_-4pRDOwKXUoeUG1T0-XHf0i7NZy3jnc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "775054934711-fb0pjer4jvg1l103r0s30od7e56a7ab5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "775054934711-1c95c19kj39reavsoh9egndsj890v66r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bommalu.toyrental"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

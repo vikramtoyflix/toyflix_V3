@@ -1,0 +1,271 @@
+from flask import Flask, request, jsonify, render_template_string
+import requests
+import json
+
+app = Flask(__name__)
+
+# HTML Template for the UI
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Meta Ads Marketing Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #1877f2; text-align: center; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        textarea, input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #1877f2; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; margin: 10px 0; }
+        button:hover { background: #166fe5; }
+        .result { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 4px; white-space: pre-wrap; }
+        .tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; }
+        .tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; }
+        .tab button:hover { background-color: #ddd; }
+        .tab button.active { background-color: #ccc; }
+        .tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Meta Ads Marketing Bot</h1>
+        
+        <div class="tab">
+            <button class="tablinks" onclick="openTab(event, 'AdAnalysis')">Ad Copy Analysis</button>
+            <button class="tablinks" onclick="openTab(event, 'AdCreation')">Create New Ads</button>
+            <button class="tablinks" onclick="openTab(event, 'Audience')">Audience Targeting</button>
+            <button class="tablinks" onclick="openTab(event, 'Performance')">Performance Review</button>
+        </div>
+
+        <!-- Ad Analysis Tab -->
+        <div id="AdAnalysis" class="tabcontent">
+            <h3>📊 Analyze Ad Copy</h3>
+            <textarea id="adText" rows="6" placeholder="Paste your ad copy here..."></textarea>
+            <button onclick="analyzeAd()">Analyze Ad</button>
+            <div id="adResult" class="result"></div>
+        </div>
+
+        <!-- Ad Creation Tab -->
+        <div id="AdCreation" class="tabcontent">
+            <h3>✨ Create New Ads</h3>
+            <input type="text" id="productName" placeholder="Product/Service Name">
+            <input type="text" id="targetAudience" placeholder="Target Audience (e.g., Women 25-40)">
+            <textarea id="productDetails" rows="4" placeholder="Product details and key benefits..."></textarea>
+            <button onclick="createAd()">Generate Ad Copy</button>
+            <div id="creationResult" class="result"></div>
+        </div>
+
+        <!-- Audience Targeting Tab -->
+        <div id="Audience" class="tabcontent">
+            <h3>🎯 Audience Targeting Strategy</h3>
+            <input type="text" id="businessType" placeholder="Your Business Type">
+            <input type="text" id="budgetRange" placeholder="Budget Range">
+            <button onclick="audienceStrategy()">Get Targeting Strategy</button>
+            <div id="audienceResult" class="result"></div>
+        </div>
+
+        <!-- Performance Review Tab -->
+        <div id="Performance" class="tabcontent">
+            <h3>📈 Performance Review</h3>
+            <textarea id="adMetrics" rows="6" placeholder="Paste your ad metrics (CTR, CPC, Conversion Rate, etc.)"></textarea>
+            <button onclick="analyzePerformance()">Analyze Performance</button>
+            <div id="performanceResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Open first tab by default
+        document.getElementsByClassName("tablinks")[0].click();
+
+        async function analyzeAd() {
+            const text = document.getElementById('adText').value;
+            const response = await fetch('/analyze_ad', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ad_text: text})
+            });
+            const result = await response.json();
+            document.getElementById('adResult').innerText = result.response;
+        }
+
+        async function createAd() {
+            const product = document.getElementById('productName').value;
+            const audience = document.getElementById('targetAudience').value;
+            const details = document.getElementById('productDetails').value;
+            
+            const response = await fetch('/create_ad', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    product: product,
+                    audience: audience,
+                    details: details
+                })
+            });
+            const result = await response.json();
+            document.getElementById('creationResult').innerText = result.response;
+        }
+
+        async function audienceStrategy() {
+            const business = document.getElementById('businessType').value;
+            const budget = document.getElementById('budgetRange').value;
+            
+            const response = await fetch('/audience_strategy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    business: business,
+                    budget: budget
+                })
+            });
+            const result = await response.json();
+            document.getElementById('audienceResult').innerText = result.response;
+        }
+
+        async function analyzePerformance() {
+            const metrics = document.getElementById('adMetrics').value;
+            const response = await fetch('/analyze_performance', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({metrics: metrics})
+            });
+            const result = await response.json();
+            document.getElementById('performanceResult').innerText = result.response;
+        }
+    </script>
+</body>
+</html>
+"""
+
+class OllamaBot:
+    def __init__(self, model="llama3.1:8b"):
+        self.model = model
+        self.base_url = "http://localhost:11434/api"
+    
+    def chat(self, prompt, system_prompt=""):
+        data = {
+            "model": self.model,
+            "prompt": prompt,
+            "system": system_prompt,
+            "stream": False
+        }
+        
+        try:
+            response = requests.post(f"{self.base_url}/generate", json=data)
+            return response.json()["response"]
+        except Exception as e:
+            return f"Error: {e}"
+
+# Initialize the bot
+bot = OllamaBot()
+
+@app.route('/')
+def home():
+    return render_template_string(HTML_TEMPLATE)
+
+@app.route('/analyze_ad', methods=['POST'])
+def analyze_ad():
+    data = request.json
+    system_prompt = "You are a Meta Ads expert specializing in Facebook and Instagram advertising optimization."
+    
+    prompt = f"""
+    Analyze this Meta Ad copy and provide specific feedback:
+    
+    AD COPY: "{data['ad_text']}"
+    
+    Please provide:
+    1. Emotional appeal assessment
+    2. Call-to-action effectiveness
+    3. Target audience suitability
+    4. 3 specific improvement suggestions
+    5. Estimated performance prediction
+    """
+    
+    result = bot.chat(prompt, system_prompt)
+    return jsonify({"response": result})
+
+@app.route('/create_ad', methods=['POST'])
+def create_ad():
+    data = request.json
+    system_prompt = "You are a creative Meta Ads copywriter specializing in high-converting Facebook and Instagram ads."
+    
+    prompt = f"""
+    Create a complete Meta Ad for Facebook/Instagram:
+    
+    Product: {data['product']}
+    Target Audience: {data['audience']}
+    Product Details: {data['details']}
+    
+    Please create:
+    1. Multiple headline options
+    2. Engaging ad copy (2-3 variations)
+    3. Strong call-to-action
+    4. Suggested targeting parameters
+    5. Recommended ad placement strategy
+    """
+    
+    result = bot.chat(prompt, system_prompt)
+    return jsonify({"response": result})
+
+@app.route('/audience_strategy', methods=['POST'])
+def audience_strategy():
+    data = request.json
+    system_prompt = "You are a Meta Ads targeting expert specializing in audience segmentation and budget optimization."
+    
+    prompt = f"""
+    Create a detailed audience targeting strategy for Meta Ads:
+    
+    Business Type: {data['business']}
+    Budget Range: {data['budget']}
+    
+    Please provide:
+    1. Ideal audience demographics
+    2. Interest-based targeting suggestions
+    3. Lookalike audience strategies
+    4. Budget allocation recommendations
+    5. Campaign structure suggestions
+    """
+    
+    result = bot.chat(prompt, system_prompt)
+    return jsonify({"response": result})
+
+@app.route('/analyze_performance', methods=['POST'])
+def analyze_performance():
+    data = request.json
+    system_prompt = "You are a Meta Ads performance analyst specializing in data-driven optimization."
+    
+    prompt = f"""
+    Analyze these Meta Ads performance metrics:
+    
+    METRICS: {data['metrics']}
+    
+    Please provide:
+    1. Performance assessment
+    2. Key areas for improvement
+    3. Optimization recommendations
+    4. Budget adjustment suggestions
+    5. A/B testing ideas
+    """
+    
+    result = bot.chat(prompt, system_prompt)
+    return jsonify({"response": result})
+
+if __name__ == '__main__':
+    print("🚀 Starting Meta Ads Marketing Bot...")
+    print("📧 Open http://localhost:5000 in your browser")
+    app.run(host='0.0.0.0', port=5000, debug=True)
+

@@ -1,0 +1,16 @@
+{
+  "name": "wp-proxy-function",
+  "version": "1.0.0",
+  "description": "Azure Function to proxy WordPress API requests to VM",
+  "main": "index.js",
+  "dependencies": {
+    "http": "*"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": ["azure", "function", "proxy", "wordpress", "mobile-api"],
+  "author": "ToyFlix",
+  "license": "MIT"
+}

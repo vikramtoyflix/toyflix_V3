@@ -1,0 +1,31 @@
+{
+  "name": "toyflix-woocommerce-migration",
+  "version": "1.0.0",
+  "description": "Migration script to transfer WooCommerce data to Supabase",
+  "main": "scripts/woocommerce-migration.js",
+  "scripts": {
+    "migrate": "node scripts/woocommerce-migration.js --combined",
+    "migrate:dry-run": "node scripts/woocommerce-migration.js --dry-run --combined",
+    "migrate:users-only": "node scripts/woocommerce-migration.js --users-only",
+    "migrate:orders-only": "node scripts/woocommerce-migration.js --orders-only",
+    "migrate:subscriptions-only": "node scripts/woocommerce-migration.js --subscriptions-only",
+    "migrate:combined": "node scripts/woocommerce-migration.js --combined",
+    "test-connection": "node scripts/test-migration-connection.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "keywords": [
+    "migration",
+    "woocommerce",
+    "supabase",
+    "toyflix"
+  ],
+  "author": "Toyflix Team",
+  "license": "MIT"
+} 

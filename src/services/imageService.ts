@@ -1,0 +1,219 @@
+import { supabase } from "@/integrations/supabase/client";
+import { s3Service } from "./s3Service";
+
+export interface ImageUploadResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+}
+
+// Default fallback images for different contexts
+const FALLBACK_IMAGES = {
+  toy: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?q=80&w=400&auto=format&fit=crop",
+  carousel: "https://images.unsplash.com/photo-1566844911516-6e309ed5d155?q=80&w=800&auto=format&fit=crop",
+  product: "https://images.unsplash.com/photo-1519619091416-f5d7e5200702?q=80&w=600&auto=format&fit=crop"
+};
+
+export const imageService = {
+  /**
+   * Get a reliable image URL with fallback chain and optimization
+   */
+  getImageUrl(originalUrl: string | null | undefined, context: 'toy' | 'carousel' | 'product' = 'toy'): string {
+    const url = typeof originalUrl === 'string' ? originalUrl.trim() : '';
+    if (!url) {
+      return FALLBACK_IMAGES[context];
+    }
+    const cleanUrl = url;
+    
+    // If it's a local path (starts with / but not //), return it directly
+    if (cleanUrl.startsWith('/') && !cleanUrl.startsWith('//')) {
+      return cleanUrl;
+    }
+    
+    // If it's already a valid Unsplash URL, optimize it
+    if (cleanUrl.includes('unsplash.com')) {
+      return this.optimizeUnsplashUrl(cleanUrl, context);
+    }
+
+    // If it's a Supabase Storage URL, return as-is for now (optimization temporarily disabled)
+    if (cleanUrl.includes('supabase.co/storage/v1/object/public/toy-images/')) {
+      console.log('🔧 Supabase URL (optimization disabled):', cleanUrl);
+      return cleanUrl;
+    }
+
+    // If it looks like a valid URL, return it
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('//')) {
+      return cleanUrl;
+    }
+
+    // Otherwise, log a warning and return fallback
+    console.warn(`ImageService: Invalid URL format "${cleanUrl}". Using fallback for context: ${context}`);
+    return FALLBACK_IMAGES[context];
+  },
+
+  /**
+   * Optimize Supabase Storage URLs with transformations to reduce egress
+   */
+  optimizeSupabaseUrl(url: string, context: 'toy' | 'carousel' | 'product'): string {
+    const sizeMap = {
+      toy: { width: 400, height: 400 },
+      carousel: { width: 800, height: 600 },
+      product: { width: 600, height: 600 }
+    };
+
+    const { width, height } = sizeMap[context];
+    
+    // Add Supabase image transformations to reduce file size and egress
+    // Format: /storage/v1/render/image/public/bucket/path?width=400&height=400&resize=cover&quality=80
+    const transformedUrl = url.replace(
+      '/storage/v1/object/public/toy-images/',
+      `/storage/v1/render/image/public/toy-images/?width=${width}&height=${height}&resize=cover&quality=80&format=webp&`
+    );
+    
+    console.log(`🔧 Optimized Supabase URL: ${url} → ${transformedUrl}`);
+    return transformedUrl;
+  },
+
+  /**
+   * Optimize Unsplash URLs with proper parameters
+   */
+  optimizeUnsplashUrl(url: string, context: 'toy' | 'carousel' | 'product'): string {
+    try {
+      let validUrl = url;
+      if (!validUrl.startsWith('http')) {
+        validUrl = `https://${validUrl.replace(/^\/\//, '')}`;
+      }
+      
+      const urlObj = new URL(validUrl);
+      
+      // Set quality and format parameters
+      urlObj.searchParams.set('q', '80');
+      urlObj.searchParams.set('auto', 'format');
+      urlObj.searchParams.set('fit', 'crop');
+      
+      // Set size based on context
+      switch (context) {
+        case 'carousel':
+          urlObj.searchParams.set('w', '800');
+          urlObj.searchParams.set('h', '400');
+          break;
+        case 'product':
+          urlObj.searchParams.set('w', '600');
+          urlObj.searchParams.set('h', '600');
+          break;
+        default: // toy
+          urlObj.searchParams.set('w', '400');
+          urlObj.searchParams.set('h', '400');
+      }
+      
+      return urlObj.toString();
+    } catch (e) {
+      console.warn(`ImageService: Failed to optimize Unsplash URL "${url}". Using fallback. Error: ${e instanceof Error ? e.message : String(e)}`);
+      return FALLBACK_IMAGES[context];
+    }
+  },
+
+  /**
+   * Get fallback image chain for error handling
+   */
+  getFallbackChain(context: 'toy' | 'carousel' | 'product' = 'toy'): string[] {
+    const primary = FALLBACK_IMAGES[context];
+    const secondary = FALLBACK_IMAGES.toy; // Always fall back to toy image
+    
+    return context === 'toy' ? [primary] : [primary, secondary];
+  },
+
+  /**
+   * Download an image from a URL and upload it to S3 storage
+   */
+  async downloadAndUploadImage(imageUrl: string, fileName: string): Promise<ImageUploadResult> {
+    try {
+      console.log(`Downloading image from: ${imageUrl}`);
+      
+      // Download the image
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        return { success: false, error: `Failed to download image: ${response.statusText}` };
+      }
+
+      const blob = await response.blob();
+      
+      // Check if it's actually an image
+      if (!blob.type.startsWith('image/')) {
+        return { success: false, error: 'URL does not point to a valid image' };
+      }
+
+      console.log(`Downloaded image blob, type: ${blob.type}, size: ${blob.size} bytes`);
+
+      // Upload to S3 using the new service
+      const result = await s3Service.uploadBlob(blob, fileName);
+      
+      if (result.success) {
+        console.log(`Successfully uploaded image to S3: ${result.url}`);
+      } else {
+        console.error(`Failed to upload to S3: ${result.error}`);
+      }
+
+      return result;
+    } catch (error) {
+      const errorMessage = `Image processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(errorMessage);
+      return { 
+        success: false, 
+        error: errorMessage
+      };
+    }
+  },
+
+  /**
+   * Upload a file directly to S3 storage
+   */
+  async uploadFile(file: File, fileName?: string): Promise<ImageUploadResult> {
+    try {
+      console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+      
+      // Use S3 service for file upload
+      const result = await s3Service.uploadFile(file, fileName);
+      
+      if (result.success) {
+        console.log(`Successfully uploaded file to S3: ${result.url}`);
+      } else {
+        console.error(`Failed to upload file to S3: ${result.error}`);
+      }
+
+      return result;
+    } catch (error) {
+      const errorMessage = `File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(errorMessage);
+      return { 
+        success: false, 
+        error: errorMessage
+      };
+    }
+  },
+
+  /**
+   * Get file extension from MIME type
+   */
+  getFileExtension(mimeType: string): string {
+    const extensions: { [key: string]: string } = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/gif': '.gif'
+    };
+    return extensions[mimeType] || '.jpg';
+  },
+
+  /**
+   * Generate a safe filename from toy name
+   */
+  generateSafeFileName(toyName: string): string {
+    return toyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
+};

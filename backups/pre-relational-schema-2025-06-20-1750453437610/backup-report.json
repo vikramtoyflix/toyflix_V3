@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-06-20T21:03:57.708Z",
+  "purpose": "Pre-relational schema deployment backup",
+  "supabase_url": "http://127.0.0.1:54321",
+  "backup_directory": "backups/pre-relational-schema-2025-06-20-1750453437610",
+  "files_created": [
+    "toys-backup.json"
+  ],
+  "next_steps": [
+    "1. Deploy relational schema using: node scripts/deploy-relational-schema.js",
+    "2. Test the new system thoroughly",
+    "3. If rollback needed, restore from these backup files",
+    "4. Keep this backup for at least 30 days"
+  ]
+}

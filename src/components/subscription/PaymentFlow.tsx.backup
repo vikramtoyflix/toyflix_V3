@@ -1,0 +1,1045 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useRazorpay } from '@/hooks/useRazorpay';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
+import { PlanService } from '@/services/planService';
+import { SubscriptionService } from '@/services/subscriptionService';
+import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
+import LocationPicker from '@/components/profile/LocationPicker';
+import { MapPin, CheckCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { fbqTrack } from '@/utils/fbq';
+import { useUserSubscription } from '@/hooks/useUserSubscription';
+import { useCycleStatus } from '@/hooks/useCycleStatus';
+import { getUserSubscriptionPlan, getUserQueuePricing, getSubscriptionPlanDisplay, getUpgradeSuggestion, type QueuePricingInfo } from '@/utils/subscriptionUtils';
+
+interface PaymentFlowProps {
+  selectedPlan: string;
+  selectedToys: any[];
+  ageGroup?: string;
+  rideOnToyId?: string;
+  onBack?: () => void;
+  isCycleCompletionFlow?: boolean;
+  completionReason?: string;
+  isQueueOrder?: boolean;
+  onOrderComplete?: (orderData: any) => void;
+}
+
+export const PaymentFlow: React.FC<PaymentFlowProps> = ({
+  selectedPlan,
+  selectedToys,
+  ageGroup,
+  rideOnToyId,
+  onBack,
+  isCycleCompletionFlow = false,
+  completionReason = '',
+  isQueueOrder = false,
+  onOrderComplete
+}) => {
+  const { initializePayment, isLoading } = useRazorpay();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
+  const { user } = useCustomAuth();
+  const { data: subscriptionData } = useUserSubscription();
+  const { data: cycleStatus } = useCycleStatus();
+  const queryClient = useQueryClient();
+  
+  // Address collection state
+  const [addressData, setAddressData] = useState({
+    first_name: '',
+    last_name: '',
+    address_line1: '',
+    apartment: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    country: 'India',
+    latitude: null as number | null,
+    longitude: null as number | null,
+    plus_code: null as string | null,
+  });
+  const [isUpdatingAddress, setIsUpdatingAddress] = useState(false);
+  
+  // New fields for enhanced checkout
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [isCreatingFreeOrder, setIsCreatingFreeOrder] = useState(false);
+  
+  // Handle ride-on toy payments
+  const isRideOnPayment = !!rideOnToyId;
+
+  // Check if address is complete - NOW INCLUDES NAME AND APARTMENT VALIDATION
+  const isAddressComplete = (addr: any) => {
+    return addr?.first_name?.trim() && 
+           addr?.last_name?.trim() && 
+           addr?.address_line1?.trim() && 
+           addr?.apartment?.trim() && 
+           addr?.city?.trim() && 
+           addr?.state?.trim() && 
+           addr?.zip_code?.trim();
+  };
+
+  // Standardize address for backend compatibility
+  const standardizeShippingAddress = (addr: any) => {
+    return {
+      first_name: addr.first_name?.trim() || '',
+      last_name: addr.last_name?.trim() || '',
+      phone: profile?.phone || '',
+      email: profile?.email || '',
+      address_line1: addr.address_line1?.trim() || '',
+      address_line2: addr.apartment?.trim() || '',
+      city: addr.city?.trim() || '',
+      state: addr.state?.trim() || '',
+      postcode: addr.zip_code?.trim() || '',
+      country: addr.country || 'India',
+      latitude: addr.latitude,
+      longitude: addr.longitude,
+      plus_code: addr.plus_code,
+    };
+  };
+
+  // Initialize address data from profile
+  useEffect(() => {
+    if (profile) {
+      setAddressData({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        address_line1: profile.address_line1 || '',
+        apartment: (profile as any).apartment || (profile as any).address_line2 || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        zip_code: profile.zip_code || (profile as any).postcode || '',
+        country: (profile as any).country || 'India',
+        latitude: profile.latitude,
+        longitude: profile.longitude,
+        plus_code: (profile as any).plus_code || null,
+      });
+    }
+  }, [profile]);
+  
+  const plan = isRideOnPayment 
+    ? { 
+        id: 'ride_on_fixed', 
+        name: 'Ride-On Monthly', 
+        description: 'Single ride-on toy rental with no age restrictions',
+        price: 1999,
+        duration: 1 
+      }
+    : PlanService.getPlan(selectedPlan);
+  
+  if (!plan) {
+    return <div>Plan not found</div>;
+  }
+
+  if (profileLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <span>Loading your profile...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Calculate GST and total amount (ride-on has fixed pricing)
+  const baseAmount = plan.price;
+  const gstAmount = isRideOnPayment ? Math.round(1999 * 18 / 100) : PlanService.calculateGST(baseAmount);
+  const subtotalAmount = isRideOnPayment ? 2359 : PlanService.calculateTotalWithGST(baseAmount);
+  const finalTotalAmount = Math.max(0, subtotalAmount - couponDiscount);
+
+  // Handle location selection from map - SIMPLIFIED
+  const handleLocationSelect = ({ lat, lng, plus_code, addressComponents }: any) => {
+    console.log('🗺️ Location selected:', { lat, lng, plus_code, addressComponents });
+    
+    // Update address data with map selection
+    setAddressData(prev => ({
+      ...prev,
+      address_line1: addressComponents.address_line1 || prev.address_line1,
+      apartment: addressComponents.apartment || prev.apartment,
+      city: addressComponents.city || prev.city,
+      state: addressComponents.state || prev.state,
+      zip_code: addressComponents.zip_code || prev.zip_code,
+      country: addressComponents.country || 'India',
+      latitude: lat,
+      longitude: lng,
+      plus_code: plus_code || null,
+    }));
+    
+    // Show success feedback
+    toast.success('📍 Address retrieved from map! You can edit the details below.');
+    
+    console.log('✅ Address data updated from map');
+  };
+
+  // Auto-save address to profile when complete (but don't switch forms)
+  const handleSaveAddress = async (switchToDisplayMode = true) => {
+    if (!isAddressComplete(addressData)) {
+      return; // Don't save incomplete addresses
+    }
+
+    setIsUpdatingAddress(true);
+    try {
+      await updateProfile.mutateAsync(addressData);
+      console.log('✅ Address auto-saved to profile');
+    } catch (error: any) {
+      console.error('Address auto-save failed:', error);
+      // Don't show error toast for auto-save failures to avoid UX interruption
+    } finally {
+      setIsUpdatingAddress(false);
+    }
+  };
+
+  // Auto-save address when it becomes complete (but don't switch forms during editing)
+  useEffect(() => {
+    if (isAddressComplete(addressData)) {
+      // Auto-save but don't switch to display mode - let user continue editing
+      handleSaveAddress(false);
+    }
+  }, [addressData.first_name, addressData.last_name, addressData.address_line1, addressData.apartment, addressData.city, addressData.state, addressData.zip_code]);
+
+  // Enhanced auto-coupon logic for all subscription flows WITH COMPREHENSIVE ERROR HANDLING
+  useEffect(() => {
+    const applyAutoCoupon = async () => {
+      const logContext = { 
+        userId: user?.id, 
+        selectedPlan, 
+        isCycleCompletionFlow, 
+        appliedCoupon,
+        method: 'applyAutoCoupon'
+      };
+
+      try {
+        console.log('🔍 [AutoCoupon] Starting auto-coupon evaluation:', logContext);
+
+        // VALIDATION: Check if coupon already applied
+        if (appliedCoupon) {
+          console.log('ℹ️ [AutoCoupon] Coupon already applied, skipping:', appliedCoupon);
+          return;
+        }
+
+        // VALIDATION: Check required dependencies
+        if (!subtotalAmount || subtotalAmount <= 0) {
+          console.log('ℹ️ [AutoCoupon] No subtotal amount, skipping auto-coupon');
+          return;
+        }
+
+        if (!selectedPlan) {
+          console.log('ℹ️ [AutoCoupon] No plan selected, skipping auto-coupon');
+          return;
+        }
+
+        // QUEUE ORDER FLOW: Special pricing logic for queue management orders using utility function
+        if (isQueueOrder) {
+          console.log('🎯 [AutoCoupon] Processing queue order flow with utility function');
+          
+          try {
+            // Check if user is authenticated for queue orders
+            if (!user?.id) {
+              console.log('ℹ️ [AutoCoupon] User not authenticated for queue order');
+              return;
+            }
+
+            // Get queue pricing using the utility function
+            const queuePricing = await getUserQueuePricing(user.id, subtotalAmount);
+            
+            console.log('📊 [AutoCoupon] Queue pricing result:', {
+              isFree: queuePricing.isFree,
+              planType: queuePricing.planType,
+              planName: queuePricing.planName,
+              totalAmount: queuePricing.totalAmount,
+              couponCode: queuePricing.couponCode
+            });
+
+            if (queuePricing.isFree) {
+              // Apply automatic coupon for premium plans
+              setCouponDiscount(queuePricing.couponDiscount);
+              setAppliedCoupon(queuePricing.couponCode || 'QUEUE_BYPASS');
+              
+              toast.success(queuePricing.message, {
+                description: "No payment needed for updating your next delivery."
+              });
+              
+            } else {
+              // Show payment required message for Discovery Delight users
+              toast.info(queuePricing.message, {
+                description: "Premium plans include unlimited free queue updates."
+              });
+            }
+            
+            return;
+            
+          } catch (queueError) {
+            console.error('❌ [AutoCoupon] Error in queue order logic:', queueError);
+            // Don't fail the whole process - continue to regular logic
+          }
+        }
+
+        // CYCLE COMPLETION FLOW: Existing logic (keep as-is for backward compatibility)
+        if (isCycleCompletionFlow) {
+          console.log('🚀 [AutoCoupon] Processing cycle completion flow');
+          
+          try {
+            if (selectedPlan === 'silver-pack' || selectedPlan === 'gold-pack') {
+              console.log('✅ [AutoCoupon] Auto-applying cycle completion coupon for:', selectedPlan);
+              setCouponDiscount(subtotalAmount);
+              setAppliedCoupon('CYCLE2025');
+              toast.success(`🎉 Cycle completion coupon auto-applied! Your ${selectedPlan === 'silver-pack' ? 'Silver' : 'Gold'} subscription is now FREE!`);
+              return;
+            } else if (selectedPlan === 'discovery-delight') {
+              console.log('💡 [AutoCoupon] Discovery Delight in cycle completion - requires payment');
+              toast.info('💡 Discovery Delight requires payment • Upgrade to Silver or Gold for FREE cycle completion benefit!');
+              return;
+            } else {
+              console.warn('⚠️ [AutoCoupon] Unknown plan in cycle completion flow:', selectedPlan);
+              return;
+            }
+          } catch (cycleError) {
+            console.error('❌ [AutoCoupon] Error in cycle completion logic:', cycleError);
+            // Don't fail the whole process - just skip cycle completion logic
+          }
+        }
+
+        // SUBSCRIPTION BYPASS FLOW: Enhanced subscription bypass logic for all flows
+        console.log('🔍 [AutoCoupon] Processing subscription bypass flow');
+
+        // VALIDATION: Check if user is authenticated
+        if (!user?.id) {
+          console.log('ℹ️ [AutoCoupon] User not authenticated, skipping subscription bypass');
+          return;
+        }
+
+        // VALIDATION: Check if plan is eligible for bypass
+        if (selectedPlan !== 'silver-pack' && selectedPlan !== 'gold-pack') {
+          console.log('ℹ️ [AutoCoupon] Plan not eligible for bypass:', selectedPlan);
+          return;
+        }
+
+        // ELIGIBILITY CHECK: Check payment eligibility with comprehensive error handling
+        let eligibility: any = null;
+        try {
+          console.log('📋 [AutoCoupon] Checking payment eligibility...');
+          eligibility = await SubscriptionService.checkPaymentEligibility(user.id);
+          
+          if (!eligibility) {
+            console.error('❌ [AutoCoupon] Eligibility check returned null/undefined');
+            return;
+          }
+
+          console.log('📊 [AutoCoupon] Eligibility result:', {
+            requiresPayment: eligibility.requiresPayment,
+            planType: eligibility.planType,
+            isActive: eligibility.isActive,
+            bypassReason: eligibility.bypassReason
+          });
+
+        } catch (eligibilityError) {
+          // NETWORK/API ERROR HANDLING
+          if (eligibilityError instanceof Error) {
+            if (eligibilityError.message.includes('Failed to fetch') || eligibilityError.message.includes('NetworkError')) {
+              console.error('❌ [AutoCoupon] Network error during eligibility check:', eligibilityError.message);
+              toast.warning('Network issue detected. Please check your connection and try again.');
+            } else if (eligibilityError.message.includes('timeout')) {
+              console.error('❌ [AutoCoupon] Timeout error during eligibility check:', eligibilityError.message);
+              toast.warning('Request timed out. Please try again.');
+            } else {
+              console.error('❌ [AutoCoupon] API error during eligibility check:', eligibilityError.message);
+            }
+          } else {
+            console.error('❌ [AutoCoupon] Unknown error during eligibility check:', eligibilityError);
+          }
+          
+          // GRACEFUL FALLBACK: Don't block the payment flow
+          console.log('🔄 [AutoCoupon] Falling back to normal payment flow due to eligibility check error');
+          return;
+        }
+
+        // RESULT PROCESSING: Handle eligibility results
+        if (!eligibility.requiresPayment && eligibility.isActive) {
+          // SUCCESS CASE: User eligible for payment bypass
+          try {
+            console.log('✅ [AutoCoupon] User eligible for subscription bypass:', {
+              planType: eligibility.planType,
+              ageGroup: eligibility.ageGroup,
+              bypassReason: eligibility.bypassReason
+            });
+
+            // VALIDATION: Double-check subtotal amount before applying discount
+            if (subtotalAmount <= 0) {
+              console.error('❌ [AutoCoupon] Invalid subtotal amount when applying bypass:', subtotalAmount);
+              return;
+            }
+
+            // Auto-apply subscription bypass coupon
+            setCouponDiscount(subtotalAmount);
+            setAppliedCoupon('SUBSCRIPTION_BYPASS');
+            
+            // Show success message with plan details
+            const planDisplayName = eligibility.planType?.includes('silver') ? 'Silver Pack' : 
+                                   eligibility.planType?.includes('gold') ? 'Gold Pack PRO' : 
+                                   'Premium Plan';
+            
+            toast.success(`🎉 Using your existing ${planDisplayName} subscription! No payment needed.`, {
+              description: "Your subscription includes free toy selection and delivery."
+            });
+            
+            // Optional: Log age group info if available
+            if (eligibility.ageGroup) {
+              console.log(`📊 [AutoCoupon] Using existing age group: ${eligibility.ageGroup}`);
+            }
+
+          } catch (applyError) {
+            console.error('❌ [AutoCoupon] Error applying subscription bypass coupon:', applyError);
+            toast.error('Failed to apply subscription benefits. Please try refreshing the page.');
+          }
+
+        } else if (eligibility.requiresPayment && eligibility.isActive) {
+          // PAYMENT REQUIRED CASE: User has active subscription but requires payment
+          console.log('💳 [AutoCoupon] User requires payment:', eligibility.bypassReason);
+          
+          // Show helpful message for Discovery Delight users
+          if (eligibility.planType?.includes('discovery')) {
+            console.log('💡 [AutoCoupon] Discovery Delight user - showing upgrade suggestion');
+            toast.info('💡 Discovery Delight requires payment • Consider upgrading to Silver or Gold for free toy selection!');
+          }
+
+        } else {
+          // INELIGIBLE CASE: User not eligible for bypass
+          console.log('⚠️ [AutoCoupon] User not eligible for bypass:', {
+            requiresPayment: eligibility.requiresPayment,
+            isActive: eligibility.isActive,
+            bypassReason: eligibility.bypassReason
+          });
+
+          // Show specific messages based on bypass reason
+          if (eligibility.bypassReason?.includes('expired')) {
+            console.log('⏰ [AutoCoupon] Subscription expired - showing renewal message');
+            toast.info('Your subscription has expired. Please renew to continue enjoying ToyFlix benefits!');
+          } else if (eligibility.bypassReason?.includes('not active')) {
+            console.log('🔒 [AutoCoupon] Subscription not active - showing activation message');
+            toast.info('Please activate your subscription to enjoy free toy selection benefits.');
+          }
+        }
+
+      } catch (error) {
+        // CRITICAL ERROR HANDLING: Handle any unexpected errors
+        console.error('❌ [AutoCoupon] Critical error in auto-coupon logic:', {
+          error: error,
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          context: logContext,
+          timestamp: new Date().toISOString()
+        });
+
+        // SAFE FALLBACK: Don't show technical errors to users
+        console.log('🔄 [AutoCoupon] Graceful fallback to normal payment flow');
+        
+        // Optional: Show a generic message for persistent errors
+        if (error instanceof Error && error.message.includes('Failed to fetch')) {
+          toast.warning('Having trouble verifying subscription status. Payment flow is still available.');
+        }
+      }
+    };
+
+    // EXECUTION: Only run auto-coupon logic if we have required data
+    if (subtotalAmount > 0 && selectedPlan) {
+      console.log('🚀 [AutoCoupon] Starting auto-coupon check with dependencies:', {
+        hasSubtotal: subtotalAmount > 0,
+        hasSelectedPlan: !!selectedPlan,
+        hasUser: !!user?.id,
+        isCycleFlow: isCycleCompletionFlow
+      });
+      
+      applyAutoCoupon();
+    } else {
+      console.log('ℹ️ [AutoCoupon] Skipping auto-coupon - missing dependencies:', {
+        subtotalAmount,
+        selectedPlan,
+        hasUser: !!user?.id
+      });
+    }
+  }, [isCycleCompletionFlow, selectedPlan, appliedCoupon, subtotalAmount, user?.id, isQueueOrder]);
+
+  const handlePayment = async () => {
+    // Ensure name and address are complete before payment
+    if (!isAddressComplete(addressData)) {
+      toast.error('Please provide your name and complete delivery address (including apartment/house number) before proceeding with payment');
+      return;
+    }
+
+    // Fire Meta Pixel AddPaymentInfo event
+    fbqTrack('AddPaymentInfo', {
+      value: finalTotalAmount,
+      currency: 'INR'
+    });
+    
+    // Handle free orders
+    if (finalTotalAmount === 0) {
+      try {
+        setIsCreatingFreeOrder(true);
+        
+        // Import OrderService dynamically to avoid circular imports
+        const { OrderService } = await import('@/services/orderService');
+        
+        let createdOrder;
+        
+        // Handle queue orders differently
+        if (isQueueOrder) {
+          // Use createQueueOrder for queue management orders
+          const queueOrderData = {
+            userId: user.id,
+            originalSubscriptionId: subscriptionData?.subscription?.id || '',
+            selectedToys: selectedToys,
+            ageGroup,
+            totalAmount: finalTotalAmount,
+            baseAmount,
+            gstAmount,
+            couponDiscount,
+            appliedCoupon,
+            deliveryInstructions,
+            shippingAddress: standardizeShippingAddress(addressData),
+            queueOrderType: 'next_cycle' as const,
+            currentPlanId: selectedPlan,
+            cycleNumber: cycleStatus?.days_in_current_cycle || 1
+          };
+          
+          createdOrder = await OrderService.createQueueOrder(queueOrderData);
+        } else {
+          // Use regular createFreeOrder for regular subscriptions
+          const orderData = {
+            userId: user.id,
+            planId: selectedPlan,
+            selectedToys: isRideOnPayment ? [] : selectedToys,
+            rideOnToyId: rideOnToyId,
+            ageGroup,
+            totalAmount: finalTotalAmount,
+            baseAmount,
+            gstAmount,
+            couponDiscount,
+            appliedCoupon,
+            deliveryInstructions,
+            shippingAddress: standardizeShippingAddress(addressData),
+            orderType: isRideOnPayment ? 'ride_on' as const : 'subscription' as const
+          };
+
+          createdOrder = await OrderService.createFreeOrder(orderData);
+        }
+        
+        // Fire Meta Pixel Purchase event
+        fbqTrack('Purchase', {
+          value: finalTotalAmount,
+          currency: 'INR',
+          content_ids: selectedToys.map((t: any) => t.id),
+          num_items: selectedToys.length,
+          content_type: 'product'
+        });
+        
+        // 🎯 CRITICAL FIX: For cycle completion flows, create queue entry to disable "Choose Next Toys" button
+        if (isCycleCompletionFlow && !isRideOnPayment && selectedToys.length > 0 && !isQueueOrder) {
+          try {
+            console.log('🎯 Creating queue entry for cycle completion flow');
+            
+            // Import NextCycleService dynamically to avoid circular imports
+            const { NextCycleService } = await import('@/services/nextCycleService');
+            
+            // Transform selected toys to the format expected by NextCycleService
+            const queueToys = selectedToys.map((toy: any) => ({
+              toy_id: toy.id,
+              name: toy.name,
+              category: toy.category || 'educational',
+              image_url: toy.image_url,
+              unit_price: toy.rental_price || toy.price || 0,
+              total_price: toy.total_price || toy.rental_price || toy.price || 0,
+              quantity: toy.quantity || 1,
+              returned: false
+            }));
+
+            const queueResult = await NextCycleService.queueToysForNextCycle(
+              user.id,
+              queueToys,
+              standardizeShippingAddress(addressData),
+              deliveryInstructions
+            );
+
+            if (queueResult.success) {
+              console.log('✅ Queue entry created successfully for cycle completion');
+            } else {
+              console.warn('⚠️ Queue creation failed (non-critical):', queueResult.message);
+            }
+
+          } catch (queueError) {
+            console.error('⚠️ Queue creation error (non-critical):', queueError);
+            // Don't fail the whole operation if queue creation fails
+          }
+        }
+        
+        // Show appropriate success message
+        const successMessage = isQueueOrder 
+          ? '🎯 Queue updated successfully! Your next delivery has been updated.'
+          : createdOrder.message;
+        
+        toast.success(successMessage);
+        
+        // 🔄 CRITICAL FIX: Invalidate all related caches including queue queries
+        console.log('🔄 Invalidating all related caches after order creation');
+        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['current-rentals'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        
+        // Critical: Invalidate queue-related queries to update dashboard state
+        queryClient.invalidateQueries({ queryKey: ['queued-toys'] });
+        queryClient.invalidateQueries({ queryKey: ['queue-eligibility'] });
+        queryClient.invalidateQueries({ queryKey: ['rental-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['supabase-dashboard'] });
+        
+        // Force immediate refetch
+        queryClient.refetchQueries({ queryKey: ['user-orders', user.id] });
+        queryClient.refetchQueries({ queryKey: ['current-rentals', user.id] });
+        queryClient.refetchQueries({ queryKey: ['queued-toys', user.id] });
+        
+        // Navigate to appropriate confirmation page after brief delay for Azure compatibility
+        setTimeout(() => {
+          if (onOrderComplete) {
+            // For queue orders with callback, pass order data to parent component
+            onOrderComplete({
+              orderId: createdOrder.orderId || `order-${Date.now()}`,
+              orderNumber: createdOrder.orderNumber,
+              shippingAddress: standardizeShippingAddress(addressData),
+              totalAmount: finalTotalAmount,
+              baseAmount,
+              gstAmount,
+              couponDiscount,
+              appliedCoupon,
+              deliveryInstructions,
+              selectedToys,
+              planId: selectedPlan,
+              message: createdOrder.message
+            });
+          } else if (isQueueOrder) {
+            // For queue orders without callback, redirect to queue confirmation page
+            window.location.href = `/order-summary?order_id=${createdOrder.orderId || ''}&type=queue-update`;
+          } else {
+            // For regular orders, use standard order summary
+            window.location.href = `/order-summary?order_id=${createdOrder.orderId || ''}`;
+          }
+        }, 1500);
+        
+      } catch (error: any) {
+        console.error('Error creating order:', error);
+        const errorMessage = isQueueOrder 
+          ? `Failed to update queue: ${error.message}`
+          : `Failed to create order: ${error.message}`;
+        toast.error(errorMessage);
+      } finally {
+        setIsCreatingFreeOrder(false);
+      }
+      return;
+    }
+    
+    await initializePayment({
+      amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
+      currency: 'INR',
+      orderType: 'subscription', // Both regular and ride-on use subscription type
+      orderItems: {
+        planId: selectedPlan,
+        selectedToys: isRideOnPayment ? [] : selectedToys,
+        rideOnToyId: rideOnToyId,
+        ageGroup,
+        baseAmount,
+        gstAmount,
+        totalAmount: finalTotalAmount,
+        appliedCoupon,
+        couponDiscount,
+        deliveryInstructions,
+        shippingAddress: standardizeShippingAddress(addressData),
+        isCycleCompletionFlow: isCycleCompletionFlow,
+        completionReason: completionReason
+      },
+      description: `${isRideOnPayment ? 'Ride-On Toy Rental' : 'Subscription'} to ${plan.name} (including GST)`
+    });
+  };
+
+  // Coupon validation function
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const code = couponCode.trim().toLowerCase();
+    
+    // Cycle completion and testing team coupon codes
+    if (code === 'freecode' || code === 'testfree' || code === 'qa2025' || code === 'cycle2025') {
+      // For cycle completion coupon, check plan eligibility
+      if (code === 'cycle2025' && selectedPlan === 'discovery-delight') {
+        toast.error('Cycle completion coupon is only valid for Silver and Gold plans. Discovery Delight requires payment.');
+        setIsApplyingCoupon(false);
+        return;
+      }
+      
+      setCouponDiscount(subtotalAmount);
+      setAppliedCoupon(code.toUpperCase());
+      toast.success(code === 'cycle2025' 
+        ? '🎉 Cycle completion coupon applied! Your subscription is now FREE!' 
+        : '🎉 Coupon applied! Your order is now FREE!');
+    } else if (code === 'onerupee') {
+      // Special coupon for Razorpay testing - makes total exactly ₹1
+      const discountToMakeOneRupee = subtotalAmount - 1; // Leave exactly ₹1
+      if (discountToMakeOneRupee > 0) {
+        setCouponDiscount(discountToMakeOneRupee);
+        setAppliedCoupon('ONERUPEE');
+        toast.success('🎉 Test coupon applied! Total is now ₹1 for Razorpay testing!');
+      } else {
+        toast.error('Order amount is already ₹1 or less. This coupon is not applicable.');
+      }
+    } else if (code === 'test50') {
+      const discount = Math.min(subtotalAmount * 0.5, subtotalAmount);
+      setCouponDiscount(discount);
+      setAppliedCoupon('TEST50');
+      toast.success('🎉 50% discount applied!');
+    } else if (code === 'test200') {
+      const discount = Math.min(200, subtotalAmount);
+      setCouponDiscount(discount);
+      setAppliedCoupon('TEST200');
+      toast.success('🎉 ₹200 discount applied!');
+    } else {
+      toast.error('Invalid coupon code. Please check the code and try again.');
+    }
+    
+    setIsApplyingCoupon(false);
+  };
+
+  const removeCoupon = () => {
+    setCouponDiscount(0);
+    setAppliedCoupon(null);
+    setCouponCode('');
+    toast.success('Coupon removed');
+  };
+
+  return (
+    <Card>
+      <CardHeader className={finalTotalAmount === 0 ? 'bg-gradient-to-r from-green-50 to-emerald-50' : ''}>
+        <CardTitle className={`flex items-center gap-2 ${finalTotalAmount === 0 ? 'text-green-800' : ''}`}>
+          {finalTotalAmount === 0 && appliedCoupon === 'SUBSCRIPTION_BYPASS' ? (
+            <>
+              <span className="text-green-600">✨</span>
+              {isQueueOrder ? "Update Next Delivery" : "Complete Your Subscription Order"}
+              <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 ml-2">
+                FREE
+              </div>
+            </>
+          ) : finalTotalAmount === 0 && appliedCoupon === 'QUEUE_BYPASS' ? (
+            <>
+              <span className="text-green-600">🎯</span>
+              Update Next Delivery
+              <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 ml-2">
+                FREE
+              </div>
+            </>
+          ) : finalTotalAmount === 0 ? (
+            <>
+              <span className="text-green-600">🎉</span>
+              {isQueueOrder ? "Update Next Delivery" : "Complete Your Free Order"}
+            </>
+          ) : (
+            isQueueOrder ? "Update Next Delivery" : "Complete Your Payment"
+          )}
+        </CardTitle>
+        {finalTotalAmount === 0 && appliedCoupon === 'SUBSCRIPTION_BYPASS' && (
+          <p className="text-sm text-green-600 mt-1">
+            {isQueueOrder ? "Using your existing subscription benefits for queue update" : "Using your existing subscription benefits"}
+          </p>
+        )}
+        {finalTotalAmount === 0 && appliedCoupon === 'QUEUE_BYPASS' && (
+          <p className="text-sm text-green-600 mt-1">
+            Your premium subscription includes free queue modifications
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Plan Information */}
+        <div className="border rounded-lg p-4">
+          <h3 className="font-semibold">{plan.name}</h3>
+          <p className="text-sm text-gray-600">{plan.description}</p>
+          <div className="mt-2">
+            <span className="text-lg font-bold">₹{plan.price}</span>
+            <span className="text-sm text-gray-600">/{plan.duration === 1 ? 'month' : `${plan.duration} months`}</span>
+          </div>
+        </div>
+
+        {/* Selected Toys Display */}
+        {(selectedToys.length > 0 || isRideOnPayment) && (
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold mb-2">
+              {isRideOnPayment ? 'Ride-On Toy' : `Selected Toys (${selectedToys.length})`}
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              {isRideOnPayment ? (
+                <div className="text-sm col-span-2">
+                  🏍️ Ride-On Toy (ID: {rideOnToyId})
+                  <div className="text-xs text-gray-500 mt-1">No age restrictions • Premium quality</div>
+                </div>
+              ) : (
+                selectedToys.map((toy) => (
+                  <div key={toy.id} className="text-sm">
+                    {toy.name}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Queue Order Banner */}
+        {isQueueOrder && (
+          <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🎯</span>
+              <div>
+                <h4 className="font-semibold text-blue-800">Queue Management Order</h4>
+                <p className="text-sm text-blue-700">
+                  {selectedPlan === 'discovery-delight' 
+                    ? '💡 Discovery Delight requires payment for queue updates • Upgrade to Silver or Gold for FREE queue modifications!'
+                    : appliedCoupon === 'QUEUE_BYPASS' 
+                    ? `🎉 Your ${selectedPlan === 'silver-pack' ? 'Silver Pack' : 'Gold Pack PRO'} subscription includes FREE queue updates!`
+                    : `Updating your next delivery queue with ${selectedPlan === 'silver-pack' ? 'Silver Pack' : 'Gold Pack PRO'} benefits`}
+                </p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    <span>Queue modification</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    <span>Next delivery update</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    <span>Priority processing</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Customer Address Section - Simplified for space */}
+        <div className="border rounded-lg p-4 bg-blue-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <h4 className="font-semibold text-blue-900">Customer Details & Delivery Address</h4>
+            </div>
+            {isAddressComplete(addressData) && (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600">Details complete</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-4 p-4 border border-blue-200 rounded-md bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input
+                  id="first_name"
+                  value={addressData.first_name}
+                  onChange={(e) => setAddressData({...addressData, first_name: e.target.value})}
+                  placeholder="Enter your first name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input
+                  id="last_name"
+                  value={addressData.last_name}
+                  onChange={(e) => setAddressData({...addressData, last_name: e.target.value})}
+                  placeholder="Enter your last name"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="address_line1">Street Address *</Label>
+                <Input
+                  id="address_line1"
+                  value={addressData.address_line1}
+                  onChange={(e) => setAddressData({...addressData, address_line1: e.target.value})}
+                  placeholder="Enter your street address"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="apartment">House/Flat Number *</Label>
+                <Input
+                  id="apartment"
+                  value={addressData.apartment}
+                  onChange={(e) => setAddressData({...addressData, apartment: e.target.value})}
+                  placeholder="House number, flat number, or apartment"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  value={addressData.city}
+                  onChange={(e) => setAddressData({...addressData, city: e.target.value})}
+                  placeholder="City"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="state">State *</Label>
+                <Input
+                  id="state"
+                  value={addressData.state}
+                  onChange={(e) => setAddressData({...addressData, state: e.target.value})}
+                  placeholder="State"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="zip_code">PIN Code *</Label>
+                <Input
+                  id="zip_code"
+                  value={addressData.zip_code}
+                  onChange={(e) => setAddressData({...addressData, zip_code: e.target.value})}
+                  placeholder="PIN Code"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="delivery_instructions">Delivery Instructions (Optional)</Label>
+              <Textarea
+                id="delivery_instructions"
+                value={deliveryInstructions}
+                onChange={(e) => setDeliveryInstructions(e.target.value)}
+                className="min-h-[60px] resize-none"
+                placeholder="Any specific delivery instructions..."
+                maxLength={500}
+              />
+            </div>
+
+            {/* Address completion status */}
+            <div className="flex items-center gap-2 p-2 rounded text-sm">
+              {isAddressComplete(addressData) ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 p-2 rounded border border-green-200">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Address is complete and ready for delivery</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                  <span>Please complete all required fields</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Breakdown */}
+        <div className={`border rounded-lg p-4 ${finalTotalAmount === 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <h4 className="font-semibold">
+              {finalTotalAmount === 0 ? (isQueueOrder ? 'Queue Update Benefits' : 'Subscription Benefits Applied') : 'Payment Breakdown'}
+            </h4>
+            {finalTotalAmount === 0 && (appliedCoupon === 'SUBSCRIPTION_BYPASS' || appliedCoupon === 'QUEUE_BYPASS') && (
+              <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <span className="text-green-600 mr-1">✨</span>
+                {appliedCoupon === 'QUEUE_BYPASS' ? 'Queue Benefit' : 'Subscription Benefit'}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Plan Amount:</span>
+              <span>₹{baseAmount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>GST (18%):</span>
+              <span>₹{gstAmount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span>₹{subtotalAmount}</span>
+            </div>
+            {couponDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount ({appliedCoupon}):</span>
+                <span>-₹{couponDiscount}</span>
+              </div>
+            )}
+            <div className="border-t pt-2 mt-2">
+              <div className="flex justify-between font-semibold text-base">
+                <span>Total Amount:</span>
+                <span className={finalTotalAmount === 0 ? 'text-green-600' : ''}>
+                  ₹{finalTotalAmount}
+                  {finalTotalAmount === 0 && ' (FREE!)'}
+                </span>
+              </div>
+              {finalTotalAmount === 0 && (appliedCoupon === 'SUBSCRIPTION_BYPASS' || appliedCoupon === 'QUEUE_BYPASS') && (
+                <div className="mt-2 p-2 bg-green-100 rounded-md">
+                  <p className="text-xs text-green-700 text-center">
+                    <span className="font-medium">You're saving ₹{subtotalAmount}!</span> {isQueueOrder ? 'Queue update is covered by your subscription.' : 'This order is covered by your subscription benefits.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between pt-4">
+          <Button variant="outline" onClick={onBack} disabled={!onBack}>
+            Back
+          </Button>
+          <Button 
+            onClick={handlePayment}
+            disabled={isCreatingFreeOrder || !isAddressComplete(addressData)}
+            className={`${!isAddressComplete(addressData) ? 'opacity-50' : ''} ${finalTotalAmount === 0 ? 'bg-green-600 hover:bg-green-700' : ''}`}
+          >
+            {isCreatingFreeOrder ? 'Processing...' : 
+             !isAddressComplete(addressData) ? 'Complete Address to Continue' :
+             finalTotalAmount === 0 ? (isQueueOrder ? '🎯 Confirm Queue Update' : '🎉 Confirm Free Order') :
+             isQueueOrder ? `Update Queue - ₹${finalTotalAmount}` : `Pay ₹${finalTotalAmount}`}
+          </Button>
+        </div>
+        
+        {!isAddressComplete(addressData) && (
+          <p className="text-sm text-amber-600 text-center mt-2">
+            📝 Please complete your delivery address details to proceed
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PaymentFlow;

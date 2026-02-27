@@ -1,0 +1,533 @@
+# Customer Details API Response Structure
+
+**Base URL:** `http://4.213.183.90:3001`  
+**API Version:** v1  
+**Status:** Active ✅
+
+---
+
+## Table of Contents
+- [Health Check](#health-check)
+- [Get User by Phone](#get-user-by-phone)
+- [Get User by Email](#get-user-by-email)
+- [Get User by ID](#get-user-by-id)
+- [Get User Subscription Cycle](#get-user-subscription-cycle)
+- [Get User Current Toys](#get-user-current-toys)
+- [Get User Subscription History](#get-user-subscription-history)
+- [Get Complete User Subscription Info](#get-complete-user-subscription-info)
+- [Error Response Format](#error-response-format)
+- [Data Field Descriptions](#data-field-descriptions)
+
+---
+
+## Health Check
+
+**Endpoint:** `GET /health`
+
+**Description:** Check API and database connectivity status.
+
+### Response Structure
+```json
+{
+  "status": "OK",
+  "timestamp": "2025-06-28T03:09:36.172Z",
+  "database": "Connected"
+}
+```
+
+### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | API status ("OK" or error message) |
+| `timestamp` | string | ISO 8601 timestamp of the check |
+| `database` | string | Database connection status |
+
+---
+
+## Get User by Phone
+
+**Endpoint:** `GET /api/woocommerce?action=getUserByPhone&phone={phone}`
+
+**Description:** Retrieve user details by phone number.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserByPhone" |
+| `phone` | string | Yes | Phone number (with or without country code) |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": {
+    "ID": 1,
+    "user_login": "toyflixdev",
+    "user_pass": "$wp$2y$10$DeKHtYmi/eRJgxZTcAYrUOdf2dxYqDQx139jE/qBfxugkRRDZnp7u",
+    "user_nicename": "toyflixdev",
+    "user_email": "subletsolution@gmail.com",
+    "user_url": "http://localhost/toyflixdev",
+    "user_registered": "2024-03-29T05:33:07.000Z",
+    "user_activation_key": "",
+    "user_status": 0,
+    "display_name": "Vikram",
+    "billing_first_name": "vikram testing",
+    "billing_last_name": "vikram testing",
+    "billing_email": "subletsolution@gmail.com",
+    "billing_phone": "7760108610"
+  }
+}
+```
+
+### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `ID` | integer | WordPress user ID |
+| `user_login` | string | WordPress username |
+| `user_pass` | string | Hashed password |
+| `user_nicename` | string | URL-friendly username |
+| `user_email` | string | User's email address |
+| `user_url` | string | User's website URL |
+| `user_registered` | string | Registration date (ISO 8601) |
+| `user_activation_key` | string | Account activation key |
+| `user_status` | integer | User status (0 = active) |
+| `display_name` | string | Display name |
+| `billing_first_name` | string | Billing first name |
+| `billing_last_name` | string | Billing last name |
+| `billing_email` | string | Billing email |
+| `billing_phone` | string | Billing phone number |
+
+---
+
+## Get User by Email
+
+**Endpoint:** `GET /api/woocommerce?action=getUserByEmail&email={email}`
+
+**Description:** Retrieve user details by email address.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserByEmail" |
+| `email` | string | Yes | User's email address |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": {
+    "ID": 1,
+    "user_login": "toyflixdev",
+    "user_pass": "$wp$2y$10$DeKHtYmi/eRJgxZTcAYrUOdf2dxYqDQx139jE/qBfxugkRRDZnp7u",
+    "user_nicename": "toyflixdev",
+    "user_email": "subletsolution@gmail.com",
+    "user_url": "http://localhost/toyflixdev",
+    "user_registered": "2024-03-29T05:33:07.000Z",
+    "user_activation_key": "",
+    "user_status": 0,
+    "display_name": "Vikram",
+    "billing_first_name": "vikram testing",
+    "billing_last_name": "vikram testing",
+    "billing_email": "subletsolution@gmail.com",
+    "billing_phone": "7760108610"
+  }
+}
+```
+
+**Note:** Response structure is identical to "Get User by Phone"
+
+---
+
+## Get User by ID
+
+**Endpoint:** `GET /api/woocommerce?action=getUserById&userId={userId}`
+
+**Description:** Retrieve user details by WordPress user ID.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserById" |
+| `userId` | integer | Yes | WordPress user ID |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": {
+    "ID": 1,
+    "user_login": "toyflixdev",
+    "user_pass": "$wp$2y$10$DeKHtYmi/eRJgxZTcAYrUOdf2dxYqDQx139jE/qBfxugkRRDZnp7u",
+    "user_nicename": "toyflixdev",
+    "user_email": "subletsolution@gmail.com",
+    "user_url": "http://localhost/toyflixdev",
+    "user_registered": "2024-03-29T05:33:07.000Z",
+    "user_activation_key": "",
+    "user_status": 0,
+    "display_name": "Vikram",
+    "billing_first_name": "vikram testing",
+    "billing_last_name": "vikram testing",
+    "billing_email": "subletsolution@gmail.com",
+    "billing_phone": "7760108610"
+  }
+}
+```
+
+**Note:** Response structure is identical to "Get User by Phone"
+
+---
+
+## Get User Subscription Cycle
+
+**Endpoint:** `GET /api/woocommerce?action=getUserSubscriptionCycle&userId={userId}`
+
+**Description:** Retrieve user's subscription cycle information.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserSubscriptionCycle" |
+| `userId` | integer | Yes | WordPress user ID |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "user_id": 1,
+      "user_login": "toyflixdev",
+      "user_email": "subletsolution@gmail.com",
+      "display_name": "Vikram",
+      "order_id": 26739,
+      "order_title": "Order &ndash; March 20, 2025 @ 05:24 PM",
+      "order_date": "2025-03-20T17:24:54.000Z",
+      "order_status": "wc-processing",
+      "subscription_name": "Trial Plan",
+      "subscription_status": "Active",
+      "subscription_months": "6",
+      "first_purchase_date": "2025-03-20",
+      "completed_date": null
+    }
+  ]
+}
+```
+
+### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `user_id` | integer | WordPress user ID |
+| `user_login` | string | WordPress username |
+| `user_email` | string | User's email address |
+| `display_name` | string | User's display name |
+| `order_id` | integer | WooCommerce order ID |
+| `order_title` | string | Order title |
+| `order_date` | string | Order creation date (ISO 8601) |
+| `order_status` | string | Order status (wc-processing, wc-completed, etc.) |
+| `subscription_name` | string | Subscription plan name |
+| `subscription_status` | string | Subscription status (Active, Paused, Cancelled, etc.) |
+| `subscription_months` | string | Total subscription months |
+| `first_purchase_date` | string | First purchase date (YYYY-MM-DD) |
+| `completed_date` | string | Order completion date (null if not completed) |
+
+---
+
+## Get User Current Toys
+
+**Endpoint:** `GET /api/woocommerce?action=getUserCurrentToys&userId={userId}`
+
+**Description:** Retrieve user's current toys and products.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserCurrentToys" |
+| `userId` | integer | Yes | WordPress user ID |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "user_id": 1,
+      "user_login": "toyflixdev",
+      "user_email": "subletsolution@gmail.com",
+      "order_id": 26739,
+      "order_date": "2025-03-20T17:24:54.000Z",
+      "subscription_name": "Trial Plan",
+      "subscription_status": "Active",
+      "toy_name": "6 Month Plan PRO",
+      "product_id": "7827",
+      "quantity": "1",
+      "total_price": "0",
+      "product_title": "6 Month Plan PRO",
+      "product_description": "<ul>\r\n \t<li>3 toys +1 book +1 activity book</li>\r\n \t<li>All age group all toys available</li>\r\n \t<li>Select from 180 toys and 60 books</li>\r\n \t<li>1 big toy each month across all ages</li>\r\n \t<li>Toys worth 10,000/- to 15,000/- each month</li>\r\n \t<li>Price: 7999 + GST</li>\r\n</ul>"
+    },
+    {
+      "user_id": 1,
+      "user_login": "toyflixdev",
+      "user_email": "subletsolution@gmail.com",
+      "order_id": 26739,
+      "order_date": "2025-03-20T17:24:54.000Z",
+      "subscription_name": "Trial Plan",
+      "subscription_status": "Active",
+      "toy_name": "Foosball Table",
+      "product_id": "8295",
+      "quantity": "1",
+      "total_price": "0",
+      "product_title": "Foosball Table",
+      "product_description": ""
+    }
+  ]
+}
+```
+
+### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `user_id` | integer | WordPress user ID |
+| `user_login` | string | WordPress username |
+| `user_email` | string | User's email address |
+| `order_id` | integer | WooCommerce order ID |
+| `order_date` | string | Order creation date (ISO 8601) |
+| `subscription_name` | string | Subscription plan name |
+| `subscription_status` | string | Subscription status |
+| `toy_name` | string | Product/toy name |
+| `product_id` | string | WooCommerce product ID |
+| `quantity` | string | Quantity ordered |
+| `total_price` | string | Total price for this item |
+| `product_title` | string | Product title |
+| `product_description` | string | Product description (HTML) |
+
+---
+
+## Get User Subscription History
+
+**Endpoint:** `GET /api/woocommerce?action=getUserSubscriptionHistory&userId={userId}`
+
+**Description:** Retrieve user's complete subscription history.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getUserSubscriptionHistory" |
+| `userId` | integer | Yes | WordPress user ID |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "user_id": 1,
+      "user_login": "toyflixdev",
+      "user_email": "subletsolution@gmail.com",
+      "order_id": 26739,
+      "order_title": "Order &ndash; March 20, 2025 @ 05:24 PM",
+      "order_date": "2025-03-20T17:24:54.000Z",
+      "order_status": "wc-processing",
+      "subscription_name": "Trial Plan",
+      "subscription_status": "Active",
+      "subscription_months": "6",
+      "first_purchase_date": "2025-03-20"
+    }
+  ]
+}
+```
+
+**Note:** Response structure is similar to "Get User Subscription Cycle" but may include multiple orders
+
+---
+
+## Get Complete User Subscription Info
+
+**Endpoint:** `GET /api/woocommerce?action=getCompleteUserSubscriptionInfo&userId={userId}`
+
+**Description:** Retrieve comprehensive user information including subscription details, current toys, and history.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be "getCompleteUserSubscriptionInfo" |
+| `userId` | integer | Yes | WordPress user ID |
+
+### Response Structure
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "username": "toyflixdev",
+      "email": "subletsolution@gmail.com",
+      "firstName": "vikram testing",
+      "lastName": "vikram testing",
+      "phone": "7760108610",
+      "billingAddress": {
+        "firstName": "vikram testing",
+        "lastName": "vikram testing",
+        "email": "subletsolution@gmail.com",
+        "phone": "7760108610"
+      }
+    },
+    "subscriptionCycle": {
+      "user_id": 1,
+      "user_login": "toyflixdev",
+      "user_email": "subletsolution@gmail.com",
+      "display_name": "Vikram",
+      "order_id": 26739,
+      "order_title": "Order &ndash; March 20, 2025 @ 05:24 PM",
+      "order_date": "2025-03-20T17:24:54.000Z",
+      "order_status": "wc-processing",
+      "subscription_name": "Trial Plan",
+      "subscription_status": "Active",
+      "subscription_months": "6",
+      "first_purchase_date": "2025-03-20",
+      "completed_date": null
+    },
+    "currentToys": [
+      {
+        "user_id": 1,
+        "user_login": "toyflixdev",
+        "user_email": "subletsolution@gmail.com",
+        "order_id": 26739,
+        "order_date": "2025-03-20T17:24:54.000Z",
+        "subscription_name": "Trial Plan",
+        "subscription_status": "Active",
+        "toy_name": "6 Month Plan PRO",
+        "product_id": "7827",
+        "quantity": "1",
+        "total_price": "0",
+        "product_title": "6 Month Plan PRO",
+        "product_description": "<ul>\r\n \t<li>3 toys +1 book +1 activity book</li>\r\n \t<li>All age group all toys available</li>\r\n \t<li>Select from 180 toys and 60 books</li>\r\n \t<li>1 big toy each month across all ages</li>\r\n \t<li>Toys worth 10,000/- to 15,000/- each month</li>\r\n \t<li>Price: 7999 + GST</li>\r\n</ul>"
+      }
+    ],
+    "subscriptionHistory": [
+      {
+        "user_id": 1,
+        "user_login": "toyflixdev",
+        "user_email": "subletsolution@gmail.com",
+        "order_id": 26739,
+        "order_title": "Order &ndash; March 20, 2025 @ 05:24 PM",
+        "order_date": "2025-03-20T17:24:54.000Z",
+        "order_status": "wc-processing",
+        "subscription_name": "Trial Plan",
+        "subscription_status": "Active",
+        "subscription_months": "6",
+        "first_purchase_date": "2025-03-20"
+      }
+    ],
+    "totalOrders": 1,
+    "totalSubscriptionOrders": 1
+  }
+}
+```
+
+### Field Descriptions
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | object | User basic information |
+| `user.id` | integer | WordPress user ID |
+| `user.username` | string | WordPress username |
+| `user.email` | string | User's email address |
+| `user.firstName` | string | User's first name |
+| `user.lastName` | string | User's last name |
+| `user.phone` | string | User's phone number |
+| `user.billingAddress` | object | Billing address information |
+| `subscriptionCycle` | object | Current subscription cycle details |
+| `currentToys` | array | Array of current toys/products |
+| `subscriptionHistory` | array | Array of subscription history |
+| `totalOrders` | integer | Total number of orders |
+| `totalSubscriptionOrders` | integer | Total number of subscription orders |
+
+---
+
+## Error Response Format
+
+When an error occurs, the API returns:
+
+```json
+{
+  "success": false,
+  "error": "Error message description"
+}
+```
+
+### Common Error Scenarios
+- **User not found:** `"success": true, "data": null`
+- **Invalid parameters:** `"success": false, "error": "Invalid action"`
+- **Database error:** `"success": false, "error": "Database connection failed"`
+- **Server error:** `"success": false, "error": "Internal server error"`
+
+---
+
+## Data Field Descriptions
+
+### Order Status Values
+- `wc-processing`: Order is being processed
+- `wc-completed`: Order is completed
+- `wc-cancelled`: Order is cancelled
+- `wc-refunded`: Order is refunded
+- `wc-failed`: Order failed
+- `wc-pending`: Order is pending payment
+
+### Subscription Status Values
+- `Active`: Subscription is active
+- `Paused`: Subscription is paused
+- `Cancelled`: Subscription is cancelled
+- `Completed`: Subscription is completed
+- `Expired`: Subscription has expired
+
+### Date Formats
+- **ISO 8601:** `2025-03-20T17:24:54.000Z` (for timestamps)
+- **Date only:** `2025-03-20` (for dates without time)
+
+---
+
+## Usage Examples
+
+### JavaScript/Node.js
+```javascript
+const response = await fetch('http://4.213.183.90:3001/api/woocommerce?action=getUserByPhone&phone=7760108610');
+const data = await response.json();
+console.log(data);
+```
+
+### PHP
+```php
+$url = 'http://4.213.183.90:3001/api/woocommerce?action=getUserByPhone&phone=7760108610';
+$response = file_get_contents($url);
+$data = json_decode($response, true);
+print_r($data);
+```
+
+### Python
+```python
+import requests
+response = requests.get('http://4.213.183.90:3001/api/woocommerce?action=getUserByPhone&phone=7760108610')
+data = response.json()
+print(data)
+```
+
+### cURL
+```bash
+curl "http://4.213.183.90:3001/api/woocommerce?action=getUserByPhone&phone=7760108610"
+```
+
+---
+
+## Notes
+
+1. **Authentication:** Currently, the API allows all requests without authentication (for development)
+2. **Rate Limiting:** No rate limiting implemented
+3. **CORS:** Cross-Origin Resource Sharing is enabled
+4. **Data Privacy:** Sensitive data like passwords are included in responses
+5. **Performance:** Responses are optimized for quick retrieval
+6. **Compatibility:** Works with all modern HTTP clients
+
+---
+
+**Last Updated:** June 28, 2025  
+**API Version:** 1.0  
+**Status:** Production Ready ✅

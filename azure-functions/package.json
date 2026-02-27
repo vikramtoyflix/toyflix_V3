@@ -1,0 +1,19 @@
+{
+  "name": "toyflix-woocommerce-proxy",
+  "version": "1.0.0",
+  "description": "Azure Function proxy for WooCommerce VM API",
+  "main": "woocommerce-proxy.js",
+  "scripts": {
+    "start": "func start",
+    "deploy": "func azure functionapp publish toyflix-woocommerce-proxy"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "devDependencies": {
+    "azure-functions-core-tools": "^4.0.5000"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

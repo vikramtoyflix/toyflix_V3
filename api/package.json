@@ -1,0 +1,15 @@
+{
+  "name": "toyflix-static-web-app-api",
+  "version": "1.0.0",
+  "description": "API routes for Toyflix Static Web App - Proxy to Direct VM API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14"
+  },
+  "author": "Toyflix Team",
+  "license": "MIT"
+} 

@@ -1,0 +1,25 @@
+{
+  "name": "toyflix-woocommerce-proxy-fixed",
+  "version": "1.0.0",
+  "description": "Fixed Azure Functions for WooCommerce proxy with consistent data structure",
+  "main": "index.js",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests yet...\"",
+    "deploy": "func azure functionapp publish toyflix-woocommerce-proxy"
+  },
+  "dependencies": {
+    "mysql2": "^3.6.0"
+  },
+  "devDependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "keywords": [
+    "azure-functions",
+    "woocommerce",
+    "proxy",
+    "toyflix"
+  ],
+  "author": "Toyflix",
+  "license": "MIT"
+} 

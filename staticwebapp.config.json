@@ -1,0 +1,75 @@
+{
+  "platform": {
+    "apiRuntime": "node:18"
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/wp-json/*", "/*.{css,js,jpg,jpeg,png,gif,svg,ico,woff,woff2,ttf,eot}"]
+  },
+  "routes": [
+    {
+      "route": "/api/sendOtp.php",
+      "methods": ["GET", "POST", "OPTIONS"],
+      "rewrite": "/api/proxy"
+    },
+    {
+      "route": "/api/verifyOtp.php",
+      "methods": ["GET", "POST", "OPTIONS"],
+      "rewrite": "/api/proxy"
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/wp-json/api/v1/update-user-profile",
+      "methods": ["POST", "OPTIONS"],
+      "rewrite": "/api/update-user-profile"
+    },
+    {
+      "route": "/wp-json/api/v1/delete_account",
+      "methods": ["POST", "DELETE", "OPTIONS"],
+      "rewrite": "/api/delete-account"
+    },
+    {
+      "route": "/wp-json/api/v1/user-profile/*",
+      "methods": ["GET", "OPTIONS"],
+      "rewrite": "/api/user-profile"
+    },
+    {
+      "route": "/wp-json/api/v1/get-order*",
+      "methods": ["GET", "OPTIONS"],
+      "rewrite": "/api/get-order"
+    },
+    {
+      "route": "/wp-json/api/v1/add-to-cart",
+      "methods": ["POST", "OPTIONS"],
+      "rewrite": "/api/add-to-cart"
+    },
+    {
+      "route": "/wp-json/api/v1/*",
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "rewrite": "/api/proxy"
+    },
+    {
+      "route": "/wp-json/custom-api/v1/*",
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "rewrite": "/api/proxy"
+    }
+  ],
+  "mimeTypes": {
+    ".json": "application/json"
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    }
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, X-Requested-With, Accept"
+  }
+}
