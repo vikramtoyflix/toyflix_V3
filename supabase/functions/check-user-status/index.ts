@@ -40,65 +40,30 @@ const handler = async (req: Request): Promise<Response> => {
       { auth: { persistSession: false } }
     );
 
-    // Enhanced phone format variations to handle ALL possible storage patterns
-    const phoneVariations = [
-      phone,                                      // Original input
-      phone.replace(/^\+91/, ''),                // Remove +91 prefix
-      phone.replace(/^91/, ''),                  // Remove 91 prefix  
-      phone.replace(/^\+?91/, ''),               // Remove any 91 prefix
-      phone.startsWith('+91') ? phone : `+91${phone}`, // Add +91 prefix
-      phone.startsWith('91') ? phone : `91${phone}`,   // Add 91 prefix
-      phone.replace(/[^\d]/g, ''),               // Only digits
-      phone.replace(/[^\d]/g, '').slice(-10),    // Last 10 digits only
-      phone.trim(),                              // Remove whitespace
-      phone.replace(/\s+/g, ''),                 // Remove all spaces
-    ];
-
-    // Also try with common spacing patterns that might exist in old data
+    // Build all phone format variations, then query once with IN — much faster than looping
     const cleanPhone = phone.replace(/[^\d]/g, '');
-    if (cleanPhone.length >= 10) {
-      const last10 = cleanPhone.slice(-10);
-      phoneVariations.push(
-        last10,                                   // Clean 10 digits
-        `+91${last10}`,                          // +91 + 10 digits
-        `91${last10}`,                           // 91 + 10 digits
-        `+91 ${last10}`,                         // With space
-        `91 ${last10}`,                          // With space
-      );
-    }
+    const last10 = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
 
-    // Remove duplicates
-    const uniquePhoneFormats = [...new Set(phoneVariations)];
-    console.log('🔍 Checking phone variations:', uniquePhoneFormats);
+    const uniquePhoneFormats = [...new Set([
+      phone,
+      phone.trim(),
+      last10,
+      `+91${last10}`,
+      `91${last10}`,
+    ])];
 
-    let user = null;
-    let userError = null;
+    const { data: users, error: userError } = await supabaseAdmin
+      .from('custom_users')
+      .select('id, phone, first_name, last_name, phone_verified, created_at')
+      .in('phone', uniquePhoneFormats)
+      .limit(1);
 
-    // Try each phone format until we find a user
-    for (const phoneFormat of uniquePhoneFormats) {
-      const { data: foundUser, error: checkError } = await supabaseAdmin
-        .from('custom_users')
-        .select('id, phone, first_name, last_name, phone_verified, created_at')
-        .eq('phone', phoneFormat)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error(`🔍 Database error checking phone format "${phoneFormat}":`, checkError);
-        userError = checkError;
-        continue;
-      }
-
-      if (foundUser) {
-        console.log(`🔍 User found with phone format "${phoneFormat}"`);
-        user = foundUser;
-        break;
-      }
-    }
-
-    if (userError && !user) {
+    if (userError) {
       console.error('🔍 Database error during user check:', userError);
       throw new Error('Error checking user status');
     }
+
+    const user = users && users.length > 0 ? users[0] : null;
 
     const exists = !!user;
     const isComplete = exists && !!(user?.first_name && user?.last_name);
