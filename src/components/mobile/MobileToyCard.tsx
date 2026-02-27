@@ -89,11 +89,10 @@ const MobileToyCard = ({
   const getCurrentImageUrl = () => {
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      // Handle both S3 and regular URLs
-      if (imageUrl.includes('/storage/v1/s3/')) {
-        return convertToPublicUrl(imageUrl);
-      }
-      return imageUrl;
+      const publicUrl = imageUrl.includes('/storage/v1/s3/')
+        ? convertToPublicUrl(imageUrl)
+        : imageUrl;
+      return imageService.getImageUrl(publicUrl, 'toy');
     }
     
     // Fallback to toy's main image_url
