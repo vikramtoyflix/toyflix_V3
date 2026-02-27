@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
     // Generate .gz and .br pre-compressed files for Azure Static Web Apps / CDN
     mode === 'production' && viteCompression({ algorithm: 'gzip', ext: '.gz' }),
     mode === 'production' && viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
-    mode === 'production' && visualizer({ open: false, filename: 'dist/stats.html', gzipSize: true, brotliSize: true }),
+    mode === 'production' && !process.env.CI && visualizer({ open: false, filename: 'dist/stats.html', gzipSize: true, brotliSize: true }),
   ].filter(Boolean),
   resolve: {
     alias: {
