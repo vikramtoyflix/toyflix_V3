@@ -30,14 +30,16 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@tanstack/react-query', 'lucide-react'],
-          supabase: ['@supabase/supabase-js'],
-          carousel: ['embla-carousel-react', 'embla-carousel-autoplay'],
-          motion: ['framer-motion'],
-          forms: ['react-hook-form', 'zod', '@hookform/resolvers'],
-          charts: ['recharts'],
+        manualChunks(id) {
+          // Core vendor — loaded on every page
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) return 'vendor';
+          if (id.includes('node_modules/@tanstack/') || id.includes('node_modules/lucide-react/')) return 'ui';
+          if (id.includes('node_modules/@supabase/')) return 'supabase';
+          if (id.includes('node_modules/embla-carousel')) return 'carousel';
+          if (id.includes('node_modules/framer-motion/')) return 'motion';
+          if (id.includes('node_modules/react-hook-form/') || id.includes('node_modules/zod/') || id.includes('node_modules/@hookform/')) return 'forms';
+          // recharts + lodash (recharts's dependency) — admin-only, never loaded on homepage
+          if (id.includes('node_modules/recharts/') || id.includes('node_modules/lodash/') || id.includes('node_modules/lodash-es/')) return 'charts';
         },
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';

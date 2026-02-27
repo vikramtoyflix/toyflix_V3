@@ -1,28 +1,12 @@
 User-agent: *
 Allow: /
-
-# Sitemap
-Sitemap: https://toyflix.in/sitemap.xml
-
-# Crawl delay for bot politeness
-Crawl-delay: 1
-
-# Specific bot directives
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 0
-
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 1
-
-# Disallow admin and private areas
 Disallow: /admin/
 Disallow: /dashboard/
 Disallow: /auth/
 Disallow: /api/
 
-# Allow specific important pages
 Allow: /toys/
 Allow: /pricing
 Allow: /about
+
+Sitemap: https://toyflix.in/sitemap.xml
