@@ -31,33 +31,19 @@ export const useAuthActions = (
     setIsLoading(true);
 
     try {
-      console.log('🔍 Smart OTP Flow - Starting user status check for:', phone);
-      
-      // Step 1: Send OTP immediately for all users
-      console.log('🔍 Step 1: Sending OTP for phone:', phone);
-      const otpResult = await sendOTP(phone);
-      console.log('🔍 OTP send result:', otpResult);
-      
+      // Fire both requests in parallel — cuts wait time roughly in half
+      const [otpResult, statusResult] = await Promise.all([
+        sendOTP(phone),
+        checkUserStatus(phone),
+      ]);
+
       if (!otpResult.success) {
         throw new Error(otpResult.error?.message || "Failed to send OTP");
       }
-      
-      console.log('🔍 OTP sent successfully, setting timestamp and development OTP');
+
       setLastOtpSentAt(Date.now());
       setDevelopmentOtp(otpResult.developmentOtp || "");
-      
-      // Show success toast for OTP sent
-      toast({
-        title: "OTP Sent! 📱",
-        description: "Please check your SMS for the verification code",
-        duration: 6000,
-      });
-      
-      // Step 2: Check user status to determine next step
-      console.log('🔍 Step 2: Checking user status for phone:', phone);
-      const statusResult = await checkUserStatus(phone);
-      console.log('🔍 User status result:', statusResult);
-      
+
       if (!statusResult.success) {
         throw new Error(statusResult.error?.message || "Failed to check user status");
       }
@@ -69,34 +55,26 @@ export const useAuthActions = (
       });
 
       if (statusResult.exists && statusResult.isComplete) {
-        // Existing complete user - show signin message and go to OTP verification
-        console.log('🔍 Existing complete user - proceeding to signin');
-        
         toast({
-          title: "Welcome back! 👋",
-          description: "Please enter the OTP sent to your phone to sign in",
+          title: "OTP Sent! 📱",
+          description: "Welcome back! Enter the OTP to sign in.",
           duration: 6000,
         });
-        
         setStep("otp-signin");
       } else if (statusResult.exists && !statusResult.isComplete) {
-        // Existing user but incomplete profile - show signup message
-        console.log('🔍 Existing user with incomplete profile - showing signup form');
         setIsNewUser(true);
         setStep("signup-form");
         toast({
-          title: "Complete Your Profile 📝",
-          description: "Please complete your profile to continue",
+          title: "OTP Sent! 📱",
+          description: "Complete your profile to continue.",
           duration: 6000,
         });
       } else {
-        // New user - show signup message
-        console.log('🔍 New user - showing signup form');
         setIsNewUser(true);
         setStep("signup-form");
         toast({
-          title: "Welcome to Toyflix! 🎉",
-          description: "Please create your account to get started",
+          title: "OTP Sent! 📱",
+          description: "Welcome to Toyflix! Create your account to get started.",
           duration: 6000,
         });
       }

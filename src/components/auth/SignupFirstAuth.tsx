@@ -140,89 +140,35 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
     setShowOTPField(true);
     
     try {
-      // Normalize phone number before checking
       const normalizedPhone = normalizePhoneNumber(phone);
-      console.log('🔍 Original phone:', phone, '→ Normalized:', normalizedPhone);
+
+      // Fire OTP send and user status check in parallel — cuts wait time in half
+      const [result, statusResult] = await Promise.all([
+        sendHybridOTP(normalizedPhone),
+        checkUserStatus(normalizedPhone),
+      ]);
       
-      // Enhanced user check with normalized phone
-      console.log('🔍 Starting enhanced user check for phone:', normalizedPhone);
-      const statusResult = await checkUserStatus(normalizedPhone);
-      console.log('🔍 User status result:', statusResult);
-      
+      // Auto-switch mode based on user status
       if (statusResult.success) {
-        if (statusResult.exists && statusResult.isComplete) {
-          // Existing user with complete profile - should use signin mode
-          console.log('🔍 Complete user found - switching to signin mode');
-          if (mode === 'signup') {
-            toast({
-              title: "Account Found! 👋",
-              description: "We found your complete account. Switching to sign in mode...",
-              duration: 6000,
-            });
-            setMode('signin');
-            // Don't return here - continue with OTP sending
-          }
-        } else if (statusResult.exists && !statusResult.isComplete) {
-          // Existing user with incomplete profile - should use signup mode to complete
-          console.log('🔍 Incomplete user found - staying in signup mode');
-          if (mode === 'signin') {
-            toast({
-              title: "Profile Incomplete 📝",
-              description: "Please complete your profile to continue. Switching to signup mode...",
-              duration: 6000,
-            });
-            setMode('signup');
-            // Don't return here - continue with OTP sending
-          }
-        } else if (!statusResult.exists) {
-          // New user - should use signup mode
-          console.log('🔍 New user - staying in signup mode');
-          if (mode === 'signin') {
-            toast({
-              title: "No Account Found",
-              description: "No account found with this number. Switching to signup mode...",
-              duration: 6000,
-            });
-            setMode('signup');
-            // Don't return here - continue with OTP sending
-          }
+        if (statusResult.exists && statusResult.isComplete && mode === 'signup') {
+          setMode('signin');
+        } else if (statusResult.exists && !statusResult.isComplete && mode === 'signin') {
+          setMode('signup');
+        } else if (!statusResult.exists && mode === 'signin') {
+          setMode('signup');
         }
-      } else {
-        console.error('🔍 User status check failed:', statusResult.error);
-        // Continue with OTP sending even if status check fails
       }
-      
-      // Proceed with OTP sending
-      console.log('🔍 Sending OTP for normalized phone:', normalizedPhone);
-      const result = await sendHybridOTP(normalizedPhone);
-      console.log('🔍 OTP send result:', result);
-      
+
       if (result.success) {
         setIsOTPSent(true);
         if (result.developmentOtp) {
           setDevelopmentOtp(result.developmentOtp);
         }
-        
-        // Show appropriate success message based on user status
-        if (statusResult.success && statusResult.exists && statusResult.isComplete) {
-          toast({
-            title: "OTP Sent! 📱",
-            description: "Please enter the OTP to sign in to your account.",
-            duration: 6000,
-          });
-        } else if (statusResult.success && statusResult.exists && !statusResult.isComplete) {
-          toast({
-            title: "OTP Sent! 📝",
-            description: "Please enter the OTP and complete your profile.",
-            duration: 6000,
-          });
-        } else {
-          toast({
-            title: "OTP Sent! 📱",
-            description: "Please enter the OTP to continue with registration.",
-            duration: 6000,
-          });
-        }
+        toast({
+          title: "OTP Sent! 📱",
+          description: "Please enter the OTP sent to your phone.",
+          duration: 6000,
+        });
       } else {
         setShowOTPField(false);
         setPhoneError(result.error || "Failed to send OTP");
