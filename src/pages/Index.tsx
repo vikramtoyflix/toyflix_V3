@@ -10,6 +10,10 @@ import { FEATURE_FLAGS } from "@/config/features";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import TestimonialsCarousel from "@/components/TestimonialsCarousel";
 import ToyCarousel from "@/components/ToyCarousel";
+// Critical above-the-fold components — eagerly imported to avoid JS waterfall
+// that adds ~1,900ms Element Render Delay on LCP
+import HeroCarousel from "@/components/HeroCarousel";
+import Header from "@/components/Header";
 
 // Error fallback component for failed imports
 const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErrorBoundary?: () => void }) => (
@@ -28,12 +32,6 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErro
     </div>
   </div>
 );
-
-
-// Critical above-the-fold components — eagerly imported to avoid JS waterfall
-// that adds ~1,900ms Element Render Delay on LCP
-import HeroCarousel from "@/components/HeroCarousel";
-import Header from "@/components/Header";
 
 // Below-the-fold components — lazy loaded
 const HomeCarousel = React.lazy(() => import("@/components/HomeCarousel"));
