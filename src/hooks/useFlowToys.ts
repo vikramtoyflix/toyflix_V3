@@ -51,23 +51,24 @@ export const useFlowToys = (planId?: string, ageGroup?: string, subscriptionCate
       if (PlanService.isPremiumPlan(planId)) {
         console.log('🌟 useFlowToys - Gold Pack detected, fetching premium toys');
         
-        // Subscription category filtering for Gold pack
+        // Subscription category filtering for Gold pack - use subscription_category column so STEM vs Educational show different toys
         let query = supabase.from('toys').select('*');
 
-        // Filter by category (main toys.category field) so STEM/educational/etc. all match correctly
-        if (subscriptionCategory === 'educational_toys') {
-          query = query.in('category', ['educational_toys', 'stem_toys']);
-        } else if (subscriptionCategory === 'stem_toys') {
-          query = query.eq('category', 'stem_toys');
+        if (subscriptionCategory === 'stem_toys') {
+          query = query.eq('subscription_category', 'stem_toys');
+        } else if (subscriptionCategory === 'educational_toys') {
+          query = query.eq('subscription_category', 'educational_toys');
         } else if (subscriptionCategory) {
-          query = query.eq('category', subscriptionCategory);
+          query = query.eq('subscription_category', subscriptionCategory);
         }
 
-        const { data: allToys, error } = await query
+        const { data: rawToys, error } = await query
           .neq('category', 'ride_on_toys') // Still exclude ride-ons
           .order('is_featured', { ascending: false })
           .order('available_quantity', { ascending: false })
           .order('name', { ascending: true });
+
+        let allToys = rawToys || [];
 
         if (error) {
           console.error('❌ Error fetching Gold Pack toys:', error);
@@ -101,16 +102,17 @@ export const useFlowToys = (planId?: string, ageGroup?: string, subscriptionCate
           .order('available_quantity', { ascending: false })
           .order('name', { ascending: true });
 
-        // Filter by category: STEM, educational, developmental, big_toys, books
-        if (subscriptionCategory === 'educational_toys') {
-          query = query.in('category', ['educational_toys', 'stem_toys']);
-        } else if (subscriptionCategory === 'stem_toys') {
-          query = query.eq('category', 'stem_toys');
+        // Use subscription_category so STEM step and Educational step show different toys
+        if (subscriptionCategory === 'stem_toys') {
+          query = query.eq('subscription_category', 'stem_toys');
+        } else if (subscriptionCategory === 'educational_toys') {
+          query = query.eq('subscription_category', 'educational_toys');
         } else if (subscriptionCategory) {
-          query = query.eq('category', subscriptionCategory);
+          query = query.eq('subscription_category', subscriptionCategory);
         }
 
-        const { data: mainToys, error } = await query;
+        const { data: rawMainToys, error } = await query;
+        let mainToys = rawMainToys || [];
 
         if (error) {
           console.error('❌ useFlowToys - Main table query error:', error);

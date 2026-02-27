@@ -102,7 +102,7 @@ export async function fetchTestimonialsFromSupabase(): Promise<TestimonialRecord
   try {
     const storageBaseUrl = (import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co").replace(/\/$/, "") +
       `/storage/v1/object/public/${TESTIMONIALS_BUCKET}`;
-    // 1. Try table first (optional – table may not exist)
+    // 1. Try table first (optional – table may not exist; 404 = table missing)
     try {
       const { data: rows, error: tableError } = await (supabase as any)
         .from("testimonials")
@@ -112,8 +112,14 @@ export async function fetchTestimonialsFromSupabase(): Promise<TestimonialRecord
       if (!tableError && rows && rows.length > 0) {
         return rows.map((row: SupabaseTestimonialRow) => toTestimonial(row, storageBaseUrl));
       }
+      // 404 / PGRST116 = table does not exist – skip to Storage/defaults (no need to log)
+      if (tableError && (tableError.code === "PGRST116" || tableError.message?.includes("404"))) {
+        // Table missing; fall through to Storage then defaults
+      } else if (tableError) {
+        console.warn("Testimonials table error (using fallback):", tableError.message);
+      }
     } catch {
-      // Table may not exist; continue to Storage
+      // Table may not exist or request failed; continue to Storage
     }
 
     // 2. Try listing Storage bucket

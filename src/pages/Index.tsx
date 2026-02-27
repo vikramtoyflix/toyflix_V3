@@ -1,6 +1,5 @@
 import React, { Suspense, useRef } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/components/ui/use-toast";
 import { ComponentLoader } from "@/components/ui/component-loader";
@@ -30,31 +29,6 @@ const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErro
   </div>
 );
 
-// Friendly fallback for premium toys section only — no error text, keeps layout intact (matches ToyCarouselHeader)
-const PremiumToysSectionFallback = () => (
-  <section className="py-14 bg-learning-blue">
-    <div className="container mx-auto px-4">
-      <div className="text-center mb-10">
-        <p className="font-outfit text-sm font-medium text-toy-coral uppercase tracking-wide mb-2 flex items-center justify-center gap-2">
-          <Sparkles className="w-3.5 h-3.5" />
-          Featured Toys
-        </p>
-        <h2 className="font-playfair font-bold text-3xl md:text-4xl mb-3 bg-gradient-to-r from-toy-coral via-terracotta to-toy-sunshine bg-clip-text text-transparent">
-          Rent premium toys
-        </h2>
-        <p className="font-outfit text-warm-gray/70 text-base max-w-xl mx-auto mb-6">
-          Curated collection—no purchase needed, just endless fun.
-        </p>
-        <a
-          href="/toys"
-          className="inline-flex items-center justify-center px-6 py-3 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          Browse all toys
-        </a>
-      </div>
-    </div>
-  </section>
-);
 
 // Lazy load heavy components for better performance
 const HomeCarousel = React.lazy(() => import("@/components/HomeCarousel"));
@@ -112,9 +86,7 @@ const Index = () => {
                         
                         {/* Move toy carousels to top for faster customer access */}
                         <div className="space-y-4">
-                          <ErrorBoundary FallbackComponent={PremiumToysSectionFallback}>
-                            <ToyCarousel />
-                          </ErrorBoundary>
+                          <ToyCarousel />
                           <div ref={rideOnSectionRef}>
                             <ErrorBoundary FallbackComponent={ErrorFallback}>
                               <Suspense fallback={<ComponentLoader text="Loading ride-on toys..." />}>
@@ -196,9 +168,7 @@ const Index = () => {
           </Suspense>
         </ErrorBoundary>
         <section className="bg-white">
-          <ErrorBoundary FallbackComponent={PremiumToysSectionFallback}>
-            <ToyCarousel />
-          </ErrorBoundary>
+          <ToyCarousel />
           <div ref={rideOnSectionRef}>
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Suspense fallback={<ComponentLoader text="Loading ride-on toys..." />}>

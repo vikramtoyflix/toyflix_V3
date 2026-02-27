@@ -3,7 +3,8 @@ import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { HOMEPAGE_TOYS_QUERY_KEY, fetchHomepageToys } from "@/hooks/useToysWithAgeBands";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { CustomAuthProvider } from "@/hooks/auth/CustomAuthProvider";
@@ -77,6 +78,19 @@ import { ServiceSchema } from "@/components/seo/ServiceSchema";
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { StatusBar, Style } from '@capacitor/status-bar';
+
+// Prefetch homepage toys as soon as app loads so "Rent premium toys" carousel has data on first load/refresh
+function PrefetchHomeToys() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: HOMEPAGE_TOYS_QUERY_KEY,
+      queryFn: fetchHomepageToys,
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [queryClient]);
+  return null;
+}
 
 // Optimized QueryClient configuration for better performance
 const queryClient = new QueryClient({
@@ -179,6 +193,7 @@ function App() {
       <ServiceSchema />
 
       <QueryClientProvider client={queryClient}>
+        <PrefetchHomeToys />
         <CustomAuthProvider>
           <TooltipProvider>
             <Toaster />

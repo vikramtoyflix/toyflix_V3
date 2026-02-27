@@ -166,60 +166,58 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   }
 }
 
+/** Query key for homepage Featured Toys – used for prefetch so carousel has data on first load/refresh. */
+export const HOMEPAGE_TOYS_QUERY_KEY = ['toys-age-table-direct', undefined] as const;
+
+/** Fetches toys for homepage (all ages). Used for prefetch and by useToysForAgeGroup. */
+export async function fetchHomepageToys(): Promise<Toy[]> {
+  const { data, error } = await supabase
+    .from('toys')
+    .select('*')
+    .neq('category', 'ride_on_toys')
+    .order('is_featured', { ascending: false })
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+
+  const toys = (data || []).map((toy: any) => ({
+    id: toy.id,
+    name: toy.name,
+    description: toy.description,
+    category: toy.category,
+    subscription_category: toy.subscription_category,
+    age_range: toy.age_range,
+    brand: toy.brand,
+    pack: toy.pack,
+    retail_price: toy.retail_price,
+    rental_price: toy.rental_price,
+    image_url: toy.image_url,
+    available_quantity: toy.available_quantity,
+    total_quantity: toy.total_quantity,
+    rating: toy.rating,
+    min_age: toy.min_age,
+    max_age: toy.max_age,
+    show_strikethrough_pricing: toy.show_strikethrough_pricing,
+    display_order: toy.display_order,
+    is_featured: toy.is_featured,
+    created_at: toy.created_at,
+    updated_at: toy.updated_at,
+  })) as Toy[];
+
+  const sorted = sortToysByCategory(toys);
+  logToyDistribution(sorted, 'Homepage toys');
+  return sorted;
+}
+
 /**
  * Hook to get toys from age-specific tables directly with proper category ordering
- * UPDATED: Better defaults for homepage usage
  */
 export const useToysForAgeGroup = (ageGroup?: string) => {
   return useQuery({
     queryKey: ['toys-age-table-direct', ageGroup],
     queryFn: async (): Promise<Toy[]> => {
-      // DEFAULT BEHAVIOR: When no age group specified (homepage), show all toys with category ordering
       if (!ageGroup || ageGroup === 'all' || ageGroup === '') {
-        console.log('🎯 No specific age group - fetching all toys with category ordering...');
-        
-        const { data, error } = await supabase
-          .from('toys')
-          .select('*')
-          .neq('category', 'ride_on_toys')
-          .order('is_featured', { ascending: false })
-          .order('name', { ascending: true });
-
-        if (error) {
-          console.error('❌ Error fetching all toys:', error);
-          throw error;
-        }
-
-        const toys = (data || []).map(toy => ({
-          id: toy.id,
-          name: toy.name,
-          description: toy.description,
-          category: toy.category,
-          subscription_category: toy.subscription_category,
-          age_range: toy.age_range,
-          brand: toy.brand,
-          pack: toy.pack,
-          retail_price: toy.retail_price,
-          rental_price: toy.rental_price,
-          image_url: toy.image_url,
-          available_quantity: toy.available_quantity,
-          total_quantity: toy.total_quantity,
-          rating: toy.rating,
-          min_age: toy.min_age,
-          max_age: toy.max_age,
-          show_strikethrough_pricing: toy.show_strikethrough_pricing,
-          display_order: toy.display_order,
-          is_featured: toy.is_featured,
-          created_at: toy.created_at,
-          updated_at: toy.updated_at,
-        })) as Toy[];
-
-        // Apply category ordering
-        const sortedToys = sortToysByCategory(toys);
-        logToyDistribution(sortedToys, 'All Ages (Default)');
-        console.log(`✅ Fetched ${sortedToys.length} toys (all ages, excluding ride-on, category ordered)`);
-        
-        return sortedToys;
+        return fetchHomepageToys();
       }
 
       // AGE-SPECIFIC BEHAVIOR: Use age-specific tables
@@ -286,10 +284,11 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
         return sortedToys;
       }
     },
-    enabled: true, // Always enabled - will handle defaults internally
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: true, // Refetch when Featured section mounts so refresh shows toys
   });
 };
 

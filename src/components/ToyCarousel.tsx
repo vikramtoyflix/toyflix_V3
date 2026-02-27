@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useToysForAgeGroup } from "@/hooks/useToysWithAgeBands";
-import { logToyDistribution } from "@/utils/toyOrdering";
 import ToyCarouselHeader from "./toy-carousel/ToyCarouselHeader";
 import ToyCarouselLoadingState from "./toy-carousel/ToyCarouselLoadingState";
 import ToyCarouselCard from "./toy-carousel/ToyCarouselCard";
@@ -20,81 +19,66 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 
-const ToyCarousel = React.memo(() => {
-  const { data: toys, isLoading, error, refetch } = useToysForAgeGroup();
+const ToyCarouselInner = React.memo(() => {
+  const { data: toys, isLoading, isFetching, error, refetch } = useToysForAgeGroup();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useCustomAuth();
 
-  if (toys && toys.length > 0) {
-    logToyDistribution(toys, "ToyCarousel");
-  }
+  // All hooks must be at the top — no hooks after early returns
+  const carouselOptions = useMemo(
+    () => ({ align: "start" as const, loop: true, dragFree: isMobile }),
+    [isMobile]
+  );
 
   const handleViewProduct = useCallback(
-    (toyId: string) => {
-      navigate(`/toys/${toyId}`);
-    },
+    (toyId: string) => { navigate(`/toys/${toyId}`); },
     [navigate]
   );
 
   const handleAddToWishlist = useCallback(
     (toyId: string) => {
-      if (!user) {
-        navigate("/auth?mode=signin");
-        return;
-      }
+      if (!user) { navigate("/auth?mode=signin"); return; }
       const toy = toys?.find((t) => t.id === toyId);
       toast({
         title: "Added to Wishlist!",
-        description: `${toy ? toy.name : "Toy"} has been added to your wishlist. This feature is coming soon!`,
+        description: `${toy ? toy.name : "Toy"} has been added to your wishlist.`,
       });
     },
     [user, toys, navigate, toast]
   );
 
   const handleForceRefresh = useCallback(() => {
-    if (refetch) {
-      refetch();
-      toast({
-        title: "Refreshing toys...",
-        description: "Loading the latest toy collection with category ordering",
-      });
-    }
+    refetch?.();
+    toast({ title: "Refreshing toys..." });
   }, [refetch, toast]);
 
   const toysToDisplay = useMemo(() => {
     if (!toys || toys.length === 0) return [];
-    const featuredToys = toys.filter((toy) => toy.is_featured);
-    let result = featuredToys.length > 0 ? featuredToys : toys.slice(0, 12);
-    result = result.sort((a, b) => {
-      const aInStock = (a.available_quantity || 0) > 0 ? 1 : 0;
-      const bInStock = (b.available_quantity || 0) > 0 ? 1 : 0;
-      if (aInStock !== bInStock) return bInStock - aInStock;
-      return 0;
+    const featured = toys.filter((t) => t.is_featured);
+    const pool = featured.length > 0 ? featured : toys.slice(0, 12);
+    return [...pool].sort((a, b) => {
+      const aStock = (a.available_quantity || 0) > 0 ? 1 : 0;
+      const bStock = (b.available_quantity || 0) > 0 ? 1 : 0;
+      return bStock - aStock;
     });
-    if (result.length > 0) {
-      logToyDistribution(result, "ToyCarousel Display");
-    }
-    return result;
   }, [toys]);
 
-  if (isLoading) {
+  // Early returns after all hooks
+  if (isLoading || (isFetching && !toys) || toys === undefined) {
     return <ToyCarouselLoadingState />;
   }
 
   if (error) {
     return (
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-learning-blue">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Toys</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-              Having trouble loading toys. Please try refreshing.
-            </p>
+          <ToyCarouselHeader />
+          <div className="text-center mt-4">
+            <p className="text-warm-gray/70 mb-4">Having trouble loading toys.</p>
             <Button onClick={handleForceRefresh} className="bg-primary hover:bg-primary/90">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Toys
+              <RefreshCw className="w-4 h-4 mr-2" /> Refresh Toys
             </Button>
           </div>
         </div>
@@ -102,33 +86,21 @@ const ToyCarousel = React.memo(() => {
     );
   }
 
-  if (!toys || toys.length === 0 || toysToDisplay.length === 0) {
+  if (!toysToDisplay.length) {
     return (
-      <section className="py-20 bg-background">
+      <section className="py-14 bg-learning-blue">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Toys</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
-              No toys available. This might be a data issue.
-            </p>
+          <ToyCarouselHeader />
+          <div className="text-center mt-4">
+            <p className="text-warm-gray/70 mb-4">No toys available right now.</p>
             <Button onClick={handleForceRefresh} className="bg-primary hover:bg-primary/90">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Toys
+              <RefreshCw className="w-4 h-4 mr-2" /> Try Again
             </Button>
           </div>
         </div>
       </section>
     );
   }
-
-  const carouselOptions = useMemo(
-    () => ({
-      align: "start" as const,
-      loop: true,
-      dragFree: isMobile,
-    }),
-    [isMobile]
-  );
 
   return (
     <section className={`${isMobile ? "py-8" : "py-14"} bg-learning-blue`}>
@@ -136,7 +108,6 @@ const ToyCarousel = React.memo(() => {
         <div className={isMobile ? "px-4 mb-6" : ""}>
           <ToyCarouselHeader />
         </div>
-
         <Carousel
           opts={carouselOptions}
           plugins={[Autoplay({ delay: 3000, stopOnInteraction: true }) as any]}
@@ -145,21 +116,11 @@ const ToyCarousel = React.memo(() => {
           <CarouselContent className={isMobile ? "-ml-2" : "-ml-2 md:-ml-4"}>
             {toysToDisplay.map((toy, index) =>
               isMobile ? (
-                <MobileToyCarouselCard
-                  key={toy.id}
-                  toy={toy}
-                  index={index}
-                  onViewProduct={handleViewProduct}
-                  onAddToWishlist={handleAddToWishlist}
-                />
+                <MobileToyCarouselCard key={toy.id} toy={toy} index={index}
+                  onViewProduct={handleViewProduct} onAddToWishlist={handleAddToWishlist} />
               ) : (
-                <ToyCarouselCard
-                  key={toy.id}
-                  toy={toy}
-                  index={index}
-                  onViewProduct={handleViewProduct}
-                  onAddToWishlist={handleAddToWishlist}
-                />
+                <ToyCarouselCard key={toy.id} toy={toy} index={index}
+                  onViewProduct={handleViewProduct} onAddToWishlist={handleAddToWishlist} />
               )
             )}
           </CarouselContent>
@@ -170,7 +131,6 @@ const ToyCarousel = React.memo(() => {
             </>
           )}
         </Carousel>
-
         <div className={isMobile ? "px-4 mt-6" : ""}>
           <ToyCarouselExploreButton />
         </div>
@@ -178,6 +138,14 @@ const ToyCarousel = React.memo(() => {
     </section>
   );
 });
+
+ToyCarouselInner.displayName = "ToyCarouselInner";
+
+const ToyCarousel = () => (
+  <React.Suspense fallback={<ToyCarouselLoadingState />}>
+    <ToyCarouselInner />
+  </React.Suspense>
+);
 
 ToyCarousel.displayName = "ToyCarousel";
 
