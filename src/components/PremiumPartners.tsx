@@ -15,42 +15,42 @@ const PremiumPartners = () => {
   const partners = [
     {
       name: "PlayShifu",
-      logo: "/lovable-uploads/e899c4c1-a8a6-45ee-a87f-7a137acd5a5c.jpg",
+      logo: "/lovable-uploads/e899c4c1-a8a6-45ee-a87f-7a137acd5a5c.webp",
       alt: "PlayShifu - Educational AR toys"
     },
     {
       name: "Funskool",
-      logo: "/lovable-uploads/4a5c080f-acd2-46da-a754-82b954dcd0fd.jpg",
+      logo: "/lovable-uploads/4a5c080f-acd2-46da-a754-82b954dcd0fd.webp",
       alt: "Funskool - Fun learning toys"
     },
     {
       name: "Hape",
-      logo: "/lovable-uploads/89bf9009-a482-4be0-a723-a5507be7e0dd.jpg",
+      logo: "/lovable-uploads/89bf9009-a482-4be0-a723-a5507be7e0dd.webp",
       alt: "Hape - Wooden educational toys"
     },
     {
       name: "PLAY",
-      logo: "/lovable-uploads/664b0b05-233b-4283-bc83-c91551fb2c10.jpg",
+      logo: "/lovable-uploads/664b0b05-233b-4283-bc83-c91551fb2c10.webp",
       alt: "PLAY - Creative learning toys"
     },
     {
       name: "Hasbro",
-      logo: "/partners/hasbro-logo.png",
+      logo: "/partners/hasbro-logo.webp",
       alt: "Hasbro - Toys and games"
     },
     {
       name: "Mattel",
-      logo: "/partners/mattel-logo.png",
+      logo: "/partners/mattel-logo.webp",
       alt: "Mattel - Toy manufacturer"
     },
     {
       name: "Baybee",
-      logo: "/partners/baybee-logo.png",
+      logo: "/partners/baybee-logo.webp",
       alt: "Baybee - Baby and kids brand"
     },
     {
       name: "Fisher-Price",
-      logo: "/partners/fisher-price-logo.png",
+      logo: "/partners/fisher-price-logo.webp",
       alt: "Fisher-Price - Infant and toddler toys"
     }
   ];
@@ -98,9 +98,12 @@ const PremiumPartners = () => {
                   <img
                     src={partner.logo}
                     alt={partner.alt}
+                    width={150}
+                    height={80}
+                    loading="lazy"
+                    decoding="async"
                     className="max-w-full max-h-full object-contain filter group-hover:brightness-110 transition-all duration-300"
                     onError={(e) => {
-                      // Fallback to a placeholder if logo fails to load
                       const target = e.target as HTMLImageElement;
                       target.src = `https://via.placeholder.com/150x80/f3f4f6/9ca3af?text=${encodeURIComponent(partner.name)}`;
                     }}

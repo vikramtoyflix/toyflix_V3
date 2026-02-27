@@ -2,6 +2,7 @@ import * as React from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useQuery } from "@tanstack/react-query";
 import Autoplay from "embla-carousel-autoplay";
+
 import {
   type CarouselApi,
   Carousel,
@@ -43,6 +44,68 @@ function TestimonialsMinimalFallback() {
         <p className="text-center text-warm-gray/80 mt-4 text-sm">Hear from families who love Toyflix</p>
       </div>
     </section>
+  );
+}
+
+interface LazyVideoProps {
+  src: string;
+  videoRef: (el: HTMLVideoElement | null) => void;
+  onPlay: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
+  activated: boolean;
+  onActivate: () => void;
+}
+
+function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const internalVideoRef = React.useRef<HTMLVideoElement | null>(null);
+  const [loadSrc, setLoadSrc] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setLoadSrc(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const setRefs = React.useCallback((el: HTMLVideoElement | null) => {
+    internalVideoRef.current = el;
+    videoRef(el);
+  }, [videoRef]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+      <video
+        ref={setRefs}
+        src={loadSrc ? src : undefined}
+        preload="metadata"
+        controls
+        playsInline
+        onPlay={onPlay}
+        className="w-full h-full object-contain bg-black"
+      >
+        Your browser does not support the video tag.
+      </video>
+      {!activated && (
+        <button
+          type="button"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 hover:bg-black/30 transition-colors cursor-pointer"
+          onClick={onActivate}
+          aria-label="Tap to play video"
+        >
+          <span className="rounded-full bg-white/95 text-warm-gray px-5 py-2.5 text-sm font-semibold shadow-lg">
+            Tap to play
+          </span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -230,38 +293,17 @@ const TestimonialsCarousel = () => {
                             />
                           )}
                           {testimonial.videoUrl && !testimonial.imageUrl && (
-                            <>
-                              <video
-                                ref={(el) => {
-                                  videoRefs.current[index] = el;
-                                }}
-                                key={testimonial.id}
-                                src={testimonial.videoUrl}
-                                preload="metadata"
-                                controls
-                                playsInline
-                                onPlay={handleVideoPlay}
-                                className="w-full h-full object-contain bg-black"
-                              >
-                                Your browser does not support the video tag.
-                              </video>
-                              {!videoActivated.has(testimonial.id) && (
-                                <button
-                                  type="button"
-                                  className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 hover:bg-black/30 transition-colors cursor-pointer"
-                                  onClick={() => {
-                                    stopAutoplay();
-                                    setVideoActivated((prev) => new Set(prev).add(testimonial.id));
-                                    videoRefs.current[index]?.play();
-                                  }}
-                                  aria-label="Tap to play video"
-                                >
-                                  <span className="rounded-full bg-white/95 text-warm-gray px-5 py-2.5 text-sm font-semibold shadow-lg">
-                                    Tap to play
-                                  </span>
-                                </button>
-                              )}
-                            </>
+                            <LazyVideo
+                              src={testimonial.videoUrl}
+                              videoRef={(el) => { videoRefs.current[index] = el; }}
+                              onPlay={handleVideoPlay}
+                              activated={videoActivated.has(testimonial.id)}
+                              onActivate={() => {
+                                stopAutoplay();
+                                setVideoActivated((prev) => new Set(prev).add(testimonial.id));
+                                videoRefs.current[index]?.play();
+                              }}
+                            />
                           )}
                         </div>
                         {/* Name + child age only */}

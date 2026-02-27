@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import viteCompression from "vite-plugin-compression";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -11,8 +12,10 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
+    // Generate .gz and .br pre-compressed files for Azure Static Web Apps / CDN
+    mode === 'production' && viteCompression({ algorithm: 'gzip', ext: '.gz' }),
+    mode === 'production' && viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -28,14 +31,13 @@ export default defineConfig(({ mode }) => ({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: {
-          // Vendor chunk for third-party libraries
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          // UI components chunk
           ui: ['@tanstack/react-query', 'lucide-react'],
-          // Supabase chunk
           supabase: ['@supabase/supabase-js'],
-          // Chart and heavy components
-          charts: ['embla-carousel-react'],
+          carousel: ['embla-carousel-react', 'embla-carousel-autoplay'],
+          motion: ['framer-motion'],
+          forms: ['react-hook-form', 'zod', '@hookform/resolvers'],
+          charts: ['recharts'],
         },
         // Optimize chunk naming for caching
         chunkFileNames: (chunkInfo) => {

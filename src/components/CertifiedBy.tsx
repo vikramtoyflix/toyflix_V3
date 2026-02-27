@@ -18,7 +18,7 @@ const CertifiedBy = () => {
   const certifications = [
     {
       name: "NITI Aayog",
-      logo: "/lovable-uploads/ef3ba8fc-f8b6-4d66-890c-2701a58c2cfd.jpg",
+      logo: "/lovable-uploads/ef3ba8fc-f8b6-4d66-890c-2701a58c2cfd.webp",
       fallback: imageService.getImageUrl(
         "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?q=80&w=400&auto=format&fit=crop",
         "product"
@@ -28,7 +28,7 @@ const CertifiedBy = () => {
     },
     {
       name: "TOYFLIX Certificate",
-      logo: "/lovable-uploads/5a9d3556-59cb-4840-8097-fe4fbc07c8a9.png",
+      logo: "/lovable-uploads/5a9d3556-59cb-4840-8097-fe4fbc07c8a9.webp",
       fallback: imageService.getImageUrl(
         "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=400&auto=format&fit=crop",
         "product"
@@ -38,7 +38,7 @@ const CertifiedBy = () => {
     },
     {
       name: "Startup India",
-      logo: "/lovable-uploads/93a723d2-7931-4a97-83cb-6112a6153d5a.jpg",
+      logo: "/lovable-uploads/93a723d2-7931-4a97-83cb-6112a6153d5a.webp",
       fallback: imageService.getImageUrl(
         "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=400&auto=format&fit=crop",
         "product"

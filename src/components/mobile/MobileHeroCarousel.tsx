@@ -34,7 +34,7 @@ const mobileHeroSlides = [
       text: "Subscribe Now",
       link: "/subscription-flow"
     },
-    backgroundImage: "/lovable-uploads/2dfe92ac-e423-4160-88e2-2261bb2cf3c9.png",
+    backgroundImage: "/lovable-uploads/2dfe92ac-e423-4160-88e2-2261bb2cf3c9.webp",
     stats: [
       { value: "50K+", label: "Families" },
       { value: "1000+", label: "Toys" },
@@ -54,7 +54,7 @@ const mobileHeroSlides = [
       text: "See Pricing",
       link: "/pricing"
     },
-    backgroundImage: "/lovable-uploads/24fc8b24-7557-4694-9dd5-a1f5f4232b57.png",
+    backgroundImage: "/lovable-uploads/24fc8b24-7557-4694-9dd5-a1f5f4232b57.webp",
     stats: [
       { value: "100%", label: "Safe" },
       { value: "Age", label: "Appropriate" },
@@ -74,7 +74,7 @@ const mobileHeroSlides = [
       text: "Get Started",
       link: "/subscription-flow"
     },
-    backgroundImage: "/lovable-uploads/14d1772e-d757-40e5-968f-2539da2e5ea1.png",
+    backgroundImage: "/lovable-uploads/14d1772e-d757-40e5-968f-2539da2e5ea1.webp",
     stats: [
       { value: "Monthly", label: "Fresh" },
       { value: "No", label: "Clutter" },

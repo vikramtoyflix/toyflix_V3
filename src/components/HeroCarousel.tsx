@@ -63,13 +63,25 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ isMobile = false }) => {
       className="w-full bg-[linear-gradient(180deg,#FEF3E7_0%,#FFF_100%)]"
     >
       <CarouselContent>
-        {heroSlides.map((slide) => (
+        {heroSlides.map((slide, slideIndex) => (
           <CarouselItem key={slide.id}>
             <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-              <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: `url(${slide.backgroundImage})` }}
-              />
+              {/* Use <picture> with WebP for modern browsers, PNG fallback; fetchpriority for LCP */}
+              <picture className="absolute inset-0 w-full h-full">
+                <source
+                  srcSet={slide.backgroundImage.replace(/\.(png|jpg|jpeg)$/i, '.webp')}
+                  type="image/webp"
+                />
+                <img
+                  src={slide.backgroundImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="w-full h-full object-cover object-center"
+                  fetchPriority={slideIndex === 0 ? "high" : "low"}
+                  loading={slideIndex === 0 ? "eager" : "lazy"}
+                  decoding={slideIndex === 0 ? "sync" : "async"}
+                />
+              </picture>
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
 

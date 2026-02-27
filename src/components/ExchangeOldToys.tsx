@@ -16,7 +16,7 @@ const ExchangeOldToys = () => {
     if (imageError) {
       return imageService.getImageUrl("https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?q=80&w=800&auto=format&fit=crop", 'carousel');
     }
-    return "/lovable-uploads/4020678c-85c2-42ad-867e-f2dd4e701595.png";
+    return "/lovable-uploads/4020678c-85c2-42ad-867e-f2dd4e701595.webp";
   };
 
   const getImageAlt = () => {

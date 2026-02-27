@@ -19,7 +19,7 @@ import { ArrowRight } from "lucide-react";
 const staticSlides = [
   {
     id: "static-1",
-    image_url: "/lovable-uploads/2dfe92ac-e423-4160-88e2-2261bb2cf3c9.png",
+    image_url: "/lovable-uploads/2dfe92ac-e423-4160-88e2-2261bb2cf3c9.webp",
     title: "New adventures every month.",
     subtitle: "Curated toy boxes delivered to your door. Subscribe and let their imagination soar.",
     button_text: "See pricing",
@@ -29,7 +29,7 @@ const staticSlides = [
   },
   {
     id: "static-2",
-    image_url: "/lovable-uploads/24fc8b24-7557-4694-9dd5-a1f5f4232b57.png",
+    image_url: "/lovable-uploads/24fc8b24-7557-4694-9dd5-a1f5f4232b57.webp",
     title: "Play. Learn. Grow.",
     subtitle: "Premium, educational toys chosen for your child's age and interests.",
     button_text: "Get started",
@@ -39,7 +39,7 @@ const staticSlides = [
   },
   {
     id: "static-3",
-    image_url: "/lovable-uploads/14d1772e-d757-40e5-968f-2539da2e5ea1.png",
+    image_url: "/lovable-uploads/14d1772e-d757-40e5-968f-2539da2e5ea1.webp",
     title: "Endless fun, zero clutter.",
     subtitle: "Rotate toys every month. Fresh play, less mess.",
     button_text: "How it works",

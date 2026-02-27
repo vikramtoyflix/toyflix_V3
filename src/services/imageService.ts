@@ -14,6 +14,37 @@ const FALLBACK_IMAGES = {
   product: "https://images.unsplash.com/photo-1519619091416-f5d7e5200702?q=80&w=600&auto=format&fit=crop"
 };
 
+// Width, quality settings per display context
+const TRANSFORM_PARAMS: Record<'toy' | 'carousel' | 'product', { width: number; quality: number }> = {
+  toy:      { width: 400,  quality: 75 },
+  product:  { width: 600,  quality: 80 },
+  carousel: { width: 900,  quality: 80 },
+};
+
+/**
+ * Converts any Supabase Storage /object/public/ URL into a
+ * /render/image/public/ URL that returns WebP at the right size.
+ * Works for any bucket (toy-images, products, etc.).
+ * Falls back to the original URL if the pattern doesn't match.
+ */
+function toSupabaseTransformUrl(
+  url: string,
+  context: 'toy' | 'carousel' | 'product'
+): string {
+  // Match: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+  const match = url.match(
+    /^(https:\/\/[^/]+\.supabase\.co)\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/
+  );
+  if (!match) return url;
+
+  const [, host, bucket, filePath] = match;
+  const { width, quality } = TRANSFORM_PARAMS[context];
+
+  // Supabase image transform endpoint (Pro plan).
+  // No &format= param needed — Supabase auto-serves WebP to browsers that send Accept: image/webp.
+  return `${host}/storage/v1/render/image/public/${bucket}/${filePath}?width=${width}&quality=${quality}&resize=contain`;
+}
+
 export const imageService = {
   /**
    * Get a reliable image URL with fallback chain and optimization
@@ -35,10 +66,9 @@ export const imageService = {
       return this.optimizeUnsplashUrl(cleanUrl, context);
     }
 
-    // If it's a Supabase Storage URL, return as-is for now (optimization temporarily disabled)
-    if (cleanUrl.includes('supabase.co/storage/v1/object/public/toy-images/')) {
-      console.log('🔧 Supabase URL (optimization disabled):', cleanUrl);
-      return cleanUrl;
+    // Supabase Storage URL → use image transform API (WebP, right size, Pro plan)
+    if (cleanUrl.includes('supabase.co/storage/v1/object/public/')) {
+      return toSupabaseTransformUrl(cleanUrl, context);
     }
 
     // If it looks like a valid URL, return it
@@ -49,29 +79,6 @@ export const imageService = {
     // Otherwise, log a warning and return fallback
     console.warn(`ImageService: Invalid URL format "${cleanUrl}". Using fallback for context: ${context}`);
     return FALLBACK_IMAGES[context];
-  },
-
-  /**
-   * Optimize Supabase Storage URLs with transformations to reduce egress
-   */
-  optimizeSupabaseUrl(url: string, context: 'toy' | 'carousel' | 'product'): string {
-    const sizeMap = {
-      toy: { width: 400, height: 400 },
-      carousel: { width: 800, height: 600 },
-      product: { width: 600, height: 600 }
-    };
-
-    const { width, height } = sizeMap[context];
-    
-    // Add Supabase image transformations to reduce file size and egress
-    // Format: /storage/v1/render/image/public/bucket/path?width=400&height=400&resize=cover&quality=80
-    const transformedUrl = url.replace(
-      '/storage/v1/object/public/toy-images/',
-      `/storage/v1/render/image/public/toy-images/?width=${width}&height=${height}&resize=cover&quality=80&format=webp&`
-    );
-    
-    console.log(`🔧 Optimized Supabase URL: ${url} → ${transformedUrl}`);
-    return transformedUrl;
   },
 
   /**

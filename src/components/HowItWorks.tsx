@@ -28,10 +28,10 @@ const HowItWorks = () => {
   const getImageSource = () => {
     // If mobile and no error, use the new mobile image
     if (isMobile && !imageError) {
-      return imageService.getImageUrl("/lovable-uploads/09b56475-0359-4f44-8f7c-2d18fc533695.png", 'carousel');
+      return imageService.getImageUrl("/lovable-uploads/09b56475-0359-4f44-8f7c-2d18fc533695.webp", 'carousel');
     }
     // Fall back to desktop image
-    return imageService.getImageUrl("/lovable-uploads/ad1402ea-9278-4bb9-b1c2-4ecd096bf175.png", 'carousel');
+    return imageService.getImageUrl("/lovable-uploads/ad1402ea-9278-4bb9-b1c2-4ecd096bf175.webp", 'carousel');
   };
 
   const getAltText = () => {
