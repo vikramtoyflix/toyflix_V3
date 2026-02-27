@@ -102,11 +102,16 @@ const WhyChooseUs = () => {
             </svg>
 
             <div className="absolute left-1/2 top-1/2 z-0 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg ring-2 sm:ring-4 ring-terracotta/10 w-[26%] h-[26%] min-w-[56px] min-h-[56px] sm:min-w-[80px] sm:min-h-[80px] lg:min-w-[100px] lg:min-h-[100px] overflow-hidden">
-              <img
-                src="/toyflix-icon.jpg"
-                alt=""
-                className="h-full w-full rounded-full object-cover"
-              />
+              <picture>
+                <source srcSet="/toyflix-icon.webp" type="image/webp" />
+                <img
+                  src="/toyflix-icon.jpg"
+                  alt=""
+                  className="h-full w-full rounded-full object-cover"
+                  width="512"
+                  height="512"
+                />
+              </picture>
             </div>
 
             {steps.map((step, index) => {

@@ -128,11 +128,16 @@ const AppDownloadPopup = ({
                 rel="noopener noreferrer"
                 className="block w-full max-w-[200px] sm:max-w-[220px] transition-transform duration-200 hover:scale-105 active:scale-[0.98]"
               >
-                <img
-                  src="/app-store-badge.png"
-                  alt="Download on the App Store"
-                  className="h-14 sm:h-16 w-full object-contain object-center"
-                />
+                <picture>
+                  <source srcSet="/app-store-badge.webp" type="image/webp" />
+                  <img
+                    src="/app-store-badge.png"
+                    alt="Download on the App Store"
+                    className="h-14 sm:h-16 w-full object-contain object-center"
+                    width="716"
+                    height="216"
+                  />
+                </picture>
               </a>
               <a
                 href="https://play.google.com/store/apps/details?id=com.bommalu.toyrentalapp"
@@ -140,11 +145,16 @@ const AppDownloadPopup = ({
                 rel="noopener noreferrer"
                 className="block w-full max-w-[200px] sm:max-w-[220px] transition-transform duration-200 hover:scale-105 active:scale-[0.98]"
               >
-                <img
-                  src="/google-play-badge.png"
-                  alt="Get it on Google Play"
-                  className="h-14 sm:h-16 w-full object-contain object-center"
-                />
+                <picture>
+                  <source srcSet="/google-play-badge.webp" type="image/webp" />
+                  <img
+                    src="/google-play-badge.png"
+                    alt="Get it on Google Play"
+                    className="h-14 sm:h-16 w-full object-contain object-center"
+                    width="706"
+                    height="234"
+                  />
+                </picture>
               </a>
             </div>
 

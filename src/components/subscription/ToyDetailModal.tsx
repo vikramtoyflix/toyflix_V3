@@ -116,7 +116,9 @@ const ToyDetailModal = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  const imageUrl = convertToPublicUrl(mainImage || toy.image_url);
+  const imageUrl = imageService.getImageUrl(
+    convertToPublicUrl(mainImage || toy.image_url), 'product'
+  );
   const fallbackUrl = imageService.getFallbackChain('toy')[0];
   const finalImageUrl = imageError ? fallbackUrl : imageUrl;
 
@@ -266,7 +268,7 @@ const ToyDetailModal = ({
                     } hover:border-primary/50 transition-colors`}
                   >
                     <img
-                      src={convertToPublicUrl(img.image_url)}
+                      src={imageService.getImageUrl(convertToPublicUrl(img.image_url), 'toy')}
                       alt={`${toy.name} view ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => { 

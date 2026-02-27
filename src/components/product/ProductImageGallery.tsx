@@ -113,7 +113,9 @@ const ProductImageGallery = ({ toyId, toyName, fallbackImageUrl }: ProductImageG
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  const mainImageSrc = convertToPublicUrl(mainImage || fallbackImageUrl);
+  const mainImageSrc = imageService.getImageUrl(
+    convertToPublicUrl(mainImage || fallbackImageUrl), 'product'
+  );
   const fallbackSrc = imageService.getFallbackChain('product')[0];
   const displaySrc = imageError ? fallbackSrc : mainImageSrc;
 
@@ -180,7 +182,7 @@ const ProductImageGallery = ({ toyId, toyName, fallbackImageUrl }: ProductImageG
               } hover:border-primary/50 transition-colors`}
             >
               <img
-                src={convertToPublicUrl(img.image_url)}
+                src={imageService.getImageUrl(convertToPublicUrl(img.image_url), 'toy')}
                 alt={`${toyName} view ${index + 1}`}
                 className="w-full h-full object-cover"
                 onError={(e) => { 

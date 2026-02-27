@@ -27,13 +27,18 @@ const MobileHeader = ({
       >
         <div className="flex items-center justify-between px-4 h-14 box-content">
           <div className="flex items-center">
-            <img
-              src="/toyflix-logo.png"
-              alt="Toyflix"
-              className="h-8 w-auto cursor-pointer"
-              onClick={() => navigate('/')}
-              loading="eager"
-            />
+            <picture>
+              <source srcSet="/toyflix-logo.webp" type="image/webp" />
+              <img
+                src="/toyflix-logo.png"
+                alt="Toyflix"
+                className="h-8 w-auto cursor-pointer"
+                onClick={() => navigate('/')}
+                loading="eager"
+                width="936"
+                height="216"
+              />
+            </picture>
           </div>
 
           <div className="flex items-center space-x-2">

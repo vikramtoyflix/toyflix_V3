@@ -268,11 +268,16 @@ const About = () => {
                   rel="noopener noreferrer"
                   className="block w-full max-w-[240px] sm:max-w-[260px] transition-transform duration-200 hover:scale-105 active:scale-[0.98]"
                 >
-                  <img
-                    src="/app-store-badge.png"
-                    alt="Download from the App Store"
-                    className="h-16 sm:h-20 w-full object-contain object-center"
-                  />
+                  <picture>
+                    <source srcSet="/app-store-badge.webp" type="image/webp" />
+                    <img
+                      src="/app-store-badge.png"
+                      alt="Download from the App Store"
+                      className="h-16 sm:h-20 w-full object-contain object-center"
+                      width="716"
+                      height="216"
+                    />
+                  </picture>
                 </a>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.bommalu.toyrentalapp"
@@ -280,11 +285,16 @@ const About = () => {
                   rel="noopener noreferrer"
                   className="block w-full max-w-[240px] sm:max-w-[260px] transition-transform duration-200 hover:scale-105 active:scale-[0.98]"
                 >
-                  <img
-                    src="/google-play-badge.png"
-                    alt="Get from Google Play"
-                    className="h-16 sm:h-20 w-full object-contain object-center"
-                  />
+                  <picture>
+                    <source srcSet="/google-play-badge.webp" type="image/webp" />
+                    <img
+                      src="/google-play-badge.png"
+                      alt="Get from Google Play"
+                      className="h-16 sm:h-20 w-full object-contain object-center"
+                      width="706"
+                      height="234"
+                    />
+                  </picture>
                 </a>
               </div>
 

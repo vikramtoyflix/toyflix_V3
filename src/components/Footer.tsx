@@ -90,11 +90,16 @@ const Footer = () => {
             {/* Brand - logo only (no duplicate "Toyflix" text) */}
             <div className={isMobile ? "" : "lg:col-span-4"}>
               <Link to="/" className={`inline-block ${isMobile ? "mx-auto" : ""}`}>
-                <img
-                  src="/toyflix-logo.png"
-                  alt="Toyflix"
-                  className={`w-auto ${isMobile ? "h-9" : "h-10"}`}
-                />
+                <picture>
+                  <source srcSet="/toyflix-logo.webp" type="image/webp" />
+                  <img
+                    src="/toyflix-logo.png"
+                    alt="Toyflix"
+                    className={`w-auto ${isMobile ? "h-9" : "h-10"}`}
+                    width="936"
+                    height="216"
+                  />
+                </picture>
               </Link>
               <p className="text-warm-gray/60 text-sm mt-3 max-w-sm leading-relaxed">
                 India's premier toy subscription service—curated premium toys for joy and learning.
@@ -203,11 +208,16 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   className="block h-12 w-[140px] sm:w-[160px] hover:opacity-90 transition-opacity"
                 >
-                  <img
-                    src="/app-store-badge.png"
-                    alt="Download from the App Store"
-                    className="h-full w-full object-contain object-left"
-                  />
+                  <picture>
+                    <source srcSet="/app-store-badge.webp" type="image/webp" />
+                    <img
+                      src="/app-store-badge.png"
+                      alt="Download from the App Store"
+                      className="h-full w-full object-contain object-left"
+                      width="716"
+                      height="216"
+                    />
+                  </picture>
                 </a>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.bommalu.toyrentalapp"
@@ -215,11 +225,16 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   className="block h-12 w-[140px] sm:w-[160px] hover:opacity-90 transition-opacity"
                 >
-                  <img
-                    src="/google-play-badge.png"
-                    alt="Get from Google Play"
-                    className="h-full w-full object-contain object-left"
-                  />
+                  <picture>
+                    <source srcSet="/google-play-badge.webp" type="image/webp" />
+                    <img
+                      src="/google-play-badge.png"
+                      alt="Get from Google Play"
+                      className="h-full w-full object-contain object-left"
+                      width="706"
+                      height="234"
+                    />
+                  </picture>
                 </a>
               </div>
             </div>
