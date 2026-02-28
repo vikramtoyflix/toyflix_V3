@@ -59,6 +59,47 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
   const containerRef = React.useRef<HTMLDivElement>(null);
   const internalVideoRef = React.useRef<HTMLVideoElement | null>(null);
   const [loadSrc, setLoadSrc] = React.useState(false);
+  const [posterUrl, setPosterUrl] = React.useState<string | null>(null);
+
+  // Capture first frame as poster thumbnail using a hidden video + canvas
+  React.useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    const vid = document.createElement("video");
+    vid.crossOrigin = "anonymous";
+    vid.preload = "metadata";
+    vid.muted = true;
+    vid.src = src + "#t=0.5";
+    const onLoaded = () => {
+      if (cancelled) return;
+      vid.currentTime = 0.5;
+    };
+    const onSeeked = () => {
+      if (cancelled) return;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = vid.videoWidth || 320;
+        canvas.height = vid.videoHeight || 568;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+          setPosterUrl(canvas.toDataURL("image/jpeg", 0.7));
+        }
+      } catch {
+        // cross-origin or canvas taint — silently ignore
+      }
+      vid.src = "";
+    };
+    vid.addEventListener("loadedmetadata", onLoaded);
+    vid.addEventListener("seeked", onSeeked);
+    vid.load();
+    return () => {
+      cancelled = true;
+      vid.removeEventListener("loadedmetadata", onLoaded);
+      vid.removeEventListener("seeked", onSeeked);
+      vid.src = "";
+    };
+  }, [src]);
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -69,7 +110,7 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
           observer.disconnect();
         }
       },
-      { rootMargin: "100px" }  // only preload when 100px away, not 300px
+      { rootMargin: "100px" }
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -83,9 +124,10 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
   return (
     <div ref={containerRef} className="w-full h-full relative bg-black">
       {loadSrc ? (
-          <video
+        <video
           ref={setRefs}
           src={src}
+          poster={posterUrl ?? undefined}
           preload="none"
           controls
           playsInline
@@ -96,11 +138,22 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
         </video>
       ) : (
         /* Placeholder shown before video scrolls into view */
-        <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
+        <div className="w-full h-full relative overflow-hidden">
+          {posterUrl ? (
+            <img
+              src={posterUrl}
+              alt="Video thumbnail"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800" />
+          )}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
           </div>
         </div>
       )}
