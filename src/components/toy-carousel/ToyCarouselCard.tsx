@@ -64,7 +64,6 @@ const ToyCarouselCard = ({
 
         if (imageData && imageData.length > 0) {
           setImages(imageData);
-          // Set primary image or first image as current
           const primaryImage = imageData.find(img => img.is_primary) || imageData[0];
           setCurrentImageIndex(imageData.findIndex(img => img.image_url === primaryImage.image_url));
         } else {
