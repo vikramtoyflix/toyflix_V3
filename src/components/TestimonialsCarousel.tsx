@@ -69,7 +69,7 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
           observer.disconnect();
         }
       },
-      { rootMargin: "300px" }
+      { rootMargin: "100px" }  // only preload when 100px away, not 300px
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -83,10 +83,10 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
   return (
     <div ref={containerRef} className="w-full h-full relative bg-black">
       {loadSrc ? (
-        <video
+          <video
           ref={setRefs}
           src={src}
-          preload="metadata"
+          preload="none"
           controls
           playsInline
           onPlay={onPlay}
