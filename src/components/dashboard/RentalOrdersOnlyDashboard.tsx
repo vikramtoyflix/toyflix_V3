@@ -275,13 +275,6 @@ const RentalOrdersOnlyDashboard = () => {
           .single();
 
         if (profileError) {
-          // If auth error, clear stale session and redirect to login
-          if (profileError.code === 'PGRST301' || profileError.message?.includes('JWT') || profileError.message?.includes('invalid') || profileError.code === '401') {
-            localStorage.removeItem('toyflix_custom_session');
-            localStorage.removeItem('toyflix_custom_user');
-            window.location.href = '/auth';
-            return null;
-          }
           throw profileError;
         }
 
