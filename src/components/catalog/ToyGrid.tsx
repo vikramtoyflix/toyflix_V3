@@ -3,6 +3,7 @@ import ToyCard from './ToyCard';
 import MobileToyCard from '../mobile/MobileToyCard';
 import { MobileGridLoadingState, MobileEmptyState } from '../mobile/MobileLoadingStates';
 import { Toy } from '@/hooks/useToys';
+import { useBulkToyImages } from '@/hooks/useToyImages';
 import CatalogLoadingState from './CatalogLoadingState';
 import ToyDetailModal from '../subscription/ToyDetailModal';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -63,6 +64,10 @@ const ToyGrid = React.memo(({
   const selectedToyIdsSet = useMemo(() => {
     return new Set(selectedToyIds);
   }, [selectedToyIds]);
+
+  // Fetch all toy images in ONE query — passes results down to each card
+  const toyIds = useMemo(() => displayToys.map(t => t.id), [displayToys]);
+  const { data: bulkImages = {} } = useBulkToyImages(toyIds);
 
   // Memoize loading state for mobile
   const mobileLoadingState = useMemo(() => (
@@ -163,6 +168,7 @@ const ToyGrid = React.memo(({
             >
               <MobileToyCard
                 toy={toy}
+                preloadedImages={bulkImages[toy.id]}
                 onToyAction={onToyAction}
                 onAddToWishlist={onAddToWishlist}
                 onViewProduct={handleOpenModal}
@@ -210,6 +216,7 @@ const ToyGrid = React.memo(({
         >
           <ToyCard
             toy={toy}
+            preloadedImages={bulkImages[toy.id]}
             onToyAction={onToyAction}
             onAddToWishlist={onAddToWishlist}
             onViewProduct={handleOpenModal}

@@ -10,21 +10,14 @@ export const useToysWithAgeBands = () => {
   return useQuery({
     queryKey: ['toys-all-no-age-filter'],
     queryFn: async (): Promise<Toy[]> => {
-      console.log('🧸 Fetching all toys without age restrictions...');
-      
       const { data, error } = await supabase
         .from('toys')
         .select('*')
         .order('is_featured', { ascending: false })
         .order('name', { ascending: true });
 
-      if (error) {
-        console.error('❌ Error fetching toys:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log(`✅ Fetched ${data?.length || 0} toys without age filtering`);
-      
       const toys = (data || []).map(toy => ({
         id: toy.id,
         name: toy.name,
@@ -49,14 +42,10 @@ export const useToysWithAgeBands = () => {
         updated_at: toy.updated_at,
       })) as Toy[];
 
-      // Apply category ordering
-      const sortedToys = sortToysByCategory(toys);
-      logToyDistribution(sortedToys, 'All Toys (No Age Filter)');
-      
-      return sortedToys;
+      return sortToysByCategory(toys);
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
@@ -82,11 +71,9 @@ export function getAgeTableName(ageGroup: string): string | null {
  */
 export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   try {
-    // Get Supabase configuration
     const supabaseUrl = 'https://wucwpyitzqjukcphczhr.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY';
     
-    // First, get toy names from the age-specific table
     const ageTableResponse = await fetch(
       `${supabaseUrl}/rest/v1/${tableName}?category=neq.ride_on_toys&order=is_featured.desc,available_quantity.desc,name.asc&select=name`,
       {
@@ -106,30 +93,19 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
     const ageTableData = await ageTableResponse.json();
     
     if (!ageTableData || ageTableData.length === 0) {
-      console.log(`✅ No toys found in ${tableName}`);
       return [];
     }
 
-    // Extract toy names
     const toyNames = ageTableData.map((toy: any) => toy.name);
-    console.log(`📋 Found ${toyNames.length} toy names in ${tableName}`);
 
-    // Now fetch the complete toy data from the main toys table using the names
-    // This ensures we get the correct IDs that match the toy_images table
     const { data: mainTableToys, error } = await supabase
       .from('toys')
       .select('*')
       .in('name', toyNames)
       .neq('category', 'ride_on_toys');
 
-    if (error) {
-      console.error(`❌ Error fetching from main toys table:`, error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log(`✅ Successfully fetched ${mainTableToys?.length || 0} toys from main table for ${tableName}`);
-    
-    // Transform the data to ensure it matches the Toy interface
     const toys = (mainTableToys || []).map((toy: any) => ({
       id: toy.id,
       name: toy.name,
@@ -154,14 +130,12 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
       updated_at: toy.updated_at,
     })) as Toy[];
 
-    // IMPORTANT: Apply category ordering as per requirements
     const sortedToys = sortToysByCategory(toys);
     logToyDistribution(sortedToys, `Age Table: ${tableName}`);
     
     return sortedToys;
     
   } catch (error) {
-    console.error(`❌ Failed to query ${tableName}:`, error);
     throw error;
   }
 }
@@ -220,26 +194,12 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
         return fetchHomepageToys();
       }
 
-      // AGE-SPECIFIC BEHAVIOR: Use age-specific tables
       const tableName = getAgeTableName(ageGroup);
-      if (!tableName) {
-        console.warn(`⚠️ No table found for age group: ${ageGroup}`);
-        return [];
-      }
+      if (!tableName) return [];
 
-      console.log(`🎯 Fetching toys from ${tableName} for age group: ${ageGroup}`);
-      
       try {
-        // Use direct table access with category ordering
-        const toys = await queryAgeSpecificTable(tableName);
-        console.log(`✅ Successfully fetched ${toys.length} toys from ${tableName} with category ordering`);
-        return toys;
-        
-      } catch (error) {
-        console.error(`❌ Failed to query ${tableName} directly:`, error);
-        
-        // Fallback to regular toys table if direct access fails
-        console.log(`🔄 Fallback: Fetching all toys for age group ${ageGroup}`);
+        return await queryAgeSpecificTable(tableName);
+      } catch {
         const { data, error: fallbackError } = await supabase
           .from('toys')
           .select('*')
@@ -247,10 +207,7 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
           .order('is_featured', { ascending: false })
           .order('name', { ascending: true });
 
-        if (fallbackError) {
-          console.error('❌ Fallback query also failed:', fallbackError);
-          throw fallbackError;
-        }
+        if (fallbackError) throw fallbackError;
 
         const toys = (data || []).map(toy => ({
           id: toy.id,
@@ -276,19 +233,14 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
           updated_at: toy.updated_at,
         })) as Toy[];
 
-        // Apply category ordering even in fallback
-        const sortedToys = sortToysByCategory(toys);
-        logToyDistribution(sortedToys, `Fallback for ${ageGroup}`);
-        console.log(`⚠️ Fallback: Showing ${sortedToys.length} toys for age group ${ageGroup} with category ordering`);
-        
-        return sortedToys;
+        return sortToysByCategory(toys);
       }
     },
     enabled: true,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Refetch when Featured section mounts so refresh shows toys
+    refetchOnMount: true,
   });
 };
 
@@ -299,14 +251,9 @@ export const useToysWithAgeBandsByCategory = (category?: string) => {
   return useQuery({
     queryKey: ['toys-category-no-age-filter', category],
     queryFn: async (): Promise<Toy[]> => {
-      console.log('🧸 Fetching toys by category without age restrictions:', category);
-      
-      let query = supabase
-        .from('toys')
-        .select('*');
+      let query = supabase.from('toys').select('*');
       
       if (category && category !== 'all') {
-        // Type cast the category to match the enum values
         query = query.eq('category', category as any);
       }
       
@@ -314,10 +261,7 @@ export const useToysWithAgeBandsByCategory = (category?: string) => {
         .order('is_featured', { ascending: false })
         .order('name', { ascending: true });
 
-      if (error) {
-        console.error('❌ Error fetching toys by category:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       const toys = (data || []).map(toy => ({
         id: toy.id,
@@ -343,16 +287,11 @@ export const useToysWithAgeBandsByCategory = (category?: string) => {
         updated_at: toy.updated_at,
       })) as Toy[];
 
-      // Apply category ordering
-      const sortedToys = sortToysByCategory(toys);
-      logToyDistribution(sortedToys, `Category: ${category}`);
-      console.log(`✅ Fetched ${sortedToys.length} toys for category: ${category} without age filtering, with category ordering`);
-      
-      return sortedToys;
+      return sortToysByCategory(toys);
     },
     enabled: !!category,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
@@ -367,18 +306,13 @@ export const useAgeGroupToysCounts = () => {
       const ageGroups = ['1-2', '2-3', '3-4', '4-6', '6-8'];
       const counts: Record<string, number> = {};
       
-      console.log('📊 Fetching toy counts for all age groups (including unavailable)...');
-      
       for (const ageGroup of ageGroups) {
         const tableName = getAgeTableName(ageGroup);
         if (tableName) {
           try {
             const toys = await queryAgeSpecificTable(tableName);
-            const availableToys = toys.filter(toy => toy.available_quantity > 0);
             counts[ageGroup] = toys.length;
-            console.log(`✅ ${ageGroup}: ${toys.length} total toys (${availableToys.length} available, ${toys.length - availableToys.length} unavailable)`);
-          } catch (error) {
-            console.error(`❌ Failed to get count for ${ageGroup}:`, error);
+          } catch {
             counts[ageGroup] = 0;
           }
         }
@@ -386,8 +320,8 @@ export const useAgeGroupToysCounts = () => {
       
       return counts;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
@@ -402,17 +336,12 @@ export const useToysGroupedByAge = () => {
       const ageGroups = ['1-2', '2-3', '3-4', '4-6', '6-8'];
       const grouped: Record<string, Toy[]> = {};
       
-      console.log('🎯 Fetching toys grouped by age with category ordering...');
-      
       for (const ageGroup of ageGroups) {
         const tableName = getAgeTableName(ageGroup);
         if (tableName) {
           try {
-            const toys = await queryAgeSpecificTable(tableName);
-            grouped[ageGroup] = toys; // Already sorted by category in queryAgeSpecificTable
-            console.log(`✅ ${ageGroup}: ${toys.length} toys loaded with category ordering`);
-          } catch (error) {
-            console.error(`❌ Failed to load toys for ${ageGroup}:`, error);
+            grouped[ageGroup] = await queryAgeSpecificTable(tableName);
+          } catch {
             grouped[ageGroup] = [];
           }
         }
@@ -420,8 +349,8 @@ export const useToysGroupedByAge = () => {
       
       return grouped;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
-}; 
+};

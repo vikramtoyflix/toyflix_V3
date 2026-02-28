@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Toy } from '@/hooks/useToys';
+import { ToyImage } from '@/hooks/useToyImages';
 import { imageService } from '@/services/imageService';
 import { cn } from '@/lib/utils';
 import { 
@@ -14,10 +15,10 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ToyCardProps {
   toy: Toy;
+  preloadedImages?: ToyImage[];
   onToyAction?: (toy: Toy, e: React.MouseEvent) => void;
   onAddToWishlist?: (toyId: string, e: React.MouseEvent) => void;
   onViewProduct?: (toyId: string) => void;
@@ -26,15 +27,9 @@ interface ToyCardProps {
   showOutOfStock?: boolean;
 }
 
-interface ToyImage {
-  id: string;
-  image_url: string;
-  display_order: number;
-  is_primary: boolean;
-}
-
 const ToyCard = ({ 
-  toy, 
+  toy,
+  preloadedImages,
   onToyAction, 
   onAddToWishlist, 
   onViewProduct,
@@ -47,48 +42,22 @@ const ToyCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [images, setImages] = useState<ToyImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLoadingImages, setIsLoadingImages] = useState(true);
+  const [isLoadingImages, setIsLoadingImages] = useState(!preloadedImages);
 
-  // Fetch toy images
+  // Use preloaded images from parent — no per-card DB query
   useEffect(() => {
-    const fetchImages = async () => {
-      if (!toy.id) {
-        return;
-      }
-      
-      setIsLoadingImages(true);
-      try {
-        const { data: imageData, error } = await supabase
-          .from('toy_images')
-          .select('*')
-          .eq('toy_id', toy.id)
-          .order('display_order');
-
-        if (error && error.code !== 'PGRST116') {
-          console.warn('Error fetching toy images:', error);
-        }
-
-        if (imageData && imageData.length > 0) {
-          setImages(imageData);
-          // Set primary image or first image as current
-          const primaryImage = imageData.find(img => img.is_primary) || imageData[0];
-          const primaryIndex = imageData.findIndex(img => img.image_url === primaryImage.image_url);
-          setCurrentImageIndex(primaryIndex >= 0 ? primaryIndex : 0);
-        } else {
-          setImages([]);
-          setCurrentImageIndex(0);
-        }
-      } catch (error) {
-        console.error('Error fetching images:', error);
-        setImages([]);
+    if (preloadedImages !== undefined) {
+      setImages(preloadedImages);
+      if (preloadedImages.length > 0) {
+        const primary = preloadedImages.find(img => img.is_primary) || preloadedImages[0];
+        const primaryIndex = preloadedImages.findIndex(img => img.image_url === primary.image_url);
+        setCurrentImageIndex(primaryIndex >= 0 ? primaryIndex : 0);
+      } else {
         setCurrentImageIndex(0);
-      } finally {
-        setIsLoadingImages(false);
       }
-    };
-
-    fetchImages();
-  }, [toy.id, toy.name]);
+      setIsLoadingImages(false);
+    }
+  }, [preloadedImages]);
 
   // Convert S3 URLs to public URLs
   const convertToPublicUrl = (s3Url: string): string => {
