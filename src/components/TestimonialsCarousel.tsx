@@ -68,10 +68,12 @@ function LazyVideo({ src, poster, videoRef, onPlay, activated, onActivate }: Laz
       ([entry]) => {
         if (entry.isIntersecting) {
           setLoadSrc(true);
-          observer.disconnect();
+        } else {
+          // Pause when scrolled out of view
+          internalVideoRef.current?.pause();
         }
       },
-      { rootMargin: "100px" }
+      { threshold: 0.25 }
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
