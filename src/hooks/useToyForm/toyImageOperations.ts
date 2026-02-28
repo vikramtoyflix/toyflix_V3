@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchToyImages = async (id: string) => {
-  console.log('Fetching toy images for ID:', id);
   const { data: imageData, error: imageError } = await supabase
     .from('toy_images')
     .select('*')
@@ -13,58 +12,68 @@ export const fetchToyImages = async (id: string) => {
     console.warn('Error fetching toy images:', imageError);
   }
 
-  console.log('Fetched toy images:', imageData);
   return imageData || [];
 };
 
 export const saveToyImages = async (toyId: string, images: string[], primaryImageIndex: number) => {
-  if (images.length === 0) {
-    console.log('No images to save');
-    return;
-  }
-
-  console.log('Starting image save operation:', { toyId, images, primaryImageIndex });
+  if (images.length === 0) return;
 
   try {
-    // Use a transaction-like approach: first delete, then insert
-    console.log('Deleting existing images...');
-    const { error: deleteError } = await supabase
+    // Fetch existing images so we can merge rather than blindly overwrite
+    const { data: existing } = await supabase
       .from('toy_images')
-      .delete()
+      .select('image_url')
       .eq('toy_id', toyId);
 
-    if (deleteError) {
-      console.warn('Warning deleting existing images:', deleteError);
-      // Don't throw here as the images might not exist yet
-    } else {
-      console.log('Successfully deleted existing images');
+    const existingUrls = new Set((existing || []).map(r => r.image_url));
+
+    // Separate new images (not yet in DB) from already-saved ones
+    const newImages = images.filter(url => url && typeof url === 'string' && !existingUrls.has(url));
+
+    // Delete only rows whose URLs are no longer in the submitted list
+    // (i.e., the admin explicitly removed them)
+    const submittedUrls = new Set(images.filter(Boolean));
+    const toDelete = (existing || []).filter(r => !submittedUrls.has(r.image_url));
+
+    if (toDelete.length > 0) {
+      await supabase
+        .from('toy_images')
+        .delete()
+        .eq('toy_id', toyId)
+        .in('image_url', toDelete.map(r => r.image_url));
     }
 
-    // Insert new images with validation
-    const imageInserts = images.map((imageUrl, index) => {
-      if (!imageUrl || typeof imageUrl !== 'string') {
-        throw new Error(`Invalid image URL at index ${index}`);
-      }
-      return {
+    // Insert only genuinely new images
+    if (newImages.length > 0) {
+      const startOrder = existing ? existing.length - toDelete.length : 0;
+      const imageInserts = newImages.map((imageUrl, i) => ({
         toy_id: toyId,
         image_url: imageUrl,
-        display_order: index,
-        is_primary: index === primaryImageIndex
-      };
-    });
+        display_order: startOrder + i,
+        is_primary: images.indexOf(imageUrl) === primaryImageIndex,
+      }));
 
-    console.log('Inserting new images:', imageInserts);
+      const { error: insertError } = await supabase
+        .from('toy_images')
+        .insert(imageInserts);
 
-    const { error: imageError } = await supabase
-      .from('toy_images')
-      .insert(imageInserts);
-
-    if (imageError) {
-      console.error('Error saving images:', imageError);
-      throw new Error(`Error saving images: ${imageError.message}`);
+      if (insertError) throw new Error(`Error saving images: ${insertError.message}`);
     }
-    
-    console.log('Successfully saved toy images');
+
+    // Update is_primary flag for the designated primary image
+    await supabase
+      .from('toy_images')
+      .update({ is_primary: false })
+      .eq('toy_id', toyId);
+
+    if (images[primaryImageIndex]) {
+      await supabase
+        .from('toy_images')
+        .update({ is_primary: true })
+        .eq('toy_id', toyId)
+        .eq('image_url', images[primaryImageIndex]);
+    }
+
   } catch (error) {
     console.error('Image save operation failed:', error);
     throw error;
