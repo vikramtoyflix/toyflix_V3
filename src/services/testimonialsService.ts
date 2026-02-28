@@ -74,6 +74,15 @@ function buildPublicUrl(filename: string): string {
   return `${base}/storage/v1/object/public/${TESTIMONIALS_BUCKET}/${encodeURIComponent(filename)}`;
 }
 
+/** Pre-made poster thumbnails matched to each testimonial video filename */
+export const TESTIMONIAL_POSTERS: Record<string, string> = {
+  "Nithin.mp4":          buildPublicUrl("Nithin-thumb.png"),
+  "Devanshi shukla.mp4": buildPublicUrl("Devanshi shukla-thumb.png"),
+  "Himanshi.mp4":        buildPublicUrl("Himanshi-thumb.png"),
+  "Krupa.mp4":           buildPublicUrl("Krupa-thumb.png"),
+  "Nikitha.mp4":         buildPublicUrl("Nikitha-thumb.png"),
+};
+
 /** Default testimonials with video URLs from the public bucket – use when query is loading or fails. Never throws. */
 export function getDefaultVideoTestimonials(): TestimonialRecord[] {
   try {

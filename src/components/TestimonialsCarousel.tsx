@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   fetchTestimonialsFromSupabase,
   getDefaultVideoTestimonials,
+  TESTIMONIAL_POSTERS,
 } from "@/services/testimonialsService";
 
 const FALLBACK_VIDEO_URL = "https://wucwpyitzqjukcphczhr.supabase.co/storage/v1/object/public/testimonials/Nithin.mp4";
@@ -49,57 +50,17 @@ function TestimonialsMinimalFallback() {
 
 interface LazyVideoProps {
   src: string;
+  poster?: string;
   videoRef: (el: HTMLVideoElement | null) => void;
   onPlay: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   activated: boolean;
   onActivate: () => void;
 }
 
-function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoProps) {
+function LazyVideo({ src, poster, videoRef, onPlay, activated, onActivate }: LazyVideoProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const internalVideoRef = React.useRef<HTMLVideoElement | null>(null);
   const [loadSrc, setLoadSrc] = React.useState(false);
-  const [posterUrl, setPosterUrl] = React.useState<string | null>(null);
-
-  // Capture first frame as poster thumbnail using a hidden video + canvas
-  React.useEffect(() => {
-    if (!src) return;
-    let cancelled = false;
-    const vid = document.createElement("video");
-    vid.crossOrigin = "anonymous";
-    vid.preload = "metadata";
-    vid.muted = true;
-    vid.src = src + "#t=0.5";
-    const onLoaded = () => {
-      if (cancelled) return;
-      vid.currentTime = 0.5;
-    };
-    const onSeeked = () => {
-      if (cancelled) return;
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = vid.videoWidth || 320;
-        canvas.height = vid.videoHeight || 568;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
-          setPosterUrl(canvas.toDataURL("image/jpeg", 0.7));
-        }
-      } catch {
-        // cross-origin or canvas taint — silently ignore
-      }
-      vid.src = "";
-    };
-    vid.addEventListener("loadedmetadata", onLoaded);
-    vid.addEventListener("seeked", onSeeked);
-    vid.load();
-    return () => {
-      cancelled = true;
-      vid.removeEventListener("loadedmetadata", onLoaded);
-      vid.removeEventListener("seeked", onSeeked);
-      vid.src = "";
-    };
-  }, [src]);
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -127,7 +88,7 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
         <video
           ref={setRefs}
           src={src}
-          poster={posterUrl ?? undefined}
+          poster={poster}
           preload="none"
           controls
           playsInline
@@ -137,14 +98,9 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
           Your browser does not support the video tag.
         </video>
       ) : (
-        /* Placeholder shown before video scrolls into view */
         <div className="w-full h-full relative overflow-hidden">
-          {posterUrl ? (
-            <img
-              src={posterUrl}
-              alt="Video thumbnail"
-              className="w-full h-full object-cover"
-            />
+          {poster ? (
+            <img src={poster} alt="Video thumbnail" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800" />
           )}
@@ -359,6 +315,7 @@ const TestimonialsCarousel = () => {
                           {testimonial.videoUrl && !testimonial.imageUrl && (
                             <LazyVideo
                               src={testimonial.videoUrl}
+                              poster={TESTIMONIAL_POSTERS[decodeURIComponent(testimonial.videoUrl.split("/").pop() || "")]}
                               videoRef={(el) => { videoRefs.current[index] = el; }}
                               onPlay={handleVideoPlay}
                               activated={videoActivated.has(testimonial.id)}
