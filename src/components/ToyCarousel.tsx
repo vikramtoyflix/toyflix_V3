@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useToysForAgeGroup } from "@/hooks/useToysWithAgeBands";
+import { useBulkToyImages } from "@/hooks/useToyImages";
 import ToyCarouselHeader from "./toy-carousel/ToyCarouselHeader";
 import ToyCarouselLoadingState from "./toy-carousel/ToyCarouselLoadingState";
 import ToyCarouselCard from "./toy-carousel/ToyCarouselCard";
@@ -65,6 +66,10 @@ const ToyCarouselInner = React.memo(() => {
     });
   }, [toys]);
 
+  // Fetch ALL images for visible toys in ONE query instead of per-card
+  const toyIds = useMemo(() => toysToDisplay.map((t) => t.id), [toysToDisplay]);
+  const { data: bulkImages = {} } = useBulkToyImages(toyIds);
+
   // Early returns after all hooks
   if (isLoading || (isFetching && !toys) || toys === undefined) {
     return <ToyCarouselLoadingState />;
@@ -117,9 +122,11 @@ const ToyCarouselInner = React.memo(() => {
             {toysToDisplay.map((toy, index) =>
               isMobile ? (
                 <MobileToyCarouselCard key={toy.id} toy={toy} index={index}
+                  preloadedImages={bulkImages[toy.id]}
                   onViewProduct={handleViewProduct} onAddToWishlist={handleAddToWishlist} />
               ) : (
                 <ToyCarouselCard key={toy.id} toy={toy} index={index}
+                  preloadedImages={bulkImages[toy.id]}
                   onViewProduct={handleViewProduct} onAddToWishlist={handleAddToWishlist} />
               )
             )}

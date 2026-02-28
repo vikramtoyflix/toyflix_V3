@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -8,108 +7,43 @@ export interface ToyImage {
   image_url: string;
   display_order: number;
   is_primary: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
-export const useToyImages = (toyId: string) => {
-  const [images, setImages] = useState<ToyImage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchImages = async () => {
-      if (!toyId) {
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { data: imageData, error } = await supabase
-          .from('toy_images')
-          .select('*')
-          .eq('toy_id', toyId)
-          .order('display_order');
-
-        if (error && error.code !== 'PGRST116') {
-          console.warn('Error fetching toy images:', error);
-          setError(error.message);
-        }
-
-        if (imageData && imageData.length > 0) {
-          setImages(imageData);
-        } else {
-          setImages([]);
-        }
-      } catch (error) {
-        console.error('Error fetching images:', error);
-        setError(error instanceof Error ? error.message : 'Unknown error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchImages();
-  }, [toyId]);
-
-  return { data: images, isLoading, error };
-};
-
-export const useToyPrimaryImage = (toyId: string) => {
+/**
+ * Fetches ALL toy images in a single query and returns a map of toy_id -> images[].
+ * Use this at the carousel/list level so each card doesn't fire its own query.
+ */
+export const useBulkToyImages = (toyIds: string[]) => {
   return useQuery({
-    queryKey: ['toy-primary-image', toyId],
-    queryFn: async (): Promise<string | null> => {
-      const { data, error } = await supabase
-        .from('toy_images')
-        .select('image_url')
-        .eq('toy_id', toyId)
-        .eq('is_primary', true)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.warn('Error fetching primary toy image:', error);
-      }
-
-      return data?.image_url || null;
-    },
-    enabled: !!toyId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-};
-
-export const useMultipleToyImages = (toyIds: string[]) => {
-  return useQuery({
-    queryKey: ['multiple-toy-images', toyIds],
+    queryKey: ['toy-images-bulk', toyIds.slice().sort().join(',')],
     queryFn: async (): Promise<Record<string, ToyImage[]>> => {
-      if (toyIds.length === 0) return {};
+      if (!toyIds.length) return {};
 
       const { data, error } = await supabase
         .from('toy_images')
-        .select('*')
+        .select('id, toy_id, image_url, display_order, is_primary')
         .in('toy_id', toyIds)
         .order('display_order');
 
-      if (error && error.code !== 'PGRST116') {
-        console.warn('Error fetching multiple toy images:', error);
+      if (error) {
+        console.warn('Error fetching bulk toy images:', error);
+        return {};
       }
 
-      // Group images by toy_id
-      const groupedImages: Record<string, ToyImage[]> = {};
-      (data || []).forEach(image => {
-        if (!groupedImages[image.toy_id]) {
-          groupedImages[image.toy_id] = [];
-        }
-        groupedImages[image.toy_id].push(image);
+      // Group by toy_id
+      const map: Record<string, ToyImage[]> = {};
+      (data || []).forEach((img) => {
+        if (!map[img.toy_id]) map[img.toy_id] = [];
+        map[img.toy_id].push(img as ToyImage);
       });
-
-      return groupedImages;
+      return map;
     },
     enabled: toyIds.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
-}; 
+};
+
+// Alias kept for backward compatibility with RelatedProducts
+export const useMultipleToyImages = useBulkToyImages;
