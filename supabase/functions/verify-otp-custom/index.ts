@@ -135,24 +135,9 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    if (!otpRecord.session_id) {
-      console.error('No session ID found in OTP record:', otpRecord);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Invalid OTP record',
-        message: 'Please request a new OTP'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     // Check if OTP has expired
     if (new Date(otpRecord.expires_at) < new Date()) {
-      console.error('OTP has expired:', {
-        expires_at: otpRecord.expires_at,
-        now: new Date().toISOString()
-      });
+      console.error('OTP has expired:', otpRecord.expires_at);
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'OTP has expired',
@@ -163,94 +148,88 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Verify OTP using 2Factor API
-    console.log('Verifying OTP with 2Factor API...', {
-      session_id: otpRecord.session_id,
-      otp: otp
-    });
     const twoFactorApiKey = Deno.env.get('TWOFACTOR_API_KEY');
-    
-    if (!twoFactorApiKey) {
-      console.error('Missing 2Factor API key');
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Server configuration error',
-        message: 'Missing 2Factor configuration'
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
-    // Use 2Factor's verification API
-    const verifyUrl = `https://2factor.in/API/V1/${twoFactorApiKey}/SMS/VERIFY/${otpRecord.session_id}/${otp}`;
-    
-    try {
-      console.log('Calling 2Factor verify API...');
-      const verifyResponse = await fetch(verifyUrl, {
-        method: 'GET'
-      });
-      
-      const verifyResult = await verifyResponse.json();
-      console.log('2Factor verification response:', verifyResult);
-
-      if (verifyResult.Status !== 'Success') {
-        console.error('2Factor verification failed:', verifyResult);
-        
-        // Check for specific error types
-        if (verifyResult.Details?.includes('Invalid API / SessionId Combination')) {
-          return new Response(JSON.stringify({ 
-            success: false, 
-            error: 'Invalid OTP session',
-            message: 'Your verification session has expired. Please request a new OTP.',
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        
+    // Dev mode: verify against locally stored OTP code
+    if (!twoFactorApiKey || otpRecord.provider === 'dev' || otpRecord.session_id === 'dev-mode') {
+      console.log('Dev mode OTP verification');
+      if (otpRecord.otp_code !== otp) {
         return new Response(JSON.stringify({ 
           success: false, 
           error: 'Invalid OTP',
-          message: verifyResult.Details || 'The OTP you entered is incorrect. Please try again.',
-          debug: {
-            checkedFormats: uniquePhoneFormats,
-            providedOTP: otp,
-            twoFactorStatus: verifyResult.Status,
-            twoFactorDetails: verifyResult.Details
-          }
+          message: 'The OTP you entered is incorrect. Please try again.'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Production: verify via 2Factor API using session_id
+      if (!otpRecord.session_id) {
+        console.error('No session_id found for OTP record id:', otpRecord.id);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Invalid OTP session',
+          message: 'Your verification session is missing. Please request a new OTP.'
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Mark OTP as verified in our database
-      const { error: updateError } = await supabaseAdmin
-        .from('otp_verifications')
-        .update({ 
-          is_verified: true,
-          verified_at: new Date().toISOString(),
-          attempts: (otpRecord.attempts || 0) + 1
-        })
-        .eq('id', otpRecord.id);
+      const verifyUrl = `https://2factor.in/API/V1/${twoFactorApiKey}/SMS/VERIFY/${otpRecord.session_id}/${otp}`;
+      console.log('Calling 2Factor verify API, session_id:', otpRecord.session_id);
 
-      if (updateError) {
-        console.error('Failed to mark OTP as verified:', updateError);
+      try {
+        const verifyResponse = await fetch(verifyUrl, { method: 'GET' });
+        const verifyResult = await verifyResponse.json();
+        console.log('2Factor verification response:', verifyResult);
+
+        if (verifyResult.Status !== 'Success') {
+          console.error('2Factor verification failed:', verifyResult);
+          const detail = verifyResult.Details || '';
+          const message = detail.includes('Invalid API / SessionId')
+            ? 'Your verification session has expired. Please request a new OTP.'
+            : detail.includes('OTP Mismatch')
+            ? 'The OTP you entered is incorrect. Please try again.'
+            : detail || 'Verification failed. Please try again.';
+
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'Invalid OTP',
+            message,
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('2Factor OTP verified successfully for phone:', phone);
+      } catch (verifyError: any) {
+        console.error('2Factor verification request failed:', verifyError);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Verification service error',
+          message: verifyError.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
+    }
 
-      console.log('OTP verified successfully with 2Factor for phone:', phone);
+    // Mark OTP as verified in our database
+    const { error: updateError } = await supabaseAdmin
+      .from('otp_verifications')
+      .update({ 
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+        attempts: (otpRecord.attempts || 0) + 1
+      })
+      .eq('id', otpRecord.id);
 
-    } catch (verifyError) {
-      console.error('2Factor verification request failed:', verifyError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Verification service error',
-        message: verifyError.message
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (updateError) {
+      console.error('Failed to mark OTP as verified:', updateError);
     }
 
     // Continue with user lookup and session creation...
