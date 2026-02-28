@@ -2,36 +2,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustomUser, CustomSession } from '@/hooks/auth/types';
 import { saveAuthToStorage, getStoredSession } from "@/hooks/auth/storage";
 
+// Legacy JWT anon key — required for edge function calls (new sb_publishable_ key not yet supported)
+const EDGE_FUNCTION_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY";
+const SUPABASE_FUNCTIONS_URL = "https://wucwpyitzqjukcphczhr.supabase.co/functions/v1";
+
 export const sendOTP = async (phone: string): Promise<{
   success: boolean;
   error?: { message: string };
   developmentOtp?: string;
 }> => {
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-  const { data, error } = await supabase.functions.invoke('send-otp', {
-    body: { phone: fullPhone },
-  });
 
-  // Check for function invocation errors (network issues, non-2xx status codes)
-  if (error) {
-    console.error('🔍 Supabase function invocation error in sendOTP:', error);
-    return { success: false, error: { message: error.message || "Function invocation failed" } };
-  }
+  try {
+    const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone: fullPhone }),
+    });
 
-  // Check for missing response data
-  if (!data) {
-    console.error('🔍 No response data from send-otp function');
-    return { success: false, error: { message: "No response from server" } };
-  }
+    const data = await response.json();
 
-  // Handle business logic errors (valid responses with success: false)
-  if (!data.success) {
-    const errorMessage = data.error || "Failed to send OTP";
-    console.log('🔍 OTP sending failed:', errorMessage);
-    return { success: false, error: { message: errorMessage } };
+    if (!response.ok || !data?.success) {
+      const errorMessage = data?.error || data?.message || "Failed to send OTP";
+      return { success: false, error: { message: errorMessage } };
+    }
+
+    return { success: true, developmentOtp: data.otp_code };
+  } catch (err: any) {
+    return { success: false, error: { message: err.message || "Network error" } };
   }
-  
-  return { success: true, developmentOtp: data.otp_code };
 };
 
 export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'signup' = 'signup'): Promise<{
@@ -45,28 +47,15 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
   console.log('🔍 verifyOTP called with:', { phone: fullPhone, otp, mode });
   
-  const { data, error } = await supabase.functions.invoke('verify-otp-custom', {
-    body: { phone: fullPhone, otp, mode },
+  const verifyRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/verify-otp-custom`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: fullPhone, otp, mode }),
   });
-  
-  console.log('🔍 Supabase function response:', { data, error });
-  
-  // Check for function invocation errors (network issues, non-2xx status codes)
-  if (error) {
-    console.error('🔍 Supabase function invocation error in verifyOTP:', error);
-    return { success: false, error: { message: error.message || "Function invocation failed" } };
-  }
+  const data = await verifyRes.json();
 
-  // Check for missing response data
-  if (!data) {
-    console.error('🔍 No response data from verify-otp-custom function');
-    return { success: false, error: { message: "No response from server" } };
-  }
-
-  // Handle business logic errors (valid responses with success: false)
-  if (!data.success) {
-    const errorMessage = data.error || "Verification failed";
-    console.log('🔍 OTP verification failed:', errorMessage);
+  if (!verifyRes.ok || !data?.success) {
+    const errorMessage = data?.error || data?.message || "Verification failed";
     return { success: false, error: { message: errorMessage } };
   }
   
@@ -154,13 +143,15 @@ export const updateUserProfile = async (
     return { success: false, error: { message: "No user session found." } };
   }
 
-  const { data, error } = await supabase.functions.invoke('auth-update-profile', {
-    body: { userId: session.user.id, firstName, lastName, pincode }
+  const updateRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-update-profile`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: session.user.id, firstName, lastName, pincode }),
   });
+  const data = await updateRes.json();
 
-  if (error || !data?.success) {
-    const errorMessage = data?.error || error?.message || "Failed to update profile.";
-    console.error('auth-update-profile function error:', errorMessage);
+  if (!updateRes.ok || !data?.success) {
+    const errorMessage = data?.error || data?.message || "Failed to update profile.";
     return { success: false, error: { message: errorMessage } };
   }
   
@@ -181,13 +172,15 @@ export const deleteUserAccount = async (): Promise<{
     return { success: false, error: { message: "No user session found." } };
   }
 
-  const { data, error } = await supabase.functions.invoke('auth-delete-account', {
-    body: { userId: session.user.id }
+  const deleteRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-delete-account`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: session.user.id }),
   });
+  const data = await deleteRes.json();
 
-  if (error || !data?.success) {
-    const errorMessage = data?.error || error?.message || "Failed to delete account.";
-    console.error('auth-delete-account function error:', errorMessage);
+  if (!deleteRes.ok || !data?.success) {
+    const errorMessage = data?.error || data?.message || "Failed to delete account.";
     return { success: false, error: { message: errorMessage } };
   }
 
@@ -327,19 +320,15 @@ export const completeUserProfile = async (
   try {
     console.log('🔍 Completing user profile for userId:', userId);
     
-    const { data, error } = await supabase.functions.invoke('auth-complete-profile', {
-      body: { 
-        userId, 
-        firstName, 
-        lastName, 
-        email: email || null,
-        pincode: pincode || null
-      }
+    const completeRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-complete-profile`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, firstName, lastName, email: email || null, pincode: pincode || null }),
     });
+    const data = await completeRes.json();
 
-    if (error || !data?.success) {
-      const errorMessage = data?.error || error?.message || "Failed to complete profile";
-      console.error('🔍 auth-complete-profile function error:', errorMessage);
+    if (!completeRes.ok || !data?.success) {
+      const errorMessage = data?.error || data?.message || "Failed to complete profile";
       return { success: false, error: { message: errorMessage } };
     }
 
