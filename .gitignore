@@ -28,3 +28,6 @@ dist-ssr
 
 # Local Cursor/IDE config that may contain secrets
 .cursor/mcp.json
+
+# Admin/migration scripts — contain credentials, never commit
+scripts/
