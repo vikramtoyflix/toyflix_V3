@@ -275,6 +275,12 @@ const RentalOrdersOnlyDashboard = () => {
           .single();
 
         if (profileError) {
+          if (profileError.code === 'PGRST301' || profileError.message?.includes('JWT') || profileError.message?.includes('invalid') || profileError.message?.includes('apikey')) {
+            localStorage.removeItem('toyflix_custom_session');
+            localStorage.removeItem('toyflix_custom_user');
+            window.location.href = '/auth';
+            return null;
+          }
           throw profileError;
         }
 
