@@ -65,7 +65,7 @@ const FeaturedToysOverlapCard = ({
 
   const getCurrentImageUrl = () => {
     if (images.length > 0) {
-      return imageService.getImageUrl(convertToPublicUrl(images[currentImageIndex]?.image_url), "toy");
+      return convertToPublicUrl(images[currentImageIndex]?.image_url);
     }
     const imageUrl = imageService.getImageUrl(toy.image_url, "toy");
     const fallbackUrl = imageService.getFallbackChain("toy")[0];

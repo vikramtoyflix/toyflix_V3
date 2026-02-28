@@ -101,7 +101,7 @@ const MobileToyCarouselCard = ({
   const getCurrentImageUrl = (): string => {
     try {
       if (images.length > 0) {
-        const url = imageService.getImageUrl(convertToPublicUrl(images[currentImageIndex]?.image_url), 'toy');
+        const url = convertToPublicUrl(images[currentImageIndex]?.image_url);
         if (url && url.startsWith('http')) return url;
       }
       const rawImageUrl = typeof toy?.image_url === "string" ? toy.image_url : "";

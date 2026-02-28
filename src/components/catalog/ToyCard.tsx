@@ -96,23 +96,23 @@ const ToyCard = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  // Get current image URL — always route through imageService for Supabase transforms
+  // Get current image URL with better error handling
   const getCurrentImageUrl = () => {
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      // Normalise S3-style URLs to public object URLs first
-      const publicUrl = imageUrl.includes('/storage/v1/s3/')
-        ? convertToPublicUrl(imageUrl)
-        : imageUrl;
-      return imageService.getImageUrl(publicUrl, 'toy');
+      // Handle both S3 and regular URLs
+      if (imageUrl.includes('/storage/v1/s3/')) {
+        return convertToPublicUrl(imageUrl);
+      }
+      return imageUrl;
     }
-
+    
     // Fallback to toy's main image_url
     if (toy.image_url) {
       const imageUrl = imageService.getImageUrl(toy.image_url, 'toy');
       return imageError ? imageService.getFallbackChain('toy')[0] : imageUrl;
     }
-
+    
     // Final fallback
     return imageService.getFallbackChain('toy')[0];
   };
