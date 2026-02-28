@@ -213,9 +213,10 @@ const About = () => {
             <div className="aspect-video w-full bg-black">
               <iframe
                 className="w-full h-full"
-                src="https://www.youtube.com/embed/0Br1a82-mk0"
+                src="https://www.youtube-nocookie.com/embed/0Br1a82-mk0?rel=0&modestbranding=1"
                 title="Toyflix - How it works"
                 frameBorder="0"
+                loading="lazy"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />

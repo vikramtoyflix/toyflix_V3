@@ -81,18 +81,29 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
   }, [videoRef]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
-      <video
-        ref={setRefs}
-        src={loadSrc ? src : undefined}
-        preload="metadata"
-        controls
-        playsInline
-        onPlay={onPlay}
-        className="w-full h-full object-contain bg-black"
-      >
-        Your browser does not support the video tag.
-      </video>
+    <div ref={containerRef} className="w-full h-full relative bg-black">
+      {loadSrc ? (
+        <video
+          ref={setRefs}
+          src={src}
+          preload="metadata"
+          controls
+          playsInline
+          onPlay={onPlay}
+          className="w-full h-full object-contain bg-black"
+        >
+          Your browser does not support the video tag.
+        </video>
+      ) : (
+        /* Placeholder shown before video scrolls into view */
+        <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        </div>
+      )}
       {!activated && (
         <button
           type="button"
@@ -101,7 +112,7 @@ function LazyVideo({ src, videoRef, onPlay, activated, onActivate }: LazyVideoPr
           aria-label="Tap to play video"
         >
           <span className="rounded-full bg-white/95 text-warm-gray px-5 py-2.5 text-sm font-semibold shadow-lg">
-            Tap to play
+            ▶ Tap to play
           </span>
         </button>
       )}
