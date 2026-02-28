@@ -8,11 +8,11 @@ export interface S3UploadResult {
 
 // S3 Configuration using the correct Supabase credentials with browser compatibility
 const S3_CONFIG = {
-  endpoint: 'https://wucwpyitzqjukcphczhr.supabase.co/storage/v1/s3',
+  endpoint: `${import.meta.env.VITE_SUPABASE_URL || 'https://wucwpyitzqjukcphczhr.supabase.co'}/storage/v1/s3`,
   region: 'ap-south-1',
   credentials: {
-    accessKeyId: '620a0a35b5df37490c4787564fef22b6',
-    secretAccessKey: '2498ae0f8203f49448d9124b86ab7b4445a291d4aeb393ad0be9b10511a278f1'
+    accessKeyId: import.meta.env.VITE_SUPABASE_S3_ACCESS_KEY || '',
+    secretAccessKey: import.meta.env.VITE_SUPABASE_S3_SECRET_KEY || ''
   },
   forcePathStyle: true, // Required for non-AWS S3 endpoints
   // Browser-specific configuration

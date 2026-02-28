@@ -32,8 +32,6 @@ class BulkOperationService {
         throw new Error('No valid authentication session found. Please sign in again.');
       }
 
-      console.log('✅ BulkOperationService: Session found, access_token length:', customSession.access_token.length);
-      console.log('🔧 BulkOperationService: Session user:', customSession.user?.id);
 
       const requestBody = {
         operation,
