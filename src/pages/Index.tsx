@@ -8,8 +8,8 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { FEATURE_FLAGS } from "@/config/features";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
-import TestimonialsCarousel from "@/components/TestimonialsCarousel";
-import ToyCarousel from "@/components/ToyCarousel";
+const TestimonialsCarousel = React.lazy(() => import("@/components/TestimonialsCarousel"));
+const ToyCarousel = React.lazy(() => import("@/components/ToyCarousel"));
 
 // Error fallback component for failed imports
 const ErrorFallback = ({ error, resetErrorBoundary }: { error?: Error; resetErrorBoundary?: () => void }) => (
@@ -86,7 +86,11 @@ const Index = () => {
                         
                         {/* Move toy carousels to top for faster customer access */}
                         <div className="space-y-4">
-                          <ToyCarousel />
+                          <ErrorBoundary FallbackComponent={ErrorFallback}>
+                            <Suspense fallback={<ComponentLoader text="Loading toys..." />}>
+                              <ToyCarousel />
+                            </Suspense>
+                          </ErrorBoundary>
                           <div ref={rideOnSectionRef}>
                             <ErrorBoundary FallbackComponent={ErrorFallback}>
                               <Suspense fallback={<ComponentLoader text="Loading ride-on toys..." />}>
@@ -168,7 +172,11 @@ const Index = () => {
           </Suspense>
         </ErrorBoundary>
         <section className="bg-white">
-          <ToyCarousel />
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<ComponentLoader text="Loading toys..." />}>
+              <ToyCarousel />
+            </Suspense>
+          </ErrorBoundary>
           <div ref={rideOnSectionRef}>
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Suspense fallback={<ComponentLoader text="Loading ride-on toys..." />}>

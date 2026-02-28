@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -11,6 +11,14 @@ import { CustomAuthProvider } from "@/hooks/auth/CustomAuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import FloatingContactButtons from "./components/WhatsAppFloatingButton";
+import { initializeGA, trackPageView } from '@/utils/analytics';
+import { initializeGTM } from '@/utils/gtm';
+import { initializeMetaPixel } from '@/utils/metaPixel';
+import { FEATURE_FLAGS } from '@/config/features';
+import { preloadCriticalResources, monitorCoreWebVitals } from '@/utils/seo/performance';
+import { BusinessSchema } from "@/components/seo/BusinessSchema";
+import { FAQSchema } from "@/components/seo/FAQSchema";
+import { ServiceSchema } from "@/components/seo/ServiceSchema";
 
 // Route-level lazy loading for faster initial load
 const Index = lazy(() => import("./pages/Index"));
@@ -63,18 +71,6 @@ const AppErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetEr
   </div>
 );
 
-
-
-import { useEffect } from 'react';
-import { initializeGA, trackPageView } from '@/utils/analytics';
-
-import { initializeGTM } from '@/utils/gtm';
-import { initializeMetaPixel } from '@/utils/metaPixel';
-import { FEATURE_FLAGS } from '@/config/features';
-import { preloadCriticalResources, monitorCoreWebVitals } from '@/utils/seo/performance';
-import { BusinessSchema } from "@/components/seo/BusinessSchema";
-import { FAQSchema } from "@/components/seo/FAQSchema";
-import { ServiceSchema } from "@/components/seo/ServiceSchema";
 
 // Prefetch homepage toys as soon as app loads so "Rent premium toys" carousel has data on first load/refresh
 function PrefetchHomeToys() {
