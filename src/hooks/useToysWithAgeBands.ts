@@ -72,7 +72,7 @@ export function getAgeTableName(ageGroup: string): string | null {
 export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   try {
     const supabaseUrl = 'https://wucwpyitzqjukcphczhr.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY';
+    const supabaseKey = 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
     
     const ageTableResponse = await fetch(
       `${supabaseUrl}/rest/v1/${tableName}?category=neq.ride_on_toys&order=is_featured.desc,available_quantity.desc,name.asc&select=name`,

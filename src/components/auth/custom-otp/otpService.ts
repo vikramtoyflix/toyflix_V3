@@ -212,7 +212,7 @@ export const checkUserStatus = async (phone: string): Promise<{
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY`,
+        'Authorization': `Bearer sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J`,
         'Content-Type': 'application/json',
       },
     });
