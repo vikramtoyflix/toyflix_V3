@@ -69,8 +69,9 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-alert-dialog') || id.includes('@radix-ui/react-sheet') || id.includes('vaul') || id.includes('cmdk')) return 'radix-overlay';
           if (id.includes('@radix-ui/react-select') || id.includes('@radix-ui/react-dropdown') || id.includes('@radix-ui/react-popover') || id.includes('@radix-ui/react-context-menu') || id.includes('@radix-ui/react-menubar') || id.includes('@radix-ui/react-navigation-menu') || id.includes('@radix-ui/react-hover-card')) return 'radix-menus';
           if (id.includes('@radix-ui')) return 'radix-core';
-          // Core vendor always needed
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'react-core';
+          // Core vendor — split so no single chunk dominates parse/execution (TBT)
+          if (id.includes('node_modules/react-dom/')) return 'react-dom';
+          if (id.includes('node_modules/react/')) return 'react';
           if (id.includes('react-router-dom') || id.includes('react-router/')) return 'router';
           if (id.includes('@tanstack/react-query')) return 'query';
           if (id.includes('@supabase/supabase-js') || id.includes('@supabase/')) return 'supabase';
