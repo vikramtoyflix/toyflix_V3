@@ -23,8 +23,8 @@ interface OptimizedOrdersResponse {
   totalCount: number;
 }
 
-const STALE_TIME = 5 * 60 * 1000; // 5 minutes
-const CACHE_TIME = 15 * 60 * 1000; // 15 minutes
+const STALE_TIME = 5 * 60 * 1000;
+const CACHE_TIME = 15 * 60 * 1000;
 const MAX_USER_IDS = 1000; // Supabase limit for IN clause
 const BATCH_SIZE = 1000; // Supabase limit per query
 
