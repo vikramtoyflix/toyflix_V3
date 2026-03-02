@@ -76,11 +76,16 @@ const AppErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetEr
 function PrefetchHomeToys() {
   const queryClient = useQueryClient();
   useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: HOMEPAGE_TOYS_QUERY_KEY,
-      queryFn: fetchHomepageToys,
-      staleTime: 5 * 60 * 1000,
-    });
+    queryClient
+      .prefetchQuery({
+        queryKey: HOMEPAGE_TOYS_QUERY_KEY,
+        queryFn: fetchHomepageToys,
+        staleTime: 5 * 60 * 1000,
+      })
+      .catch((err) => {
+        // Prefetch failure is non-fatal; query will retry when component mounts
+        console.warn('[PrefetchHomeToys] Prefetch failed:', err?.message || err);
+      });
   }, [queryClient]);
   return null;
 }
