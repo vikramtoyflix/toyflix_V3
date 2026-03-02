@@ -13,7 +13,11 @@ export const sendOTP = async (phone: string): Promise<{
 }> => {
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
+  const SEND_OTP_TIMEOUT_MS = 15000; // 15s so 2Factor has time to send
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SEND_OTP_TIMEOUT_MS);
     const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-otp`, {
       method: 'POST',
       headers: {
@@ -21,7 +25,9 @@ export const sendOTP = async (phone: string): Promise<{
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ phone: fullPhone }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -32,7 +38,11 @@ export const sendOTP = async (phone: string): Promise<{
 
     return { success: true, developmentOtp: data.otp_code };
   } catch (err: any) {
-    return { success: false, error: { message: err.message || "Network error" } };
+    const message =
+      err?.name === "AbortError"
+        ? "OTP request timed out. Please try again."
+        : err?.message || "Network error";
+    return { success: false, error: { message } };
   }
 };
 

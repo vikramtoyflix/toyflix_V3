@@ -31,19 +31,24 @@ export const useAuthActions = (
     setIsLoading(true);
 
     try {
-      // Fire both requests in parallel — cuts wait time roughly in half
-      const [otpResult, statusResult] = await Promise.all([
-        sendOTP(phone),
-        checkUserStatus(phone),
-      ]);
+      // Fire both in parallel; unblock UI as soon as OTP is sent (don't wait for status check)
+      const otpPromise = sendOTP(phone);
+      const statusPromise = checkUserStatus(phone);
 
+      const otpResult = await otpPromise;
       if (!otpResult.success) {
         throw new Error(otpResult.error?.message || "Failed to send OTP");
       }
-
       setLastOtpSentAt(Date.now());
       setDevelopmentOtp(otpResult.developmentOtp || "");
+      toast({
+        title: "OTP Sent! 📱",
+        description: "Check your phone. Preparing next step...",
+        duration: 4000,
+      });
+      setIsLoading(false); // Stop loading as soon as SMS is sent
 
+      const statusResult = await statusPromise;
       if (!statusResult.success) {
         throw new Error(statusResult.error?.message || "Failed to check user status");
       }
@@ -55,28 +60,13 @@ export const useAuthActions = (
       });
 
       if (statusResult.exists && statusResult.isComplete) {
-        toast({
-          title: "OTP Sent! 📱",
-          description: "Welcome back! Enter the OTP to sign in.",
-          duration: 6000,
-        });
         setStep("otp-signin");
       } else if (statusResult.exists && !statusResult.isComplete) {
         setIsNewUser(true);
         setStep("signup-form");
-        toast({
-          title: "OTP Sent! 📱",
-          description: "Complete your profile to continue.",
-          duration: 6000,
-        });
       } else {
         setIsNewUser(true);
         setStep("signup-form");
-        toast({
-          title: "OTP Sent! 📱",
-          description: "Welcome to Toyflix! Create your account to get started.",
-          duration: 6000,
-        });
       }
     } catch (error: any) {
       console.error('🔍 Smart OTP flow error:', error);
