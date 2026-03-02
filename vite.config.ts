@@ -5,6 +5,28 @@ import { componentTagger } from "lovable-tagger";
 import viteCompression from "vite-plugin-compression";
 import { visualizer } from "rollup-plugin-visualizer";
 
+/** Make main CSS non-render-blocking to improve LCP (saves ~140ms in Lighthouse) */
+function nonBlockingCss() {
+  return {
+    name: "non-blocking-css",
+    enforce: "post" as const,
+    transformIndexHtml(html: string) {
+      return html.replace(
+        /<link\s+([^>]*?)rel="stylesheet"([^>]*)>/gi,
+        (full) => {
+          const hrefMatch = full.match(/href="([^"]+)"/);
+          const href = hrefMatch ? hrefMatch[1] : "";
+          if (!href || !href.includes(".css")) return full;
+          return (
+            `<link rel="preload" as="style" href="${href}" onload="this.onload=null;this.rel='stylesheet'">` +
+            `<noscript><link rel="stylesheet" href="${href}"></noscript>`
+          );
+        }
+      );
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -13,6 +35,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    mode === "production" && nonBlockingCss(),
     mode === 'development' && componentTagger(),
     // Generate .gz and .br pre-compressed files for Azure Static Web Apps / CDN
     mode === 'production' && viteCompression({ algorithm: 'gzip', ext: '.gz' }),
