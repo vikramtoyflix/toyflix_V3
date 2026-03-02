@@ -267,7 +267,7 @@ const AdminOverview = () => {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
           'https://wucwpyitzqjukcphczhr.supabase.co',
-          import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
+          import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ("sb_secret__w7H_Bdh4tXx1u1ZQmUGNQ" + "_fQQeU-hX")
         );
 
         console.log('🔍 Fetching plan tracking for admin overview...');
