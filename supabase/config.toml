@@ -52,3 +52,6 @@ verify_jwt = false
 
 [functions.admin-fetch-orders]
 verify_jwt = false
+
+[functions.admin-update-toy]
+verify_jwt = false
