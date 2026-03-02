@@ -299,19 +299,19 @@ const EditToy: React.FC = () => {
         // Still navigate since the core update succeeded
         navigate('/admin?tab=inventory-management');
       } else {
-        // Core toy update failed
+        // Core toy update failed – show actual error when available
         let errorMessage = "Failed to update toy";
-        
         if (error instanceof Error) {
-          if (error.message.includes('permission') || error.message.includes('policy')) {
+          if (error.message.includes('permission') || error.message.includes('policy') || error.message.includes('Admin')) {
             errorMessage = "Permission denied. Please check your admin access.";
-          } else if (error.message.includes('network') || error.message.includes('connection')) {
+          } else if (error.message.includes('network') || error.message.includes('connection') || error.message.includes('fetch')) {
             errorMessage = "Network error. Please check your connection and try again.";
-          } else if (error.message.includes('validation')) {
+          } else if (error.message.includes('validation') || error.message.includes('Invalid')) {
             errorMessage = "Invalid data. Please check all fields and try again.";
+          } else if (error.message && error.message !== "Failed to update toy") {
+            errorMessage = error.message;
           }
         }
-        
         toast({
           title: "Error",
           description: errorMessage,

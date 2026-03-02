@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
+import { useCustomAuth } from '@/hooks/useCustomAuth';
 
 // Add ToyImage interface
 export interface ToyImage {
@@ -87,68 +88,55 @@ export const useCreateToy = () => {
   });
 };
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://wucwpyitzqjukcphczhr.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
 /**
- * Hook to update an existing toy - Admin version
+ * Hook to update an existing toy - Admin version (via Edge Function, no service role in client).
  */
 export const useUpdateToy = () => {
   const queryClient = useQueryClient();
-  
+  const { user } = useCustomAuth();
+
   return useMutation({
     mutationFn: async ({ id, ...updateData }: ToyUpdateData) => {
-      console.log('🔍 RAW UPDATE DATA RECEIVED (admin):', updateData);
-      
-      // Import supabaseAdmin dynamically to avoid circular imports
-      const { supabaseAdmin } = await import('@/integrations/supabase/adminClient');
-      
-      // Create a completely clean object with only allowed fields including subscription_category
+      if (!user?.id) throw new Error('Admin login required');
+
       const allowedFields = ['name', 'description', 'category', 'subscription_category', 'age_range', 'brand', 'retail_price', 'rental_price', 'total_quantity', 'available_quantity', 'image_url', 'is_featured'];
-      const cleanData: any = {};
-      
-      // Only include allowed fields and ensure proper types
+      const cleanData: Record<string, unknown> = {};
       allowedFields.forEach(field => {
-        if (updateData.hasOwnProperty(field)) {
+        if (Object.prototype.hasOwnProperty.call(updateData, field)) {
           cleanData[field] = updateData[field as keyof typeof updateData];
         }
       });
-      
-      // Ensure subscription_category has a fallback value if category is being updated
       if (cleanData.category && !cleanData.subscription_category) {
         cleanData.subscription_category = cleanData.category;
       }
-      
-      // Add updated timestamp
-      cleanData.updated_at = new Date().toISOString();
-      
-      console.log('✅ CLEAN DATA BEING SENT (admin):', cleanData);
-      console.log('🎯 TOY ID:', id);
-      
-      const { data, error } = await supabaseAdmin
-        .from('toys')
-        .update(cleanData)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Update toy error (admin):', error);
-        console.error('🔥 Clean data that failed:', cleanData);
-        console.error('🎯 Failed toy ID:', id);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-update-toy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'X-Admin-User-Id': user.id,
+        },
+        body: JSON.stringify({ id, ...cleanData }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json?.error || json?.message || res.statusText;
+        const err = new Error(typeof msg === 'string' ? msg : 'Failed to update toy');
+        (err as Error & { code?: string; details?: unknown }).code = json?.code;
+        (err as Error & { code?: string; details?: unknown }).details = json?.details;
+        throw err;
       }
-      
-      console.log('✅ Update successful (admin):', data);
-      return data;
+      return json;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['toys'] });
       queryClient.invalidateQueries({ queryKey: ['search-toys'] });
-      queryClient.invalidateQueries({ queryKey: ['toy-images', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['toy-images', data?.id] });
     },
   });
 };
