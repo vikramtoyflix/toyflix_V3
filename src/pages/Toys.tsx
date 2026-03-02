@@ -187,7 +187,13 @@ const ToysPage = () => {
   }
 
   if (error) {
-    return <CatalogErrorState />;
+    const errMsg = error instanceof Error ? error.message : (error as any)?.message;
+    return (
+      <CatalogErrorState
+        message={errMsg || "We couldn't load the toy catalog."}
+        onRetry={() => refetch()}
+      />
+    );
   }
 
   // Mobile layout

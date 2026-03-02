@@ -279,7 +279,7 @@ const RentalOrdersOnlyDashboard = () => {
             localStorage.removeItem('toyflix_custom_session');
             localStorage.removeItem('toyflix_custom_user');
             window.location.href = '/auth';
-            return null;
+            throw new Error('Session expired. Please sign in again.');
           }
           throw profileError;
         }
@@ -438,9 +438,10 @@ const RentalOrdersOnlyDashboard = () => {
     enabled: !!user?.id,
     staleTime: 30 * 1000, // ✅ FIX 5: 30 seconds instead of 2 minutes for faster updates
     refetchInterval: 60 * 1000, // ✅ FIX 5: 1 minute refresh for dashboard
-    refetchOnWindowFocus: true, // ✅ FIX 5: Refetch when user returns to tab
-    refetchOnReconnect: true, // ✅ FIX 5: Refetch on network reconnection
-    retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 
   // Combined loading state
@@ -462,6 +463,8 @@ const RentalOrdersOnlyDashboard = () => {
   }
 
   if (error || !dashboardData) {
+    const errMsg = error instanceof Error ? error.message : (error as any)?.message;
+    const isSessionExpired = errMsg?.includes('Session expired') || errMsg?.includes('JWT') || errMsg?.includes('apikey');
     return (
       <div className="p-6">
         <Card>
@@ -469,18 +472,20 @@ const RentalOrdersOnlyDashboard = () => {
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Dashboard Error</h3>
             <p className="text-gray-600 mb-4">
-              Unable to load your dashboard. Please try again.
+              {isSessionExpired ? 'Your session may have expired. Redirecting to sign in…' : (errMsg || 'Unable to load your dashboard. Please try again.')}
             </p>
-            <div className="space-y-2">
-              <Button onClick={() => { refetch(); refetchUnifiedStatus(); }} variant="outline">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry Dashboard
-              </Button>
-              <Button onClick={() => { refreshSelectionData(); refreshSelectionStatus(); refetchUnifiedStatus(); }} variant="outline">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry Selection Data
-              </Button>
-            </div>
+            {!isSessionExpired && (
+              <div className="space-y-2">
+                <Button onClick={() => { refetch(); refetchUnifiedStatus(); }} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry Dashboard
+                </Button>
+                <Button onClick={() => { refreshSelectionData(); refreshSelectionStatus(); refetchUnifiedStatus(); }} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry Selection Data
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

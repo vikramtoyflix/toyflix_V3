@@ -89,7 +89,7 @@ export const useCreateToy = () => {
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://wucwpyitzqjukcphczhr.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
 
 /**
  * Hook to update an existing toy - Admin version (via Edge Function, no service role in client).
