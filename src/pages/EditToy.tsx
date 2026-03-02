@@ -263,8 +263,13 @@ const EditToy: React.FC = () => {
           imageUpdateSucceeded = true;
           console.log('✅ Images updated successfully');
         } catch (imageError) {
+          const imageMsg = imageError instanceof Error ? imageError.message : 'Image save failed';
           console.warn('⚠️ Image update failed but toy data was saved:', imageError);
-          // Don't throw error, just log it - toy update succeeded
+          toast({
+            title: "Partially Updated",
+            description: `Toy data saved. Images failed: ${imageMsg}`,
+            variant: "default"
+          });
         }
       } else {
         imageUpdateSucceeded = true; // No images to update

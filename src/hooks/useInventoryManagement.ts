@@ -1544,91 +1544,43 @@ export const useToyPrimaryImage = (toyId: string) => {
 };
 
 /**
- * Hook to save toy images (replaces all existing images) - Admin version
+ * Hook to save toy images (replaces all existing images) - Admin via Edge Function.
  */
 export const useSaveToyImages = () => {
   const queryClient = useQueryClient();
-  
+  const { user } = useCustomAuth();
+
   return useMutation({
     mutationFn: async ({ toyId, images, primaryImageIndex = 0 }: {
       toyId: string;
       images: string[];
       primaryImageIndex?: number;
     }) => {
-      console.log('🖼️ Saving toy images (admin):', { toyId, images, primaryImageIndex });
+      if (!user?.id) throw new Error('Admin login required');
 
-      // Import supabaseAdmin dynamically to avoid circular imports
-      const { supabaseAdmin } = await import('@/integrations/supabase/adminClient');
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-save-toy-images`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'X-Admin-User-Id': user.id,
+        },
+        body: JSON.stringify({ toyId, images, primaryImageIndex }),
+      });
 
-      if (images.length === 0) {
-        // Delete all existing images if no images provided
-        const { error } = await supabaseAdmin
-          .from('toy_images')
-          .delete()
-          .eq('toy_id', toyId);
-        
-        if (error) {
-          console.error('Error deleting toy images (admin):', error);
-          throw error;
-        }
-        console.log('✅ Deleted all toy images (admin)');
-        return { deleted: true };
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json?.error || res.statusText;
+        throw new Error(typeof msg === 'string' ? msg : 'Failed to save toy images');
       }
-
-      // Delete existing images first
-      const { error: deleteError } = await supabaseAdmin
-        .from('toy_images')
-        .delete()
-        .eq('toy_id', toyId);
-
-      if (deleteError) {
-        console.warn('Warning deleting existing images (admin):', deleteError);
-        // Don't throw, as images might not exist
-      } else {
-        console.log('✅ Cleared existing toy images (admin)');
-      }
-
-      // Insert new images
-      const imageInserts = images.map((imageUrl, index) => ({
-        toy_id: toyId,
-        image_url: imageUrl,
-        display_order: index,
-        is_primary: index === primaryImageIndex,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }));
-
-      console.log('🖼️ Inserting toy images (admin):', imageInserts);
-
-      const { data, error } = await supabaseAdmin
-        .from('toy_images')
-        .insert(imageInserts)
-        .select();
-
-      if (error) {
-        console.error('Error saving toy images (admin):', error);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
-
-      console.log('✅ Successfully saved toy images (admin):', data);
-      return data;
+      return json;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['toy-images', variables.toyId] });
       queryClient.invalidateQueries({ queryKey: ['toy-primary-image', variables.toyId] });
       queryClient.invalidateQueries({ queryKey: ['toys'] });
       queryClient.invalidateQueries({ queryKey: ['search-toys'] });
     },
-    onError: (error, variables) => {
-      console.error('Failed to save toy images (admin):', error);
-      // Don't show a separate toast here - let the calling component handle it
-    }
   });
 };
 
