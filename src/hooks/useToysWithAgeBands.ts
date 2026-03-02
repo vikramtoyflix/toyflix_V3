@@ -66,37 +66,25 @@ export function getAgeTableName(ageGroup: string): string | null {
 }
 
 /**
- * Execute raw SQL query to access age-specific tables directly
- * Then fetch the corresponding toys from the main toys table to ensure proper ID mapping
+ * Fetch from age-specific tables using Supabase client (not raw fetch) so Android WebView
+ * and Capacitor use the same code path and avoid CORS/origin issues.
  */
 export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wucwpyitzqjukcphczhr.supabase.co';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
+    type AgeTableName = 'toys_1_2_years' | 'toys_2_3_years' | 'toys_3_4_years' | 'toys_4_6_years' | 'toys_6_8_years';
+    const { data: ageTableData, error: ageError } = await supabase
+      .from(tableName as AgeTableName)
+      .select('name')
+      .neq('category', 'ride_on_toys')
+      .order('is_featured', { ascending: false })
+      .order('available_quantity', { ascending: false })
+      .order('name', { ascending: true });
 
-    const ageTableResponse = await fetch(
-      `${supabaseUrl}/rest/v1/${tableName}?category=neq.ride_on_toys&order=is_featured.desc,available_quantity.desc,name.asc&select=name`,
-      {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      }
-    );
+    if (ageError) throw ageError;
+    if (!ageTableData || ageTableData.length === 0) return [];
 
-    if (!ageTableResponse.ok) {
-      throw new Error(`HTTP error! status: ${ageTableResponse.status} - ${ageTableResponse.statusText}`);
-    }
-
-    const ageTableData = await ageTableResponse.json();
-    
-    if (!ageTableData || ageTableData.length === 0) {
-      return [];
-    }
-
-    const toyNames = ageTableData.map((toy: any) => toy.name);
+    const toyNames = ageTableData.map((toy: { name?: string }) => toy.name).filter(Boolean) as string[];
+    if (toyNames.length === 0) return [];
 
     const { data: mainTableToys, error } = await supabase
       .from('toys')

@@ -14,6 +14,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import { logToyDistribution } from "@/utils/toyOrdering";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { StructuredData } from "@/components/seo/StructuredData";
@@ -183,16 +185,38 @@ const ToysPage = () => {
   };
 
   if (isLoading) {
+    if (isMobile) {
+      return (
+        <MobileLayout title="Browse Toys" showHeader={true} showBottomNav={true}>
+          <div className="p-4 flex flex-col items-center justify-center min-h-[40vh]">
+            <p className="text-muted-foreground">Loading toys...</p>
+          </div>
+        </MobileLayout>
+      );
+    }
     return <CatalogLoadingState />;
   }
 
   if (error) {
     const errMsg = error instanceof Error ? error.message : (error as any)?.message;
+    const message = errMsg || "We couldn't load the toy catalog.";
+    const retry = () => refetch();
+    if (isMobile) {
+      return (
+        <MobileLayout title="Browse Toys" showHeader={true} showBottomNav={true}>
+          <div className="p-4 flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <h2 className="text-lg font-semibold text-destructive mb-2">Error loading toys</h2>
+            <p className="text-muted-foreground mb-4">{message}</p>
+            <Button variant="outline" onClick={retry}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try again
+            </Button>
+          </div>
+        </MobileLayout>
+      );
+    }
     return (
-      <CatalogErrorState
-        message={errMsg || "We couldn't load the toy catalog."}
-        onRetry={() => refetch()}
-      />
+      <CatalogErrorState message={message} onRetry={retry} />
     );
   }
 

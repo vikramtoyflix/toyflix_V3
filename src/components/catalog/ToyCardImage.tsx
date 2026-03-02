@@ -53,6 +53,7 @@ const ToyCardImage = ({
           onError={handleImageError}
           onLoad={handleImageLoad}
           loading="lazy"
+          decoding="async"
         />
       </div>
       

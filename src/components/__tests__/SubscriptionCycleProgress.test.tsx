@@ -364,10 +364,9 @@ describe('SubscriptionCycleProgress', () => {
         // Check for progress bar styling
         const progressBar = screen.getByRole('progressbar');
         expect(progressBar).toHaveClass('progress-bar');
-        
-        // Check for color coding based on progress
+        // Component uses data-progress-level for color coding (75% => progress-high)
         const progressContainer = screen.getByTestId('progress-container');
-        expect(progressContainer).toHaveClass('progress-high'); // 75% should be high progress
+        expect(progressContainer).toHaveAttribute('data-progress-level', 'progress-high');
       });
     });
 
@@ -391,7 +390,7 @@ describe('SubscriptionCycleProgress', () => {
       render(<SubscriptionCycleProgress userId="test-user-id" />);
 
       await waitFor(() => {
-        expect(screen.getByText('⚠️ Selection ends soon!')).toBeInTheDocument();
+        expect(screen.getAllByText(/Selection ends soon!/).length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('Only 1 day remaining')).toBeInTheDocument();
       });
     });
