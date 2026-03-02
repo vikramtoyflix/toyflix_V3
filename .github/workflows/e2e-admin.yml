@@ -37,11 +37,21 @@ jobs:
         env:
           VITE_E2E_LOGIN_ENABLED: 'true'
 
-      - name: Start preview and run E2E
+      - name: Start preview and run E2E (admin login only)
         run: |
           npm run preview &
-          sleep 15
-          npx playwright test --project=chromium
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:4173 | grep -q 200; then
+              echo "Preview ready"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Preview did not become ready in time"
+              exit 1
+            fi
+            sleep 2
+          done
+          npx playwright test e2e/admin-login.spec.ts --project=chromium
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:4173
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
