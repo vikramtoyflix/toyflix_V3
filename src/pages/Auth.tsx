@@ -1,6 +1,7 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import SignupFirstAuth from "@/components/auth/SignupFirstAuth";
+import { E2EAdminLoginForm } from "@/components/auth/E2EAdminLoginForm";
 import MobileLayout from "@/components/mobile/MobileLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -88,10 +89,14 @@ const Auth = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Show authentication form - minimal layout
+  // OTP-based auth (SignupFirstAuth) is always the primary path for customers.
+  // E2EAdminLoginForm renders only when VITE_E2E_LOGIN_ENABLED=true (E2E builds); production never sets it.
   const authContent = (
     <div className={`min-h-screen flex items-center justify-center ${isMobile ? "bg-background" : "bg-slate-50/50"} p-4 sm:p-6`}>
-      <SignupFirstAuth />
+      <div className="w-full max-w-md space-y-4">
+        <E2EAdminLoginForm />
+        <SignupFirstAuth />
+      </div>
     </div>
   );
 

@@ -1,0 +1,59 @@
+# E2E tests with admin login. Runs when E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD secrets are set.
+# Create the admin user once: see docs/E2E_ADMIN_SETUP.md
+name: E2E Admin (optional)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'   # Daily 08:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'src/components/auth/**'
+      - 'src/services/auth/e2e*'
+      - '.github/workflows/e2e-admin.yml'
+
+jobs:
+  e2e-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Build app (with E2E login enabled so /auth shows email+password form)
+        run: npm run build
+        env:
+          VITE_E2E_LOGIN_ENABLED: 'true'
+
+      - name: Start preview and run E2E
+        run: |
+          npm run preview &
+          sleep 15
+          npx playwright test --project=chromium
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:4173
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: |
+          if [ -n "$NOTIFY_WEBHOOK_URL" ]; then
+            curl -sS -X POST -H "Content-Type: application/json" \
+              -d "{\"text\": \"⚠️ Toyflix E2E (admin) failed. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+              "$NOTIFY_WEBHOOK_URL" || true
+          fi

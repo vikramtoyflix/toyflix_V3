@@ -1,0 +1,44 @@
+# Runs smoke tests against production on a schedule and on push to main.
+# On failure, the job fails and GitHub can email you (enable in repo Settings → Notifications).
+# Optional: set NOTIFY_WEBHOOK_URL secret to post failure summary to Slack/Discord.
+name: Smoke tests (production health)
+
+on:
+  schedule:
+    # Run every 6 hours (approx 0, 6, 12, 18 UTC)
+    - cron: '0 */6 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow "Run workflow" from Actions tab
+
+env:
+  BASE_URL: https://toyflix.in
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests (production)
+        run: BASE_URL=${{ env.BASE_URL }} node scripts/smoke-test-urls.js
+
+      - name: Notify on failure (optional webhook)
+        if: failure()
+        env:
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: |
+          if [ -n "$NOTIFY_WEBHOOK_URL" ]; then
+            curl -sS -X POST -H "Content-Type: application/json" \
+              -d "{\"text\": \"⚠️ Toyflix smoke tests failed. Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+              "$NOTIFY_WEBHOOK_URL" || true
+          fi
