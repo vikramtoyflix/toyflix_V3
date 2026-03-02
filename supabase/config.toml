@@ -49,3 +49,6 @@ verify_jwt = false
 
 [functions.verify-otp-custom]
 verify_jwt = false
+
+[functions.admin-fetch-orders]
+verify_jwt = false
