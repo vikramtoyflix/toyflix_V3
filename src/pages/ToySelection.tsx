@@ -83,14 +83,14 @@ const ToySelection = () => {
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   
-  // 🏠 ENHANCED: Use address prefill hook for automatic address loading
+  // 🏠 ENHANCED: Use address prefill hook for automatic address loading (no toast on select-toys to avoid blocking Next)
   const { 
     addressData, 
     setAddressData, 
     isLoadingAddress, 
     hasPrefilledAddress,
     refreshAddress 
-  } = useAddressPrefill(true, true);
+  } = useAddressPrefill(true, false);
   
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
