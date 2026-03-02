@@ -55,3 +55,6 @@ verify_jwt = false
 
 [functions.admin-update-toy]
 verify_jwt = false
+
+[functions.admin-save-toy-images]
+verify_jwt = false
