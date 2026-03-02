@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -72,20 +72,26 @@ const AppErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetEr
 );
 
 
-// Prefetch homepage toys as soon as app loads so "Rent premium toys" carousel has data on first load/refresh
+// Prefetch homepage toys when idle to avoid blocking initial JS execution (TBT)
 function PrefetchHomeToys() {
   const queryClient = useQueryClient();
   useEffect(() => {
-    queryClient
-      .prefetchQuery({
-        queryKey: HOMEPAGE_TOYS_QUERY_KEY,
-        queryFn: fetchHomepageToys,
-        staleTime: 5 * 60 * 1000,
-      })
-      .catch((err) => {
-        // Prefetch failure is non-fatal; query will retry when component mounts
-        console.warn('[PrefetchHomeToys] Prefetch failed:', err?.message || err);
-      });
+    const run = () => {
+      queryClient
+        .prefetchQuery({
+          queryKey: HOMEPAGE_TOYS_QUERY_KEY,
+          queryFn: fetchHomepageToys,
+          staleTime: 5 * 60 * 1000,
+        })
+        .catch((err) => {
+          console.warn('[PrefetchHomeToys] Prefetch failed:', err?.message || err);
+        });
+    };
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      setTimeout(run, 500);
+    }
   }, [queryClient]);
   return null;
 }
@@ -126,15 +132,34 @@ const AnalyticsTracker = () => {
 };
 
 function App() {
-  // Initialize all tracking and performance monitoring
+  // Defer toasters until after first paint to reduce main-thread JS execution (helps TBT)
+  const [showToasters, setShowToasters] = useState(false);
   useEffect(() => {
-    // Preload critical resources immediately (fonts, images)
-    preloadCriticalResources();
+    const raf = requestAnimationFrame(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => setShowToasters(true), { timeout: 500 });
+      } else {
+        setTimeout(() => setShowToasters(true), 100);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
-    // Monitor Core Web Vitals immediately (lightweight)
-    monitorCoreWebVitals();
+  // Defer all non-critical init to idle to reduce JS execution time (TBT)
+  useEffect(() => {
+    const runWhenIdle = (fn: () => void, timeout = 3000) => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(fn, { timeout });
+      } else {
+        setTimeout(fn, 150);
+      }
+    };
 
-    // Defer all analytics until browser is idle to avoid blocking JS execution
+    runWhenIdle(() => {
+      preloadCriticalResources();
+      monitorCoreWebVitals();
+    });
+
     const initAnalytics = () => {
       if (FEATURE_FLAGS.GOOGLE_ANALYTICS) {
         initializeGA();
@@ -142,12 +167,7 @@ function App() {
       }
       initializeMetaPixel();
     };
-
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(initAnalytics, { timeout: 4000 });
-    } else {
-      setTimeout(initAnalytics, 2000);
-    }
+    runWhenIdle(initAnalytics, 4000);
 
     // Initialize Push Notifications — dynamically imported so Capacitor SDK is
     // never bundled into the web build (only loaded on native platforms)
@@ -200,9 +220,9 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <PrefetchHomeToys />
         <CustomAuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+            <TooltipProvider>
+            {showToasters && <Toaster />}
+            {showToasters && <Sonner />}
             <ErrorBoundary FallbackComponent={AppErrorFallback} onReset={() => window.location.reload()}>
             <BrowserRouter>
 
