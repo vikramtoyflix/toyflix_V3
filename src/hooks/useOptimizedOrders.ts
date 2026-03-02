@@ -1,7 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabaseAdmin } from "@/integrations/supabase/adminClient";
-import { supabase } from "@/integrations/supabase/client"; // Backup client
+import { supabase } from "@/integrations/supabase/client";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useMemo, useCallback } from "react";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
 
 interface OrderFilters {
   searchText: string;
@@ -29,15 +32,13 @@ const MAX_USER_IDS = 1000; // Supabase limit for IN clause
 const BATCH_SIZE = 1000; // Supabase limit per query
 
 /**
- * ALTERNATIVE APPROACH: If supabaseAdmin fails, you can replace all instances of:
- * (supabaseAdmin as any) with supabase in the user fetching logic below
- * 
- * This will use the regular client which might have different permissions
- * but should work for fetching user data in most cases.
+ * Orders are fetched via admin-fetch-orders Edge Function (service role server-side).
+ * No client-side Supabase admin key needed - avoids 401 errors.
  */
 
 export const useOptimizedOrders = (filters: OrderFilters) => {
   const queryClient = useQueryClient();
+  const { user } = useCustomAuth();
 
   // Create a stable query key based on filters
   const queryKey = useMemo(() => {
@@ -112,189 +113,64 @@ export const useOptimizedOrders = (filters: OrderFilters) => {
     return allMatchingUsers.map(user => user.id);
   }, [filters.customerName, filters.customerEmail]);
 
-  // **NEW: Batch fetch ALL orders (including queue orders)**
+  // Fetch orders via Edge Function (service role server-side - no 401)
   const fetchAllOrders = useCallback(async (): Promise<any[]> => {
-    console.log('🚀 Batch fetching ALL orders (rental + queue)...');
-    
-    let allRentalOrders: any[] = [];
-    let allQueueOrders: any[] = [];
-    
-    // Fetch rental orders
-    let hasMoreRental = true;
-    let offsetRental = 0;
+    if (!user?.id) throw new Error('Admin login required');
 
-    while (hasMoreRental) {
-      // Build query for this batch
-      let query = (supabaseAdmin as any)
-        .from('rental_orders')
-        .select(`
-          id,
-          order_number,
-          user_id,
-          status,
-          total_amount,
-          created_at,
-          rental_start_date,
-          rental_end_date,
-          order_type,
-          payment_status,
-          user_phone,
-          subscription_plan,
-          coupon_code,
-          discount_amount,
-          toys_data
-        `);
+    console.log('🚀 Fetching orders via Edge Function...');
 
-      // Apply non-user filters at database level for rental orders
-      if (filters.orderNumber && filters.orderNumber.trim()) {
-        query = query.ilike('order_number', `%${filters.orderNumber.trim()}%`);
-      }
+    const userIdFilter = await fetchAllMatchingUsers();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-fetch-orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'X-Admin-User-Id': user.id,
+      },
+      body: JSON.stringify({
+        filters: {
+          orderNumber: filters.orderNumber?.trim() || undefined,
+          customerPhone: filters.customerPhone?.trim() || undefined,
+          statuses: filters.statuses.length ? filters.statuses : undefined,
+          paymentStatuses: filters.paymentStatuses.length ? filters.paymentStatuses : undefined,
+          subscriptionPlans: filters.subscriptionPlans.length ? filters.subscriptionPlans : undefined,
+          orderTypes: filters.orderTypes.length ? filters.orderTypes : undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined,
+          userIds: userIdFilter || undefined,
+          sortDirection: filters.sortDirection || 'desc',
+        },
+      }),
+    });
 
-      if (filters.customerPhone && filters.customerPhone.trim()) {
-        query = query.ilike('user_phone', `%${filters.customerPhone.trim()}%`);
-      }
-
-      if (filters.statuses.length > 0) {
-        query = query.in('status', filters.statuses);
-      }
-
-      if (filters.paymentStatuses.length > 0) {
-        query = query.in('payment_status', filters.paymentStatuses);
-      }
-
-      if (filters.subscriptionPlans.length > 0) {
-        query = query.in('subscription_plan', filters.subscriptionPlans);
-      }
-
-      if (filters.orderTypes.length > 0) {
-        query = query.in('order_type', filters.orderTypes);
-      }
-
-      if (filters.dateFrom) {
-        query = query.gte('created_at', filters.dateFrom);
-      }
-
-      if (filters.dateTo) {
-        query = query.lte('created_at', filters.dateTo + 'T23:59:59.999Z');
-      }
-
-      const sortAscending = filters.sortDirection === 'asc';
-      const { data: rentalBatch, error: rentalError } = await query
-        .order('created_at', { ascending: sortAscending })
-        .range(offsetRental, offsetRental + BATCH_SIZE - 1);
-
-      if (rentalError) {
-        console.error('❌ Error fetching rental order batch:', rentalError);
-        throw rentalError;
-      }
-
-      if (!rentalBatch || rentalBatch.length === 0) {
-        hasMoreRental = false;
-      } else {
-        allRentalOrders = allRentalOrders.concat(rentalBatch);
-        console.log(`📦 Fetched rental order batch: ${rentalBatch.length}, Total so far: ${allRentalOrders.length}`);
-        
-        if (rentalBatch.length < BATCH_SIZE) {
-          hasMoreRental = false; // Last batch
-        } else {
-          offsetRental += BATCH_SIZE;
-        }
-      }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || `Admin fetch failed: ${res.status}`);
     }
 
-    // Fetch queue orders
-    console.log('🔄 Fetching queue orders...');
-    let hasMoreQueue = true;
-    let offsetQueue = 0;
+    const { rentalOrders, queueOrders, users } = await res.json();
+    const userMap = new Map((users || []).map((u: any) => [u.id, u]));
 
-    while (hasMoreQueue) {
-      let queueQuery = (supabaseAdmin as any)
-        .from('queue_orders')
-        .select(`
-          id,
-          order_number,
-          user_id,
-          status,
-          total_amount,
-          created_at,
-          estimated_delivery_date,
-          queue_order_type,
-          queue_cycle_number,
-          payment_status,
-          current_plan_id,
-          selected_toys,
-          delivery_address
-        `);
+    const transformedQueue = (queueOrders || []).map((q: any) => ({
+      ...q,
+      order_type: 'queue_order',
+      subscription_plan: q.current_plan_id,
+      rental_start_date: q.estimated_delivery_date,
+      rental_end_date: null,
+      toys_data: q.selected_toys,
+      user_phone: null,
+      coupon_code: q.applied_coupon,
+      discount_amount: q.coupon_discount,
+      isQueueOrder: true,
+      cycle_number: q.queue_cycle_number,
+      shipping_address: q.delivery_address,
+    }));
 
-      // Apply filters to queue orders
-      if (filters.orderNumber && filters.orderNumber.trim()) {
-        queueQuery = queueQuery.ilike('order_number', `%${filters.orderNumber.trim()}%`);
-      }
-
-      if (filters.statuses.length > 0) {
-        queueQuery = queueQuery.in('status', filters.statuses);
-      }
-
-      if (filters.paymentStatuses.length > 0) {
-        queueQuery = queueQuery.in('payment_status', filters.paymentStatuses);
-      }
-
-      if (filters.dateFrom) {
-        queueQuery = queueQuery.gte('created_at', filters.dateFrom);
-      }
-
-      if (filters.dateTo) {
-        queueQuery = queueQuery.lte('created_at', filters.dateTo + 'T23:59:59.999Z');
-      }
-
-      const sortAscending = filters.sortDirection === 'asc';
-      const { data: queueBatch, error: queueError } = await queueQuery
-        .order('created_at', { ascending: sortAscending })
-        .range(offsetQueue, offsetQueue + BATCH_SIZE - 1);
-
-      if (queueError) {
-        console.error('❌ Error fetching queue order batch:', queueError);
-        throw queueError;
-      }
-
-      if (!queueBatch || queueBatch.length === 0) {
-        hasMoreQueue = false;
-      } else {
-        // Transform queue orders to match rental order format
-        const transformedQueueBatch = queueBatch.map(queueOrder => ({
-          ...queueOrder,
-          // Map queue order fields to rental order fields for consistency
-          order_type: 'queue_order',
-          subscription_plan: queueOrder.current_plan_id,
-          rental_start_date: queueOrder.estimated_delivery_date,
-          rental_end_date: null,
-          toys_data: queueOrder.selected_toys,
-          user_phone: null, // Queue orders don't have phone directly
-          coupon_code: queueOrder.applied_coupon,
-          discount_amount: queueOrder.coupon_discount,
-          isQueueOrder: true, // Flag to identify queue orders
-          cycle_number: queueOrder.queue_cycle_number,
-          shipping_address: queueOrder.delivery_address
-        }));
-
-        allQueueOrders = allQueueOrders.concat(transformedQueueBatch);
-        console.log(`📦 Fetched queue order batch: ${queueBatch.length}, Total so far: ${allQueueOrders.length}`);
-        
-        if (queueBatch.length < BATCH_SIZE) {
-          hasMoreQueue = false; // Last batch
-        } else {
-          offsetQueue += BATCH_SIZE;
-        }
-      }
-    }
-
-    // Combine and sort all orders
     const allOrders = [
-      ...allRentalOrders.map(order => ({ ...order, isQueueOrder: false })),
-      ...allQueueOrders
-    ];
+      ...(rentalOrders || []).map((o: any) => ({ ...o, isQueueOrder: false })),
+      ...transformedQueue,
+    ].map((o: any) => ({ ...o, custom_user: userMap.get(o.user_id) || null }));
 
-    // Sort by creation date based on sortDirection
     const sortAscending = filters.sortDirection === 'asc';
     allOrders.sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
@@ -302,33 +178,17 @@ export const useOptimizedOrders = (filters: OrderFilters) => {
       return sortAscending ? timeA - timeB : timeB - timeA;
     });
 
-    console.log(`✅ Found ${allOrders.length} total orders (${allRentalOrders.length} rental + ${allQueueOrders.length} queue)`);
+    console.log(`✅ Fetched ${allOrders.length} orders via Edge Function`);
     return allOrders;
-  }, [filters]);
+  }, [filters, user?.id]);
+
 
   // Optimized fetch function with batch loading
   const fetchOrders = useCallback(async (): Promise<OptimizedOrdersResponse> => {
     console.log('🚀 Fetching ALL orders with batch loading');
-    console.log('🔍 DEBUG: Supabase client info:', {
-      supabaseAdmin: !!supabaseAdmin,
-      supabase: !!supabase
-    });
+    console.log('🔍 Fetching orders (via Edge Function)...');
     
     try {
-      // DEBUGGING: Test simple user fetch first
-      console.log('🧪 Testing simple user fetch...');
-      const { data: testUsers, error: testError } = await supabase
-        .from('custom_users')
-        .select('id, first_name, last_name, phone')
-        .limit(5);
-      
-      console.log('🧪 Test user fetch result:', {
-        success: !testError,
-        error: testError,
-        userCount: testUsers?.length || 0,
-        sampleUser: testUsers?.[0] || null
-      });
-
       // Step 1: Get all matching users (if user search is needed)
       const userIdFilter = await fetchAllMatchingUsers();
       
@@ -340,95 +200,12 @@ export const useOptimizedOrders = (filters: OrderFilters) => {
         };
       }
 
-      // Step 2: Get all orders
+      // Step 2: Get all orders (Edge Function returns orders with custom_user already)
       const allOrders = await fetchAllOrders();
 
-      // Step 3: Batch fetch user data for all orders with improved error handling
-      const userIds = Array.from(new Set(
-        allOrders
-          .map((order: any) => order.user_id)
-          .filter((id: any): id is string => typeof id === 'string' && id !== null)
-      )) as string[];
-
-      console.log(`👥 Fetching user data for ${userIds.length} unique users...`);
-
-      // OPTIMIZED: Try smaller batches first, then individual queries as fallback
-      console.log('🔧 Using optimized batch + individual fallback approach...');
-      
-      let allUsersData: any[] = [];
-      const SMALL_BATCH_SIZE = 100; // Smaller batches that are more likely to work
-      let failedBatches = 0;
-
-      // Try smaller batch queries first
-      for (let i = 0; i < userIds.length; i += SMALL_BATCH_SIZE) {
-        const userIdsBatch = userIds.slice(i, i + SMALL_BATCH_SIZE);
-        
-        try {
-          const { data: usersBatch, error: usersError } = await supabase
-            .from('custom_users')
-            .select('id, email, first_name, last_name, phone, subscription_plan')
-            .in('id', userIdsBatch);
-
-          if (!usersError && usersBatch) {
-            allUsersData = allUsersData.concat(usersBatch);
-            console.log(`✅ Batch fetch successful: ${usersBatch.length} users (batch ${Math.floor(i/SMALL_BATCH_SIZE) + 1})`);
-          } else {
-            console.warn(`⚠️ Batch failed, trying individual queries for batch ${Math.floor(i/SMALL_BATCH_SIZE) + 1}:`, usersError);
-            failedBatches++;
-            
-            // Fallback to individual queries for this batch only
-            for (const userId of userIdsBatch) {
-              try {
-                const { data: userData, error: userError } = await supabase
-                  .from('custom_users')
-                  .select('id, email, first_name, last_name, phone, subscription_plan')
-                  .eq('id', userId)
-                  .single();
-
-                if (!userError && userData) {
-                  allUsersData.push(userData);
-                }
-              } catch (singleUserError) {
-                // Silent fail for individual queries
-              }
-            }
-          }
-        } catch (batchError) {
-          console.warn(`⚠️ Batch exception, trying individual queries for batch ${Math.floor(i/SMALL_BATCH_SIZE) + 1}`);
-          failedBatches++;
-          
-          // Fallback to individual queries for this batch only
-          for (const userId of userIdsBatch) {
-            try {
-              const { data: userData, error: userError } = await supabase
-                .from('custom_users')
-                .select('id, email, first_name, last_name, phone, subscription_plan')
-                .eq('id', userId)
-                .single();
-
-              if (!userError && userData) {
-                allUsersData.push(userData);
-              }
-            } catch (singleUserError) {
-              // Silent fail for individual queries
-            }
-          }
-        }
-      }
-
-      console.log(`✅ Optimized user fetches completed: ${allUsersData.length} users found (${failedBatches} batches failed)`);
-
-      // Create user lookup map
-      const userMap = new Map(allUsersData.map((user: any) => [user.id, user]));
-      console.log('🗺️ User map created:', {
-        totalUsers: allUsersData.length,
-        mapSize: userMap.size,
-        sampleUserIds: Array.from(userMap.keys()).slice(0, 3)
-      });
-
-      // Enhance orders with user data and add fallback logic
+      // Step 3: Add fallback fields (orders already have custom_user from Edge Function)
       const ordersWithUsers = allOrders.map((order: any) => {
-        const userData = userMap.get(order.user_id);
+        const userData = order.custom_user;
         
         // DEBUG: Log first few orders to see what's happening
         if (allOrders.indexOf(order) < 3) {
