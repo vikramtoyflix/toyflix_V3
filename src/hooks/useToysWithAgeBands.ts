@@ -71,9 +71,9 @@ export function getAgeTableName(ageGroup: string): string | null {
  */
 export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   try {
-    const supabaseUrl = 'https://wucwpyitzqjukcphczhr.supabase.co';
-    const supabaseKey = 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
-    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wucwpyitzqjukcphczhr.supabase.co';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
+
     const ageTableResponse = await fetch(
       `${supabaseUrl}/rest/v1/${tableName}?category=neq.ride_on_toys&order=is_featured.desc,available_quantity.desc,name.asc&select=name`,
       {
@@ -241,6 +241,8 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
   });
 };
 

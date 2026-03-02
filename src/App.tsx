@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -132,20 +132,7 @@ const AnalyticsTracker = () => {
 };
 
 function App() {
-  // Defer toasters until after first paint to reduce main-thread JS execution (helps TBT)
-  const [showToasters, setShowToasters] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => setShowToasters(true), { timeout: 500 });
-      } else {
-        setTimeout(() => setShowToasters(true), 100);
-      }
-    });
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  // Defer all non-critical init to idle to reduce JS execution time (TBT)
+  // Defer non-critical init to idle to reduce JS execution time (TBT). Toasters render immediately so toast() works on admin/Toys etc.
   useEffect(() => {
     const runWhenIdle = (fn: () => void, timeout = 3000) => {
       if (typeof requestIdleCallback !== 'undefined') {
@@ -221,8 +208,8 @@ function App() {
         <PrefetchHomeToys />
         <CustomAuthProvider>
             <TooltipProvider>
-            {showToasters && <Toaster />}
-            {showToasters && <Sonner />}
+            <Toaster />
+            <Sonner />
             <ErrorBoundary FallbackComponent={AppErrorFallback} onReset={() => window.location.reload()}>
             <BrowserRouter>
 
