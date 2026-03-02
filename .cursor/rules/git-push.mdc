@@ -1,0 +1,14 @@
+---
+description: Always run and push git changes when making code changes
+alwaysApply: true
+---
+
+# Git: Run and Push Changes
+
+When you make code changes (edits, new files, fixes):
+
+1. **Stage** all relevant changes: `git add .` (or specific files).
+2. **Commit** with a clear message describing the change.
+3. **Push** to the remote: `git push origin main` (or the current branch).
+
+Do this automatically at the end of the task unless the user says otherwise. Prefer a single commit per logical change; use a descriptive commit message.
