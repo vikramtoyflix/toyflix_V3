@@ -2,7 +2,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import RentalOrdersOnlyDashboard from "@/components/dashboard/RentalOrdersOnlyDashboard";
 import MobileLayout from "@/components/mobile/MobileLayout";
-import MobilePullToRefresh from "@/components/mobile/MobilePullToRefresh";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useEffect, useState } from "react";
@@ -55,10 +54,6 @@ const Dashboard = () => {
     }
   }, [queryClient]);
 
-  const handleRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['supabase-dashboard'] });
-  };
-
   const content = (
     <ProtectedRoute>
       <ImpersonationBanner />
@@ -104,9 +99,7 @@ const Dashboard = () => {
   if (isMobile) {
     return (
       <MobileLayout title="Dashboard" showHeader={true} showBottomNav={true}>
-        <MobilePullToRefresh onRefresh={handleRefresh}>
-          {content}
-        </MobilePullToRefresh>
+        {content}
       </MobileLayout>
     );
   }
