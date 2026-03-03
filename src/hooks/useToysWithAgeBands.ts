@@ -128,6 +128,37 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   }
 }
 
+/** Timeout per attempt so Toys page never hangs. */
+const TOYS_FETCH_TIMEOUT_MS = 14_000;
+/** Auto-retry attempts so customers see toys load without clicking Retry. */
+const TOYS_FETCH_MAX_ATTEMPTS = 3;
+const TOYS_FETCH_RETRY_DELAY_MS = 1_500;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Toys request timed out')), ms)
+    ),
+  ]);
+}
+
+/** Run a fetch with automatic retries so load usually succeeds without user action. */
+async function runWithAutoRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= TOYS_FETCH_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (attempt < TOYS_FETCH_MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, TOYS_FETCH_RETRY_DELAY_MS));
+      }
+    }
+  }
+  throw lastError;
+}
+
 /** Query key for homepage Featured Toys – used for prefetch so carousel has data on first load/refresh. */
 export const HOMEPAGE_TOYS_QUERY_KEY = ['toys-age-table-direct', undefined] as const;
 
@@ -172,31 +203,21 @@ export async function fetchHomepageToys(): Promise<Toy[]> {
 }
 
 /**
- * Hook to get toys from age-specific tables directly with proper category ordering
+ * Hook to get toys from age-specific tables directly with proper category ordering.
+ * Uses a timeout so the Toys page never hangs; on timeout/failure falls back to main toys table.
  */
 export const useToysForAgeGroup = (ageGroup?: string) => {
   return useQuery({
     queryKey: ['toys-age-table-direct', ageGroup],
     queryFn: async (): Promise<Toy[]> => {
-      if (!ageGroup || ageGroup === 'all' || ageGroup === '') {
-        return fetchHomepageToys();
-      }
-
-      const tableName = getAgeTableName(ageGroup);
-      if (!tableName) return [];
-
-      try {
-        return await queryAgeSpecificTable(tableName);
-      } catch {
-        const { data, error: fallbackError } = await supabase
+      const fetchFromMainTable = async (): Promise<Toy[]> => {
+        const { data, error } = await supabase
           .from('toys')
           .select('*')
           .neq('category', 'ride_on_toys')
           .order('is_featured', { ascending: false })
           .order('name', { ascending: true });
-
-        if (fallbackError) throw fallbackError;
-
+        if (error) throw error;
         const toys = (data || []).map(toy => ({
           id: toy.id,
           name: toy.name,
@@ -220,8 +241,24 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
           created_at: toy.created_at,
           updated_at: toy.updated_at,
         })) as Toy[];
-
         return sortToysByCategory(toys);
+      };
+
+      if (!ageGroup || ageGroup === 'all' || ageGroup === '') {
+        return runWithAutoRetry(() =>
+          withTimeout(fetchHomepageToys(), TOYS_FETCH_TIMEOUT_MS)
+        );
+      }
+
+      const tableName = getAgeTableName(ageGroup);
+      if (!tableName) return [];
+
+      try {
+        return await withTimeout(queryAgeSpecificTable(tableName), TOYS_FETCH_TIMEOUT_MS);
+      } catch {
+        return runWithAutoRetry(() =>
+          withTimeout(fetchFromMainTable(), TOYS_FETCH_TIMEOUT_MS)
+        );
       }
     },
     enabled: true,
@@ -229,8 +266,7 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
+    retry: 0,
   });
 };
 
