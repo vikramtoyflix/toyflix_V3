@@ -65,24 +65,16 @@ const ToyCard = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  // Get current image URL with better error handling
+  // When image failed to load, always show placeholder so no blank box
   const getCurrentImageUrl = () => {
+    if (imageError) return imageService.getFallbackChain('toy')[0];
+
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      // Handle both S3 and regular URLs
-      if (imageUrl.includes('/storage/v1/s3/')) {
-        return convertToPublicUrl(imageUrl);
-      }
-      return imageUrl;
+      if (imageUrl.includes('/storage/v1/s3/')) return convertToPublicUrl(imageUrl);
+      return imageService.getImageUrl(imageUrl, 'toy');
     }
-    
-    // Fallback to toy's main image_url
-    if (toy.image_url) {
-      const imageUrl = imageService.getImageUrl(toy.image_url, 'toy');
-      return imageError ? imageService.getFallbackChain('toy')[0] : imageUrl;
-    }
-    
-    // Final fallback
+    if (toy.image_url) return imageService.getImageUrl(toy.image_url, 'toy');
     return imageService.getFallbackChain('toy')[0];
   };
 
