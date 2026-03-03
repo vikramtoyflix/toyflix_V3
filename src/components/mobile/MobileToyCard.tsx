@@ -54,16 +54,25 @@ const MobileToyCard = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  // When image failed to load, always show placeholder so no blank box
+  // If image failed to load, show placeholder (fixes blank box when URL breaks)
   const getCurrentImageUrl = () => {
     if (imageError) return imageService.getFallbackChain('toy')[0];
-
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      if (imageUrl.includes('/storage/v1/s3/')) return convertToPublicUrl(imageUrl);
-      return imageService.getImageUrl(imageUrl, 'toy');
+      // Handle both S3 and regular URLs
+      if (imageUrl.includes('/storage/v1/s3/')) {
+        return convertToPublicUrl(imageUrl);
+      }
+      return imageUrl;
     }
-    if (toy.image_url) return imageService.getImageUrl(toy.image_url, 'toy');
+    
+    // Fallback to toy's main image_url
+    if (toy.image_url) {
+      const imageUrl = imageService.getImageUrl(toy.image_url, 'toy');
+      return imageError ? imageService.getFallbackChain('toy')[0] : imageUrl;
+    }
+    
+    // Final fallback
     return imageService.getFallbackChain('toy')[0];
   };
 
@@ -161,9 +170,8 @@ const MobileToyCard = ({
               <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
             )}
 
-            {/* Dynamic Main Image - key forces remount when switching to fallback */}
+            {/* Dynamic Main Image - No padding for maximum size */}
             <img
-              key={imageError ? `${toy.id}-fallback` : toy.id}
               src={currentImageUrl}
               alt={toy.name}
               className={cn(
