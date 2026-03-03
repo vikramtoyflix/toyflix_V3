@@ -65,9 +65,15 @@ const ToyGrid = React.memo(({
     return new Set(selectedToyIds);
   }, [selectedToyIds]);
 
-  // Fetch all toy images in ONE query — passes results down to each card
-  const toyIds = useMemo(() => displayToys.map(t => t.id), [displayToys]);
+  // On Toys page we have many toys; bulk fetch with 200+ IDs can fail or return bad URLs.
+  // Use main image only when many toys so cards use toy.image_url (same as homepage when it works).
+  const BULK_IMAGE_MAX = 80;
+  const toyIds = useMemo(() =>
+    displayToys.length <= BULK_IMAGE_MAX ? displayToys.map(t => t.id) : [],
+    [displayToys]
+  );
   const { data: bulkImages = {} } = useBulkToyImages(toyIds);
+  const imageMap = displayToys.length <= BULK_IMAGE_MAX ? bulkImages : {};
 
   // Memoize loading state for mobile
   const mobileLoadingState = useMemo(() => (
@@ -168,7 +174,7 @@ const ToyGrid = React.memo(({
             >
               <MobileToyCard
                 toy={toy}
-                preloadedImages={bulkImages[toy.id]}
+                preloadedImages={imageMap[toy.id]}
                 onToyAction={onToyAction}
                 onAddToWishlist={onAddToWishlist}
                 onViewProduct={handleOpenModal}
@@ -216,7 +222,7 @@ const ToyGrid = React.memo(({
         >
           <ToyCard
             toy={toy}
-            preloadedImages={bulkImages[toy.id]}
+            preloadedImages={imageMap[toy.id]}
             onToyAction={onToyAction}
             onAddToWishlist={onAddToWishlist}
             onViewProduct={handleOpenModal}
