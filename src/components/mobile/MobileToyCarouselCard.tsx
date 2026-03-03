@@ -72,13 +72,14 @@ const MobileToyCarouselCard = ({
 
   const getCurrentImageUrl = (): string => {
     try {
+      if (imageError) return fallbackImageUrl;
       if (images.length > 0) {
         const url = convertToPublicUrl(images[currentImageIndex]?.image_url);
         if (url && url.startsWith('http')) return url;
       }
       const rawImageUrl = typeof toy?.image_url === "string" ? toy.image_url : "";
       const imageUrl = imageService.getImageUrl(rawImageUrl, 'toy');
-      return (imageError || !imageUrl) ? fallbackImageUrl : imageUrl;
+      return imageUrl || fallbackImageUrl;
     } catch {
       return fallbackImageUrl;
     }
@@ -137,6 +138,7 @@ const MobileToyCarouselCard = ({
               )}
 
               <img
+                key={imageError ? `${toy.id}-fallback` : toy.id}
                 src={currentImageUrl}
                 alt={safeName}
                 className={cn(
