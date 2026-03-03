@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Toy } from './useToys';
 import { sortToysByCategory, logToyDistribution } from '@/utils/toyOrdering';
 
+/** Supabase returns max 1000 rows by default; request more so catalog shows all toys. */
+const TOYS_SELECT_LIMIT = 5000;
+
 /**
  * Hook to get all toys without age-based filtering restrictions
  */
@@ -13,6 +16,7 @@ export const useToysWithAgeBands = () => {
       const { data, error } = await supabase
         .from('toys')
         .select('*')
+        .range(0, TOYS_SELECT_LIMIT - 1)
         .order('is_featured', { ascending: false })
         .order('name', { ascending: true });
 
@@ -75,6 +79,7 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
     const { data: ageTableData, error: ageError } = await supabase
       .from(tableName as AgeTableName)
       .select('name')
+      .range(0, TOYS_SELECT_LIMIT - 1)
       .neq('category', 'ride_on_toys')
       .order('is_featured', { ascending: false })
       .order('available_quantity', { ascending: false })
@@ -90,7 +95,8 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
       .from('toys')
       .select('*')
       .in('name', toyNames)
-      .neq('category', 'ride_on_toys');
+      .neq('category', 'ride_on_toys')
+      .range(0, TOYS_SELECT_LIMIT - 1);
 
     if (error) throw error;
 
@@ -148,6 +154,7 @@ export async function fetchHomepageToys(): Promise<Toy[]> {
   const { data, error } = await supabase
     .from('toys')
     .select('*')
+    .range(0, TOYS_SELECT_LIMIT - 1)
     .neq('category', 'ride_on_toys')
     .order('is_featured', { ascending: false })
     .order('name', { ascending: true });
@@ -194,6 +201,7 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
         const { data, error } = await supabase
           .from('toys')
           .select('*')
+          .range(0, TOYS_SELECT_LIMIT - 1)
           .neq('category', 'ride_on_toys')
           .order('is_featured', { ascending: false })
           .order('name', { ascending: true });
