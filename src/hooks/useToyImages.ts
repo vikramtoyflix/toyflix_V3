@@ -9,9 +9,12 @@ export interface ToyImage {
   is_primary: boolean;
 }
 
+const BULK_CHUNK_SIZE = 100;
+
 /**
- * Fetches ALL toy images in a single query and returns a map of toy_id -> images[].
+ * Fetches ALL toy images in batched queries and returns a map of toy_id -> images[].
  * Use this at the carousel/list level so each card doesn't fire its own query.
+ * Batches IDs (100 per request) to avoid limits and keep one fast load for the page.
  */
 export const useBulkToyImages = (toyIds: string[]) => {
   return useQuery({
@@ -19,22 +22,31 @@ export const useBulkToyImages = (toyIds: string[]) => {
     queryFn: async (): Promise<Record<string, ToyImage[]>> => {
       if (!toyIds.length) return {};
 
-      const { data, error } = await supabase
-        .from('toy_images')
-        .select('id, toy_id, image_url, display_order, is_primary')
-        .in('toy_id', toyIds)
-        .order('display_order');
-
-      if (error) {
-        console.warn('Error fetching bulk toy images:', error);
-        return {};
+      const uniqueIds = [...new Set(toyIds)];
+      const chunks: string[][] = [];
+      for (let i = 0; i < uniqueIds.length; i += BULK_CHUNK_SIZE) {
+        chunks.push(uniqueIds.slice(i, i + BULK_CHUNK_SIZE));
       }
 
-      // Group by toy_id
+      const results = await Promise.all(
+        chunks.map(async (chunk) => {
+          const { data, error } = await supabase
+            .from('toy_images')
+            .select('id, toy_id, image_url, display_order, is_primary')
+            .in('toy_id', chunk)
+            .order('display_order');
+          if (error) {
+            console.warn('Error fetching bulk toy images chunk:', error);
+            return [];
+          }
+          return (data || []) as ToyImage[];
+        })
+      );
+
       const map: Record<string, ToyImage[]> = {};
-      (data || []).forEach((img) => {
+      results.flat().forEach((img) => {
         if (!map[img.toy_id]) map[img.toy_id] = [];
-        map[img.toy_id].push(img as ToyImage);
+        map[img.toy_id].push(img);
       });
       return map;
     },

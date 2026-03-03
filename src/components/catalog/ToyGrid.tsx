@@ -3,6 +3,7 @@ import ToyCard from './ToyCard';
 import MobileToyCard from '../mobile/MobileToyCard';
 import { MobileGridLoadingState, MobileEmptyState } from '../mobile/MobileLoadingStates';
 import { Toy } from '@/hooks/useToys';
+import { useBulkToyImages } from '@/hooks/useToyImages';
 import CatalogLoadingState from './CatalogLoadingState';
 import ToyDetailModal from '../subscription/ToyDetailModal';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -64,7 +65,12 @@ const ToyGrid = React.memo(({
     return new Set(selectedToyIds);
   }, [selectedToyIds]);
 
-  // Each ToyCard/MobileToyCard fetches its own images (per-card fetch, original URL logic)
+  // One bulk fetch for all toy images (batched); cards use preloadedImages so they load fast
+  const toyIds = useMemo(() => displayToys.map(t => t.id), [displayToys]);
+  const { data: bulkImages = {}, isFetched: bulkImagesFetched } = useBulkToyImages(toyIds);
+  // Only pass preloadedImages once bulk has loaded (undefined = still loading; then pass array or [] for no images)
+  const getPreloadedImages = (toyId: string) => bulkImagesFetched ? (bulkImages[toyId] ?? []) : undefined;
+
   // Memoize loading state for mobile
   const mobileLoadingState = useMemo(() => (
     <MobileGridLoadingState />
@@ -164,6 +170,8 @@ const ToyGrid = React.memo(({
             >
               <MobileToyCard
                 toy={toy}
+                preloadedImages={getPreloadedImages(toy.id)}
+                preloadedImagesFromBulk
                 onToyAction={onToyAction}
                 onAddToWishlist={onAddToWishlist}
                 onViewProduct={handleOpenModal}
@@ -211,6 +219,8 @@ const ToyGrid = React.memo(({
         >
           <ToyCard
             toy={toy}
+            preloadedImages={getPreloadedImages(toy.id)}
+            preloadedImagesFromBulk
             onToyAction={onToyAction}
             onAddToWishlist={onAddToWishlist}
             onViewProduct={handleOpenModal}

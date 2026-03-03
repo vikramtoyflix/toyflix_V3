@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Toy } from '@/hooks/useToys';
+import { ToyImage } from '@/hooks/useToyImages';
 import { imageService } from '@/services/imageService';
 import { cn } from '@/lib/utils';
 import { 
@@ -18,6 +19,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface ToyCardProps {
   toy: Toy;
+  /** When provided, use these instead of fetching. When parent does bulk load, pass preloadedImagesFromBulk so card doesn't fire its own request. */
+  preloadedImages?: ToyImage[];
+  /** If true, never fetch per-card; only use preloadedImages (e.g. ToyGrid bulk load). Avoids N requests while bulk is loading. */
+  preloadedImagesFromBulk?: boolean;
   onToyAction?: (toy: Toy, e: React.MouseEvent) => void;
   onAddToWishlist?: (toyId: string, e: React.MouseEvent) => void;
   onViewProduct?: (toyId: string) => void;
@@ -26,15 +31,10 @@ interface ToyCardProps {
   showOutOfStock?: boolean;
 }
 
-interface ToyImage {
-  id: string;
-  image_url: string;
-  display_order: number;
-  is_primary: boolean;
-}
-
 const ToyCard = ({ 
-  toy, 
+  toy,
+  preloadedImages,
+  preloadedImagesFromBulk = false,
   onToyAction, 
   onAddToWishlist, 
   onViewProduct,
@@ -47,48 +47,61 @@ const ToyCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [images, setImages] = useState<ToyImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLoadingImages, setIsLoadingImages] = useState(true);
+  const [isLoadingImages, setIsLoadingImages] = useState(preloadedImagesFromBulk ? true : preloadedImages === undefined);
 
-  // Fetch toy images
+  // Use preloaded images from parent when provided (one bulk fetch for whole grid)
   useEffect(() => {
-    const fetchImages = async () => {
-      if (!toy.id) {
-        return;
+    if (preloadedImages !== undefined) {
+      setImages(preloadedImages);
+      if (preloadedImages.length > 0) {
+        const primary = preloadedImages.find(img => img.is_primary) || preloadedImages[0];
+        const primaryIndex = preloadedImages.findIndex(img => img.image_url === primary.image_url);
+        setCurrentImageIndex(primaryIndex >= 0 ? primaryIndex : 0);
+      } else {
+        setCurrentImageIndex(0);
       }
-      
+      setIsLoadingImages(false);
+    } else if (preloadedImagesFromBulk) {
       setIsLoadingImages(true);
-      try {
-        const { data: imageData, error } = await supabase
-          .from('toy_images')
-          .select('*')
-          .eq('toy_id', toy.id)
-          .order('display_order');
+    }
+  }, [preloadedImages, preloadedImagesFromBulk]);
 
-        if (error && error.code !== 'PGRST116') {
-          console.warn('Error fetching toy images:', error);
-        }
+  // When not using bulk, fetch per card (e.g. RelatedProducts, other contexts)
+  useEffect(() => {
+    if (preloadedImagesFromBulk || !toy.id) return;
+    if (preloadedImages !== undefined) return;
 
-        if (imageData && imageData.length > 0) {
-          setImages(imageData);
-          // Set primary image or first image as current
-          const primaryImage = imageData.find(img => img.is_primary) || imageData[0];
-          const primaryIndex = imageData.findIndex(img => img.image_url === primaryImage.image_url);
-          setCurrentImageIndex(primaryIndex >= 0 ? primaryIndex : 0);
+    let cancelled = false;
+    setIsLoadingImages(true);
+    supabase
+      .from('toy_images')
+      .select('*')
+      .eq('toy_id', toy.id)
+      .order('display_order')
+      .then(({ data: imageData, error }) => {
+        if (cancelled) return;
+        if (error && error.code !== 'PGRST116') console.warn('Error fetching toy images:', error);
+        if (imageData?.length) {
+          setImages(imageData as ToyImage[]);
+          const primary = imageData.find((img: { is_primary?: boolean }) => img.is_primary) || imageData[0];
+          const idx = imageData.findIndex((img: { image_url: string }) => img.image_url === primary.image_url);
+          setCurrentImageIndex(idx >= 0 ? idx : 0);
         } else {
           setImages([]);
           setCurrentImageIndex(0);
         }
-      } catch (error) {
-        console.error('Error fetching images:', error);
-        setImages([]);
-        setCurrentImageIndex(0);
-      } finally {
         setIsLoadingImages(false);
-      }
-    };
-
-    fetchImages();
-  }, [toy.id, toy.name]);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error('Error fetching images:', err);
+          setImages([]);
+          setCurrentImageIndex(0);
+          setIsLoadingImages(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [toy.id, toy.name, preloadedImages, preloadedImagesFromBulk]);
 
   // Convert S3 URLs to public URLs
   const convertToPublicUrl = (s3Url: string): string => {
