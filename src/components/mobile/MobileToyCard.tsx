@@ -29,7 +29,6 @@ const MobileToyCard = ({
 }: MobileToyCardProps) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [imageRetryCount, setImageRetryCount] = useState(0);
   const [images, setImages] = useState<ToyImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoadingImages, setIsLoadingImages] = useState(!preloadedImages);
@@ -38,8 +37,6 @@ const MobileToyCard = ({
   useEffect(() => {
     if (preloadedImages !== undefined) {
       setImages(preloadedImages);
-      setImageError(false);
-      setImageRetryCount(0);
       if (preloadedImages.length > 0) {
         const primary = preloadedImages.find(img => img.is_primary) || preloadedImages[0];
         const primaryIndex = preloadedImages.findIndex(img => img.image_url === primary.image_url);
@@ -57,18 +54,24 @@ const MobileToyCard = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  // Get current image URL — use fallback when load failed so no blank white box
+  // Get current image URL with better error handling
   const getCurrentImageUrl = () => {
-    if (imageError) return imageService.getFallbackChain('toy')[0];
-
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      if (imageUrl.includes('/storage/v1/s3/')) return convertToPublicUrl(imageUrl);
-      return imageService.getImageUrl(imageUrl, 'toy');
+      // Handle both S3 and regular URLs
+      if (imageUrl.includes('/storage/v1/s3/')) {
+        return convertToPublicUrl(imageUrl);
+      }
+      return imageUrl;
     }
-
-    if (toy.image_url) return imageService.getImageUrl(toy.image_url, 'toy');
-
+    
+    // Fallback to toy's main image_url
+    if (toy.image_url) {
+      const imageUrl = imageService.getImageUrl(toy.image_url, 'toy');
+      return imageError ? imageService.getFallbackChain('toy')[0] : imageUrl;
+    }
+    
+    // Final fallback
     return imageService.getFallbackChain('toy')[0];
   };
 
@@ -82,7 +85,6 @@ const MobileToyCard = ({
       setCurrentImageIndex((prevIndex) => {
         const newIndex = prevIndex === images.length - 1 ? 0 : prevIndex + 1;
         setImageError(false);
-        setImageRetryCount(0);
         setImageLoading(true);
         return newIndex;
       });
@@ -123,7 +125,6 @@ const MobileToyCard = ({
       const newIndex = currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
       setCurrentImageIndex(newIndex);
       setImageError(false);
-      setImageRetryCount(0);
       setImageLoading(true);
     }
   };
@@ -134,20 +135,15 @@ const MobileToyCard = ({
       const newIndex = currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1;
       setCurrentImageIndex(newIndex);
       setImageError(false);
-      setImageRetryCount(0);
       setImageLoading(true);
     }
   };
 
-  const handleImageLoad = () => setImageLoading(false);
-
+  const handleImageLoad = () => {
+    setImageLoading(false);
+  };
+  
   const handleImageError = () => {
-    if (imageRetryCount < 1) {
-      setImageRetryCount(1);
-      setImageError(false);
-      setImageLoading(true);
-      return;
-    }
     setImageError(true);
     setImageLoading(false);
   };
@@ -175,7 +171,6 @@ const MobileToyCard = ({
 
             {/* Dynamic Main Image - No padding for maximum size */}
             <img
-              key={`${toy.id}-${currentImageIndex}-${imageRetryCount}`}
               src={currentImageUrl}
               alt={toy.name}
               className={cn(
@@ -185,7 +180,6 @@ const MobileToyCard = ({
               onLoad={handleImageLoad}
               onError={handleImageError}
               loading="lazy"
-              decoding="async"
               onClick={handleImageClick}
             />
 
