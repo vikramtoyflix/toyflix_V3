@@ -128,6 +128,18 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   }
 }
 
+/** Timeout for toy fetches so the Toys page never hangs (e.g. slow network or missing age table). */
+const TOYS_FETCH_TIMEOUT_MS = 12_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
 /** Query key for homepage Featured Toys – used for prefetch so carousel has data on first load/refresh. */
 export const HOMEPAGE_TOYS_QUERY_KEY = ['toys-age-table-direct', undefined] as const;
 
@@ -178,25 +190,14 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
   return useQuery({
     queryKey: ['toys-age-table-direct', ageGroup],
     queryFn: async (): Promise<Toy[]> => {
-      if (!ageGroup || ageGroup === 'all' || ageGroup === '') {
-        return fetchHomepageToys();
-      }
-
-      const tableName = getAgeTableName(ageGroup);
-      if (!tableName) return [];
-
-      try {
-        return await queryAgeSpecificTable(tableName);
-      } catch {
-        const { data, error: fallbackError } = await supabase
+      const fetchFromMainTable = async (): Promise<Toy[]> => {
+        const { data, error } = await supabase
           .from('toys')
           .select('*')
           .neq('category', 'ride_on_toys')
           .order('is_featured', { ascending: false })
           .order('name', { ascending: true });
-
-        if (fallbackError) throw fallbackError;
-
+        if (error) throw error;
         const toys = (data || []).map(toy => ({
           id: toy.id,
           name: toy.name,
@@ -220,8 +221,24 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
           created_at: toy.created_at,
           updated_at: toy.updated_at,
         })) as Toy[];
-
         return sortToysByCategory(toys);
+      };
+
+      if (!ageGroup || ageGroup === 'all' || ageGroup === '') {
+        return withTimeout(fetchHomepageToys(), TOYS_FETCH_TIMEOUT_MS, 'Toys fetch');
+      }
+
+      const tableName = getAgeTableName(ageGroup);
+      if (!tableName) return [];
+
+      try {
+        return await withTimeout(
+          queryAgeSpecificTable(tableName),
+          TOYS_FETCH_TIMEOUT_MS,
+          'Toys fetch'
+        );
+      } catch {
+        return withTimeout(fetchFromMainTable(), TOYS_FETCH_TIMEOUT_MS, 'Toys fallback');
       }
     },
     enabled: true,

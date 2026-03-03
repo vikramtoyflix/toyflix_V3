@@ -39,6 +39,7 @@ const ToyCard = ({
 }: ToyCardProps) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [imageRetryCount, setImageRetryCount] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [images, setImages] = useState<ToyImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -48,6 +49,8 @@ const ToyCard = ({
   useEffect(() => {
     if (preloadedImages !== undefined) {
       setImages(preloadedImages);
+      setImageError(false);
+      setImageRetryCount(0);
       if (preloadedImages.length > 0) {
         const primary = preloadedImages.find(img => img.is_primary) || preloadedImages[0];
         const primaryIndex = preloadedImages.findIndex(img => img.image_url === primary.image_url);
@@ -65,24 +68,18 @@ const ToyCard = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  // Get current image URL with better error handling
+  // Get current image URL with better error handling — always use fallback when load failed
   const getCurrentImageUrl = () => {
+    if (imageError) return imageService.getFallbackChain('toy')[0];
+
     if (images.length > 0 && images[currentImageIndex]?.image_url) {
       const imageUrl = images[currentImageIndex].image_url;
-      // Handle both S3 and regular URLs
-      if (imageUrl.includes('/storage/v1/s3/')) {
-        return convertToPublicUrl(imageUrl);
-      }
-      return imageUrl;
+      if (imageUrl.includes('/storage/v1/s3/')) return convertToPublicUrl(imageUrl);
+      return imageService.getImageUrl(imageUrl, 'toy');
     }
-    
-    // Fallback to toy's main image_url
-    if (toy.image_url) {
-      const imageUrl = imageService.getImageUrl(toy.image_url, 'toy');
-      return imageError ? imageService.getFallbackChain('toy')[0] : imageUrl;
-    }
-    
-    // Final fallback
+
+    if (toy.image_url) return imageService.getImageUrl(toy.image_url, 'toy');
+
     return imageService.getFallbackChain('toy')[0];
   };
 
@@ -93,9 +90,10 @@ const ToyCard = ({
     if (images.length <= 1 || isHovered) return; // Pause on hover
 
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => {
+        setCurrentImageIndex((prevIndex) => {
         const newIndex = prevIndex === images.length - 1 ? 0 : prevIndex + 1;
         setImageError(false);
+        setImageRetryCount(0);
         setIsImageLoading(true);
         return newIndex;
       });
@@ -109,6 +107,12 @@ const ToyCard = ({
   };
   
   const handleImageError = () => {
+    if (imageRetryCount < 1) {
+      setImageRetryCount(1);
+      setImageError(false);
+      setIsImageLoading(true);
+      return;
+    }
     setImageError(true);
     setIsImageLoading(false);
   };
@@ -119,6 +123,7 @@ const ToyCard = ({
       const newIndex = currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
       setCurrentImageIndex(newIndex);
       setImageError(false);
+      setImageRetryCount(0);
       setIsImageLoading(true);
     }
   };
@@ -129,6 +134,7 @@ const ToyCard = ({
       const newIndex = currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1;
       setCurrentImageIndex(newIndex);
       setImageError(false);
+      setImageRetryCount(0);
       setIsImageLoading(true);
     }
   };
@@ -186,6 +192,7 @@ const ToyCard = ({
           
           {/* Dynamic Main Image - No padding for maximum size */}
           <img
+            key={`${toy.id}-${currentImageIndex}-${imageRetryCount}`}
             src={currentImageUrl}
             alt={toy.name}
             className={cn(
@@ -196,6 +203,7 @@ const ToyCard = ({
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
+            decoding="async"
           />
 
           {/* Carousel Navigation Arrows - Show on hover for desktop, always visible on mobile if multiple images */}
