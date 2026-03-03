@@ -3,7 +3,6 @@ import ToyCard from './ToyCard';
 import MobileToyCard from '../mobile/MobileToyCard';
 import { MobileGridLoadingState, MobileEmptyState } from '../mobile/MobileLoadingStates';
 import { Toy } from '@/hooks/useToys';
-import { useBulkToyImages } from '@/hooks/useToyImages';
 import CatalogLoadingState from './CatalogLoadingState';
 import ToyDetailModal from '../subscription/ToyDetailModal';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -65,16 +64,7 @@ const ToyGrid = React.memo(({
     return new Set(selectedToyIds);
   }, [selectedToyIds]);
 
-  // On Toys page we have many toys; bulk fetch with 200+ IDs can fail or return bad URLs.
-  // Use main image only when many toys so cards use toy.image_url (same as homepage when it works).
-  const BULK_IMAGE_MAX = 80;
-  const toyIds = useMemo(() =>
-    displayToys.length <= BULK_IMAGE_MAX ? displayToys.map(t => t.id) : [],
-    [displayToys]
-  );
-  const { data: bulkImages = {} } = useBulkToyImages(toyIds);
-  const imageMap = displayToys.length <= BULK_IMAGE_MAX ? bulkImages : {};
-
+  // Each ToyCard/MobileToyCard fetches its own images (per-card fetch, original URL logic)
   // Memoize loading state for mobile
   const mobileLoadingState = useMemo(() => (
     <MobileGridLoadingState />
@@ -174,7 +164,6 @@ const ToyGrid = React.memo(({
             >
               <MobileToyCard
                 toy={toy}
-                preloadedImages={imageMap[toy.id]}
                 onToyAction={onToyAction}
                 onAddToWishlist={onAddToWishlist}
                 onViewProduct={handleOpenModal}
@@ -222,7 +211,6 @@ const ToyGrid = React.memo(({
         >
           <ToyCard
             toy={toy}
-            preloadedImages={imageMap[toy.id]}
             onToyAction={onToyAction}
             onAddToWishlist={onAddToWishlist}
             onViewProduct={handleOpenModal}
