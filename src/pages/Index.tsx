@@ -1,7 +1,6 @@
 import React, { Suspense, useRef } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useToast } from "@/components/ui/use-toast";
 import { ComponentLoader } from "@/components/ui/component-loader";
 import { FeaturesSection } from "@/components/home/FeaturesSection";
 import { SEOHead } from "@/components/seo/SEOHead";
@@ -40,20 +39,9 @@ const PremiumPartners = React.lazy(() => import("@/components/PremiumPartners"))
 const CertifiedBy = React.lazy(() => import("@/components/CertifiedBy"));
 const HeroCarousel = React.lazy(() => import("@/components/HeroCarousel"));
 const MobileLayout = React.lazy(() => import("@/components/mobile/MobileLayout"));
-const MobilePullToRefresh = React.lazy(() => import("@/components/mobile/MobilePullToRefresh"));
-
 const Index = () => {
   const isMobile = useIsMobile();
-  const { toast } = useToast();
   const rideOnSectionRef = useRef<HTMLDivElement>(null);
-
-  const handleRefresh = async () => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast({
-      title: "Refreshed!",
-      description: "Content has been updated",
-    });
-  };
 
   // Mobile layout with lazy loading
   if (isMobile) {
@@ -73,7 +61,6 @@ const Index = () => {
             <MobileLayout title="ToyJoy" showHeader={true} showBottomNav={true}>
               <ErrorBoundary FallbackComponent={ErrorFallback}>
                 <Suspense fallback={<ComponentLoader text="Loading content..." />}>
-                  <MobilePullToRefresh onRefresh={handleRefresh}>
                     <div className="min-h-screen bg-cream">
                       {/* Mobile-optimized content with lazy loading */}
                       <div className="pb-2 space-y-0">
@@ -129,7 +116,6 @@ const Index = () => {
                         </div>
                       </div>
                     </div>
-                  </MobilePullToRefresh>
                 </Suspense>
               </ErrorBoundary>
               
