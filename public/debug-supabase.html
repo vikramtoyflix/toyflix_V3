@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Debug</title>
+  <style>
+    body { font-family: monospace; padding: 16px; font-size: 13px; background: #111; color: #eee; }
+    .ok { color: #4f4; }
+    .err { color: #f44; }
+    .info { color: #4af; }
+    pre { white-space: pre-wrap; word-break: break-all; background: #222; padding: 8px; border-radius: 4px; margin: 4px 0; }
+    h3 { color: #fa0; margin: 16px 0 4px; }
+  </style>
+</head>
+<body>
+<h2>Supabase Debug</h2>
+<div id="out"></div>
+<script>
+const URL = "https://wucwpyitzqjukcphczhr.supabase.co";
+const KEY = "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
+const out = document.getElementById('out');
+
+function log(msg, cls) {
+  const p = document.createElement('pre');
+  p.className = cls || '';
+  p.textContent = msg;
+  out.appendChild(p);
+}
+
+function h(title) {
+  const h3 = document.createElement('h3');
+  h3.textContent = title;
+  out.appendChild(h3);
+}
+
+async function run() {
+  h('1. Environment');
+  log('UA: ' + navigator.userAgent, 'info');
+  log('URL: ' + window.location.href, 'info');
+
+  h('2. Raw fetch to Supabase REST');
+  try {
+    const r = await fetch(URL + '/rest/v1/toys?select=id,name&limit=3', {
+      headers: {
+        'apikey': KEY,
+        'Authorization': 'Bearer ' + KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    log('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'ok' : 'err');
+    const text = await r.text();
+    log('Body: ' + text.substring(0, 500), r.ok ? 'ok' : 'err');
+  } catch(e) {
+    log('FETCH ERROR: ' + e, 'err');
+    log('This means the Android WebView is BLOCKING the request to supabase.co', 'err');
+  }
+
+  h('3. Check localStorage');
+  try {
+    localStorage.setItem('test', '1');
+    log('localStorage: OK', 'ok');
+    localStorage.removeItem('test');
+  } catch(e) {
+    log('localStorage ERROR: ' + e, 'err');
+  }
+
+  h('4. Check network to supabase.co');
+  try {
+    const r2 = await fetch(URL + '/rest/v1/', {
+      headers: { 'apikey': KEY }
+    });
+    log('Supabase root reachable: ' + r2.status, r2.ok ? 'ok' : 'err');
+  } catch(e) {
+    log('Cannot reach supabase.co: ' + e, 'err');
+  }
+
+  h('5. Done');
+  log('Check results above for errors', 'info');
+}
+
+run().catch(e => log('Fatal: ' + e, 'err'));
+</script>
+</body>
+</html>
