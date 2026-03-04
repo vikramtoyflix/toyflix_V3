@@ -4,10 +4,10 @@ import type { Database } from './types';
 
 // Production Supabase configuration - connect directly to production
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co";
-// Use env anon key only if it looks like a valid JWT (eyJ...); otherwise use production key so toys always load
-const PRODUCTION_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY";
+// New Supabase publishable key (replaces legacy anon JWT)
+const PRODUCTION_ANON_KEY = "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
 const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const SUPABASE_PUBLISHABLE_KEY = (typeof envKey === "string" && envKey.startsWith("eyJ") && envKey.length > 100) ? envKey : PRODUCTION_ANON_KEY;
+const SUPABASE_PUBLISHABLE_KEY = (typeof envKey === "string" && envKey.length > 10) ? envKey : PRODUCTION_ANON_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
