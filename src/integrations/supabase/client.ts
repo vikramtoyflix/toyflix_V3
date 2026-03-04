@@ -7,7 +7,11 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjuk
 // New Supabase publishable key (replaces legacy anon JWT)
 const PRODUCTION_ANON_KEY = "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
 const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const SUPABASE_PUBLISHABLE_KEY = (typeof envKey === "string" && envKey.length > 10) ? envKey : PRODUCTION_ANON_KEY;
+// Only use env key if it's the new sb_publishable_ format; legacy JWTs are disabled
+const SUPABASE_PUBLISHABLE_KEY =
+  (typeof envKey === "string" && envKey.startsWith("sb_publishable_"))
+    ? envKey
+    : PRODUCTION_ANON_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
