@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Truck, CreditCard } from "lucide-react";
 
 const RIDE_ON_FEATURES = [
-  "One premium ride-on (bikes, cars, tractors) delivered every month",
+  "One premium battery operated ride-on (bikes, cars, jeeps) delivered every month",
   "Ride-ons worth ₹7,000–₹18,000 — enjoy without the big purchase",
   "Free delivery and pickup; no damage charges or security deposit",
   "Sanitized and safety-checked before every delivery",
@@ -90,7 +90,7 @@ const Pricing = () => {
               Toys
             </TabsTrigger>
             <TabsTrigger value="ride-ons" className="rounded-lg font-outfit font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              Ride Ons
+              Ride on toys
             </TabsTrigger>
           </TabsList>
         </div>
@@ -104,7 +104,7 @@ const Pricing = () => {
                 <Card className="relative overflow-hidden rounded-2xl border-2 border-terracotta/30 shadow-xl">
                   <CardHeader className="text-center pb-4 pt-10">
                     <CardTitle className="font-playfair font-bold text-warm-gray text-2xl sm:text-3xl">
-                      Ride Ons
+                      Ride on toys
                     </CardTitle>
                     <div className="mt-4">
                       <span className="text-warm-gray/90 text-2xl sm:text-3xl font-outfit font-bold">
