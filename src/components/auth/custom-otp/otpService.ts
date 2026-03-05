@@ -2,9 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustomUser, CustomSession } from '@/hooks/auth/types';
 import { saveAuthToStorage, getStoredSession } from "@/hooks/auth/storage";
 
-// Legacy JWT anon key — required for edge function calls (new sb_publishable_ key not yet supported)
-const EDGE_FUNCTION_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY";
-const SUPABASE_FUNCTIONS_URL = "https://wucwpyitzqjukcphczhr.supabase.co/functions/v1";
+// Use same Supabase URL and anon key as the rest of the app (edge functions accept anon key)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co";
+const ENV_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const FALLBACK_ANON_KEY = "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
+const LEGACY_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY";
+const EDGE_FUNCTION_KEY = (typeof ENV_ANON_KEY === "string" && ENV_ANON_KEY.length > 0) ? ENV_ANON_KEY : (FALLBACK_ANON_KEY || LEGACY_JWT_KEY);
+const SUPABASE_FUNCTIONS_URL = `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1`;
 
 export const sendOTP = async (phone: string): Promise<{
   success: boolean;
@@ -38,10 +42,14 @@ export const sendOTP = async (phone: string): Promise<{
 
     return { success: true, developmentOtp: data.otp_code };
   } catch (err: any) {
+    const raw = err?.message || "Network error";
+    console.error("[sendOTP] request failed:", err?.name, raw);
     const message =
       err?.name === "AbortError"
         ? "OTP request timed out. Please try again."
-        : err?.message || "Network error";
+        : raw === "Failed to fetch" || raw.toLowerCase().includes("fetch")
+        ? "Could not reach OTP server. Check your connection or try again in a moment. If it persists, the service may be temporarily limited."
+        : raw;
     return { success: false, error: { message } };
   }
 };
@@ -57,18 +65,31 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
   console.log('🔍 verifyOTP called with:', { phone: fullPhone, otp, mode });
   
-  const verifyRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/verify-otp-custom`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone: fullPhone, otp, mode }),
-  });
-  const data = await verifyRes.json();
+  let data: any;
+  try {
+    const verifyRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/verify-otp-custom`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: fullPhone, otp, mode }),
+    });
+    data = await verifyRes.json();
 
-  if (!verifyRes.ok || !data?.success) {
+    if (!verifyRes.ok) {
+      const errorMessage = data?.error || data?.message || (verifyRes.status === 401 ? "Authentication error. Please refresh and try again." : "Verification failed");
+      console.warn('verify-otp-custom error:', verifyRes.status, data);
+      return { success: false, error: { message: errorMessage } };
+    }
+  } catch (err: any) {
+    console.error('verify-otp-custom request failed:', err);
+    const message = err?.message || (err?.name === 'TypeError' && err?.message?.includes('fetch') ? "Network error. Check your connection." : "Verification failed");
+    return { success: false, error: { message } };
+  }
+
+  if (!data?.success) {
     const errorMessage = data?.error || data?.message || "Verification failed";
     return { success: false, error: { message: errorMessage } };
   }
-  
+
   // CRITICAL FIX: Always ensure phone_verified is true after successful OTP verification
   if (data.success && data.otpVerified && data.user) {
     console.log('🔍 Ensuring phone_verified is set to true for user:', data.user.id);
@@ -210,12 +231,12 @@ export const checkUserStatus = async (phone: string): Promise<{
   
   try {
     // Construct URL with query parameter
-    const url = `https://wucwpyitzqjukcphczhr.supabase.co/functions/v1/check-user-status?phone=${encodeURIComponent(fullPhone)}`;
+    const url = `${SUPABASE_FUNCTIONS_URL}/check-user-status?phone=${encodeURIComponent(fullPhone)}`;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY`,
+        'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`,
         'Content-Type': 'application/json',
       },
     });

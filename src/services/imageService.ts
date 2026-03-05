@@ -12,40 +12,6 @@ const FALLBACK_IMAGES = {
   product: "https://images.unsplash.com/photo-1519619091416-f5d7e5200702?q=80&w=600&auto=format&fit=crop"
 };
 
-// Width, quality settings per display context
-const TRANSFORM_PARAMS: Record<'toy' | 'carousel' | 'product', { width: number; quality: number }> = {
-  toy:      { width: 400,  quality: 75 },
-  product:  { width: 600,  quality: 80 },
-  carousel: { width: 900,  quality: 80 },
-};
-
-/**
- * Converts any Supabase Storage /object/public/ URL into a
- * /render/image/public/ URL that returns WebP at the right size.
- * Works for any bucket (toy-images, products, etc.).
- * Falls back to the original URL if the pattern doesn't match.
- */
-function toSupabaseTransformUrl(
-  url: string,
-  context: 'toy' | 'carousel' | 'product'
-): string {
-  // Strip any existing query params before matching (prevents double-transform URLs)
-  const cleanUrl = url.split('?')[0];
-
-  // Match: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
-  const match = cleanUrl.match(
-    /^(https:\/\/[^/]+\.supabase\.co)\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/
-  );
-  if (!match) return url;
-
-  const [, host, bucket, filePath] = match;
-  const { width, quality } = TRANSFORM_PARAMS[context];
-
-  // Supabase image transform endpoint (Pro plan).
-  // No &format= param needed — Supabase auto-serves WebP to browsers that send Accept: image/webp.
-  return `${host}/storage/v1/render/image/public/${bucket}/${filePath}?width=${width}&quality=${quality}&resize=contain`;
-}
-
 export const imageService = {
   /**
    * Get a reliable image URL with fallback chain and optimization
@@ -67,17 +33,16 @@ export const imageService = {
       return this.optimizeUnsplashUrl(cleanUrl, context);
     }
 
-    // Already a transform URL — update width/quality params for the right context instead of double-wrapping
+    // Already a Supabase render URL – strip it back to the original object URL
     if (cleanUrl.includes('supabase.co/storage/v1/render/image/public/')) {
-      return toSupabaseTransformUrl(
-        cleanUrl.replace('/render/image/public/', '/object/public/').split('?')[0],
-        context
-      );
+      return cleanUrl
+        .replace('/render/image/public/', '/object/public/')
+        .split('?')[0];
     }
 
-    // Supabase Storage URL → use image transform API (WebP, right size, Pro plan)
+    // Supabase Storage URL → return the raw object URL (no image transformations to avoid quota usage)
     if (cleanUrl.includes('supabase.co/storage/v1/object/public/')) {
-      return toSupabaseTransformUrl(cleanUrl, context);
+      return cleanUrl.split('?')[0];
     }
 
     // If it looks like a valid URL, return it
