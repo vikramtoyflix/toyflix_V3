@@ -47,7 +47,16 @@ verify_jwt = false
 [functions.razorpay-verify]
 verify_jwt = false
 
+[functions.zoho-sync-contact]
+verify_jwt = false
+
 [functions.verify-otp-custom]
+verify_jwt = false
+
+[functions.send-otp]
+verify_jwt = false
+
+[functions.check-user-status]
 verify_jwt = false
 
 [functions.admin-fetch-orders]

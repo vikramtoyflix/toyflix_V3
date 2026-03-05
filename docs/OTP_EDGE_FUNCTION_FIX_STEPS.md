@@ -4,6 +4,31 @@ Use these in order. Your app is at **https://www.toyflix.in**; the OTP function 
 
 ---
 
+## "Invalid JWT" when sending OTP
+
+If the app shows **Invalid JWT** (or the request reaches the server but is rejected), the Edge Function gateway is rejecting the Bearer token. Fix:
+
+1. **Recommended:** Set `verify_jwt = false` for the OTP functions so unauthenticated users can request OTP. This repo’s `supabase/config.toml` already has:
+   - `[functions.send-otp]` and `[functions.check-user-status]` with `verify_jwt = false`.
+2. **Redeploy** the functions so the config is applied:
+   ```bash
+   npx supabase functions deploy send-otp
+   npx supabase functions deploy check-user-status
+   ```
+3. Alternatively, ensure the **production** app has the correct `VITE_SUPABASE_ANON_KEY` (Azure Static Web Apps → Configuration → Application settings) so the client sends a valid anon key for this project.
+
+---
+
+## OTP first (priority order)
+
+1. **Backend (Supabase)** – Do these first so OTP can work:
+   - Resolve **EXCEEDING USAGE LIMITS** (Step 1 below) so Edge Functions are not blocked.
+   - **Redeploy** `send-otp` and `check-user-status` (Step 3 below).
+2. **Frontend** – Already deployed: 2Factor-only flow, no WooCommerce, clearer errors. No extra deploy needed for OTP.
+3. **Verify** – On https://www.toyflix.in, send OTP and check Network tab + Console for `[sendOTP] request failed:` if it still fails.
+
+---
+
 ## 1. Resolve Supabase “EXCEEDING USAGE LIMITS”
 
 When the project is over limit, Supabase can return 429/503 **without CORS headers**, so the browser only shows “Failed to fetch”.
@@ -32,31 +57,25 @@ If you ever change the function and remove CORS, that would cause “Failed to f
 
 ---
 
-## 3. Redeploy send-otp (and check-user-status)
+## 3. Redeploy send-otp (and check-user-status) — do this for OTP fix first
 
-Deploy so production uses the same CORS/OPTIONS logic as in your repo.
+Deploy so production uses the same CORS/OPTIONS logic as in your repo. Run from repo root:
 
-1. Open a terminal and go to the **repo root** (where `supabase/` lives):
-   ```bash
-   cd /Users/vikrama.m/Documents/toy-joy-box-club-main
-   ```
-2. Log in to Supabase CLI (if not already):
-   ```bash
-   npx supabase login
-   ```
-3. Link the project (if not already linked; use your project ref from dashboard URL, e.g. `wucwpyitzqjukcphczhr`):
-   ```bash
-   npx supabase link --project-ref wucwpyitzqjukcphczhr
-   ```
-4. Deploy **send-otp**:
-   ```bash
-   npx supabase functions deploy send-otp
-   ```
-5. Optional but recommended (used for “Welcome back” message): deploy **check-user-status**:
-   ```bash
-   npx supabase functions deploy check-user-status
-   ```
-6. In the Supabase dashboard: **Edge Functions** → **send-otp** → **Invocations** or **Logs**. Trigger OTP from https://www.toyflix.in and confirm you see a **POST** request with status **200** (and an **OPTIONS** before it with **200**).
+```bash
+cd /Users/vikrama.m/Documents/toy-joy-box-club-main
+
+# One-time: log in (opens browser)
+npx supabase login
+
+# One-time: link project (ref from dashboard URL)
+npx supabase link --project-ref wucwpyitzqjukcphczhr
+
+# OTP fix: deploy these two functions
+npx supabase functions deploy send-otp
+npx supabase functions deploy check-user-status
+```
+
+Then in Supabase dashboard: **Edge Functions** → **send-otp** → **Invocations** / **Logs**. Trigger OTP from https://www.toyflix.in and confirm you see **OPTIONS** and **POST** with status **200**.
 
 ---
 

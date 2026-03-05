@@ -36,7 +36,11 @@ export const sendOTP = async (phone: string): Promise<{
     const data = await response.json();
 
     if (!response.ok || !data?.success) {
-      const errorMessage = data?.error || data?.message || "Failed to send OTP";
+      const rawMsg = data?.error || data?.message || "Failed to send OTP";
+      const errorMessage =
+        rawMsg === "Invalid JWT" || rawMsg.toLowerCase().includes("jwt")
+          ? "Server configuration error. Please try again later or contact support."
+          : rawMsg;
       return { success: false, error: { message: errorMessage } };
     }
 
