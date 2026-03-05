@@ -109,6 +109,20 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error('Failed to create user');
       }
       userId = newUser.id;
+
+      // Sync to Zoho Marketing/CRM with tag "Sign up" (fire-and-forget for cart abandonment journey)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+      if (supabaseUrl && serviceKey) {
+        fetch(`${supabaseUrl}/functions/v1/zoho-sync-contact`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ userId: newUser.id, tag: 'Sign up' }),
+        }).catch((err) => console.warn('Zoho sync (sign up) failed:', err?.message));
+      }
     }
 
     // Generate session tokens
