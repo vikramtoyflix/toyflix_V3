@@ -65,19 +65,19 @@ const Pricing = () => {
               </span>
             </div>
           </div>
-          {/* Trust strip */}
+          {/* Trust strip – wave animation (each phrase moves up/down in sequence) */}
           <div className="mt-6 sm:mt-7 flex flex-wrap justify-center gap-6 sm:gap-10 text-warm-gray/70 text-sm">
-            <span className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-terracotta flex-shrink-0" />
-              Sanitized & safe
+            <span className="flex items-center gap-2 animate-wave inline-block" style={{ animationDelay: '0s' }}>
+              <Shield className="w-5 h-5 text-terracotta flex-shrink-0" />
+              <span className="font-outfit font-medium">Sanitized & safe</span>
             </span>
-            <span className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-terracotta flex-shrink-0" />
-              Free delivery
+            <span className="flex items-center gap-2 animate-wave inline-block" style={{ animationDelay: '0.25s' }}>
+              <Truck className="w-5 h-5 text-terracotta flex-shrink-0" />
+              <span className="font-outfit font-medium">Free delivery</span>
             </span>
-            <span className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-terracotta flex-shrink-0" />
-              No hidden charges
+            <span className="flex items-center gap-2 animate-wave inline-block" style={{ animationDelay: '0.5s' }}>
+              <CreditCard className="w-5 h-5 text-terracotta flex-shrink-0" />
+              <span className="font-outfit font-medium">No hidden charges</span>
             </span>
           </div>
         </div>
