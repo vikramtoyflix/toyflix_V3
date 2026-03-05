@@ -76,16 +76,26 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
       headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: fullPhone, otp, mode }),
     });
-    data = await verifyRes.json();
+    try {
+      data = await verifyRes.json();
+    } catch (_) {
+      data = {};
+    }
 
     if (!verifyRes.ok) {
-      const errorMessage = data?.error || data?.message || (verifyRes.status === 401 ? "Authentication error. Please refresh and try again." : "Verification failed");
-      console.warn('verify-otp-custom error:', verifyRes.status, data);
+      const errorMessage = data?.error || data?.message || (verifyRes.status === 401 ? "Authentication error. Please refresh and try again." : "Verification failed. Please try again.");
+      console.warn('[verifyOTP] verify-otp-custom error:', verifyRes.status, data);
       return { success: false, error: { message: errorMessage } };
     }
   } catch (err: any) {
-    console.error('verify-otp-custom request failed:', err);
-    const message = err?.message || (err?.name === 'TypeError' && err?.message?.includes('fetch') ? "Network error. Check your connection." : "Verification failed");
+    const raw = err?.message || "Network error";
+    console.error("[verifyOTP] request failed:", err?.name, raw);
+    const message =
+      raw === "Failed to fetch" || raw.toLowerCase().includes("fetch")
+        ? "Could not reach verification server. Check your connection or try again."
+        : raw === "Invalid JWT" || raw.toLowerCase().includes("jwt")
+        ? "Server configuration error. Please try again later."
+        : raw;
     return { success: false, error: { message } };
   }
 

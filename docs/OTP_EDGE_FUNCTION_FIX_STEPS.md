@@ -70,9 +70,10 @@ npx supabase login
 # One-time: link project (ref from dashboard URL)
 npx supabase link --project-ref wucwpyitzqjukcphczhr
 
-# OTP fix: deploy these two functions
+# OTP fix: deploy all three auth functions
 npx supabase functions deploy send-otp
 npx supabase functions deploy check-user-status
+npx supabase functions deploy verify-otp-custom
 ```
 
 Then in Supabase dashboard: **Edge Functions** → **send-otp** → **Invocations** / **Logs**. Trigger OTP from https://www.toyflix.in and confirm you see **OPTIONS** and **POST** with status **200**.
