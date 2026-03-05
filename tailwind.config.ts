@@ -165,6 +165,24 @@ export default {
 					'50%': { opacity: '0.92', filter: 'brightness(1.08)' },
 					'60%': { opacity: '1', filter: 'brightness(1)' },
 					'75%': { opacity: '0.95', filter: 'brightness(1.04)' }
+				},
+				'trust-icon-shield': {
+					'0%, 100%': { transform: 'scale(1)', opacity: '1' },
+					'50%': { transform: 'scale(1.08)', opacity: '0.95' }
+				},
+				'trust-icon-truck': {
+					'0%, 100%': { transform: 'translateX(0)' },
+					'50%': { transform: 'translateX(4px)' }
+				},
+				'trust-icon-card': {
+					'0%, 100%': { filter: 'brightness(1)' },
+					'50%': { filter: 'brightness(1.15)' }
+				},
+				'wave': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'25%': { transform: 'translateY(-5px)' },
+					'50%': { transform: 'translateY(0)' },
+					'75%': { transform: 'translateY(5px)' }
 				}
 			},
 			animation: {
@@ -177,7 +195,11 @@ export default {
 				'float': 'float 3s ease-in-out infinite',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 				'trust-pulse': 'trust-pulse 2.2s ease-in-out infinite',
-				'flicker': 'flicker 2.5s ease-in-out infinite'
+				'flicker': 'flicker 2.5s ease-in-out infinite',
+				'trust-icon-shield': 'trust-icon-shield 2.5s ease-in-out infinite',
+				'trust-icon-truck': 'trust-icon-truck 2s ease-in-out infinite',
+				'trust-icon-card': 'trust-icon-card 2.2s ease-in-out infinite',
+				'wave': 'wave 2.5s ease-in-out infinite'
 			}
 		}
 	},
