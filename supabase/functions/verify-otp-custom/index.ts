@@ -491,9 +491,11 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Verify OTP Error:', error);
-    return new Response(JSON.stringify({ success: false, error: 'Internal server error', message: error.message }), {
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Verify OTP Error:', err);
+    const message = err?.message ?? 'Internal server error';
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error', message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
