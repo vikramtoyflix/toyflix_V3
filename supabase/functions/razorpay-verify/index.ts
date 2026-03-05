@@ -18,6 +18,14 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   throw new Error('Razorpay credentials not configured in environment variables');
 }
 
+/** Map subscription plan ID to Zoho Marketing tag for cart abandonment / lifecycle journeys */
+function planIdToZohoTag(planId: string): 'Trial' | 'Silver plan' | 'Gold plan' {
+  const id = (planId || '').toLowerCase();
+  if (id.includes('gold') || id === 'family' || id === 'gold-pack' || id === 'gold-pack-pro') return 'Gold plan';
+  if (id.includes('silver') || id === 'premium' || id === 'quarterly' || id === '6_month' || id === 'silver-pack') return 'Silver plan';
+  return 'Trial'; // Discovery Delight, basic, monthly, trial, ride_on, etc.
+}
+
 /**
  * Freshworks CRM Integration for Order Completion
  * Handles contact update with subscription details and confirmation messages
@@ -449,6 +457,22 @@ serve(async (req) => {
             throw new Error('Failed to update user subscription status');
           } else {
             console.log('✅ User subscription status updated - subscription_active=true');
+          }
+
+          // Sync to Zoho Marketing/CRM with plan tag (Trial / Silver plan / Gold plan) for cart abandonment journey
+          const planId = orderItems?.planId || 'basic';
+          const zohoTag = planIdToZohoTag(planId);
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+          if (supabaseUrl && serviceKey && userId) {
+            fetch(`${supabaseUrl}/functions/v1/zoho-sync-contact`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${serviceKey}`,
+              },
+              body: JSON.stringify({ userId, tag: zohoTag }),
+            }).catch((err) => console.warn('Zoho sync (subscription) failed:', err?.message));
           }
         } catch (userProfileError) {
           console.error('❌ Critical error updating user profile:', userProfileError);
