@@ -410,6 +410,14 @@ const SubscriptionPlans = ({
                         Get 1 month extra <span className="font-bold text-emerald-600">free</span>
                       </p>
                     )}
+                    {plan.id === "gold-pack" && (
+                      <div className="mt-3 mx-auto inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400/20 to-toy-sunshine/30 border border-amber-400/40 px-4 py-2 shadow-sm">
+                        <Star className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <span className="font-outfit font-semibold text-sm text-warm-gray">
+                          No cost EMI available
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
