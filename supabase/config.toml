@@ -44,6 +44,9 @@ verify_jwt = false
 [functions.auth-update-profile]
 verify_jwt = false
 
+[functions.auth-complete-profile]
+verify_jwt = false
+
 [functions.razorpay-verify]
 verify_jwt = false
 
