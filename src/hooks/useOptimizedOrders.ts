@@ -50,10 +50,10 @@ export const useOptimizedOrders = (filters: OrderFilters) => {
       orderNumber: filters.orderNumber,
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
-      statuses: filters.statuses.sort(),
-      paymentStatuses: filters.paymentStatuses.sort(),
-      subscriptionPlans: filters.subscriptionPlans.sort(),
-      orderTypes: filters.orderTypes.sort(),
+      statuses: [...filters.statuses].sort(),
+      paymentStatuses: [...filters.paymentStatuses].sort(),
+      subscriptionPlans: [...filters.subscriptionPlans].sort(),
+      orderTypes: [...filters.orderTypes].sort(),
       sortDirection: filters.sortDirection || 'desc',
     };
     return ['optimized-orders', filterKey];
@@ -70,8 +70,11 @@ export const useOptimizedOrders = (filters: OrderFilters) => {
     let allMatchingUsers: any[] = [];
     let hasMore = true;
     let offset = 0;
+    const MAX_PAGES = 20; // Safety cap: 20 × 1000 = 20,000 users max
+    let pageCount = 0;
 
-    while (hasMore) {
+    while (hasMore && pageCount < MAX_PAGES) {
+      pageCount++;
       let userQuery = supabase
         .from('custom_users')
         .select('id');

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useCustomAuth } from './useCustomAuth';
 import { sendOTP, verifyOTP, checkUserStatus } from '@/components/auth/custom-otp/otpService';
-import { useToast } from '@/hooks/use-toast';
 
 export interface HybridUser {
   id: string;
@@ -35,7 +34,6 @@ export interface HybridUser {
 export const useHybridAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { setAuth } = useCustomAuth();
-  const { toast } = useToast();
 
   // User existence check - Supabase only (OTP is sent via 2Factor via send-otp edge function)
   const checkUserExistsSupabase = async (phone: string): Promise<{ exists: boolean; userData?: any }> => {
@@ -81,13 +79,8 @@ export const useHybridAuth = () => {
       const otpResult = await sendOTP(phone);
 
       if (!otpResult.success) {
-        throw new Error(otpResult.error?.message || "Failed to send OTP");
+        return { success: false, error: otpResult.error?.message || "Failed to send OTP" };
       }
-
-      toast({
-        title: "OTP Sent! 📱",
-        description: userExists ? `Welcome back! OTP sent to ${phone}` : `Welcome to Toyflix! OTP sent to ${phone}`,
-      });
 
       return {
         success: true,
@@ -98,11 +91,6 @@ export const useHybridAuth = () => {
 
     } catch (error: any) {
       console.error('Error sending hybrid OTP:', error);
-      toast({
-        title: "Failed to send OTP",
-        description: error.message,
-        variant: "destructive",
-      });
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
@@ -162,11 +150,6 @@ export const useHybridAuth = () => {
       };
     } catch (error: any) {
       console.error('Error in hybrid OTP verification:', error);
-      toast({
-        title: "Verification failed",
-        description: error.message,
-        variant: "destructive",
-      });
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);

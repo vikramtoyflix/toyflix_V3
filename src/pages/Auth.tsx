@@ -68,21 +68,28 @@ const Auth = () => {
       return <Navigate to="/dashboard?referral=active" replace />;
     }
 
-    // Check for redirect parameter first
+    // Check for redirect parameter — only allow relative paths (no open redirect)
     const redirectTo = searchParams.get('redirect');
     if (redirectTo) {
-      // Decode the redirect URL and navigate there
       const decodedRedirect = decodeURIComponent(redirectTo);
-      return <Navigate to={decodedRedirect} replace />;
+      // Reject absolute URLs (http/https/protocol-relative) to prevent open redirect
+      if (decodedRedirect.startsWith('/') && !decodedRedirect.startsWith('//')) {
+        return <Navigate to={decodedRedirect} replace />;
+      }
     }
 
     // Check for ride-on toy selection (legacy support)
     const rideOnSelection = sessionStorage.getItem('ride-on-selection');
     if (rideOnSelection) {
-      const selection = JSON.parse(rideOnSelection);
-      // Clear the selection as we're now processing it
-      sessionStorage.removeItem('ride-on-selection');
-      return <Navigate to={`/subscription-flow?rideOnToy=${selection.toyId}`} replace />;
+      try {
+        const selection = JSON.parse(rideOnSelection);
+        sessionStorage.removeItem('ride-on-selection');
+        if (selection?.toyId) {
+          return <Navigate to={`/subscription-flow?rideOnToy=${selection.toyId}`} replace />;
+        }
+      } catch {
+        sessionStorage.removeItem('ride-on-selection');
+      }
     }
     
     // Default redirect for authenticated users
