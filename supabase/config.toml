@@ -29,39 +29,61 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://lovable.dev"]
 jwt_expiry = 3600
 
-[functions.admin-csv-import]
-verify_jwt = true
-
-[functions.admin-bulk-operations]
-verify_jwt = true
-
-[functions.auth-session-verify]
-verify_jwt = false
-
-[functions.auth-signin]
-verify_jwt = false
-
-[functions.auth-update-profile]
-verify_jwt = false
-
-[functions.auth-complete-profile]
-verify_jwt = false
-
-[functions.razorpay-verify]
-verify_jwt = false
-
-[functions.zoho-sync-contact]
+# ── AUTH ──────────────────────────────────────────────────────────────────────
+# All auth functions are called by unauthenticated users (OTP, profile, session)
+# and must be publicly reachable from the browser.
+[functions.send-otp]
 verify_jwt = false
 
 [functions.verify-otp-custom]
 verify_jwt = false
 
-[functions.send-otp]
+[functions.verify-otp]
 verify_jwt = false
 
 [functions.check-user-status]
 verify_jwt = false
 
+[functions.auth-complete-profile]
+verify_jwt = false
+
+[functions.auth-update-profile]
+verify_jwt = false
+
+[functions.auth-signin]
+verify_jwt = false
+
+[functions.auth-signup]
+verify_jwt = false
+
+[functions.auth-signout]
+verify_jwt = false
+
+[functions.auth-session-verify]
+verify_jwt = false
+
+[functions.auth-refresh]
+verify_jwt = false
+
+[functions.auth-delete-account]
+verify_jwt = false
+
+[functions.enhanced-user-verification]
+verify_jwt = false
+
+# ── PAYMENTS ─────────────────────────────────────────────────────────────────
+[functions.razorpay-order]
+verify_jwt = false
+
+[functions.razorpay-verify]
+verify_jwt = false
+
+[functions.payment-monitor]
+verify_jwt = false
+
+# ── ADMIN ─────────────────────────────────────────────────────────────────────
+# Admin functions enforce their own role check (x-admin-user-id + custom_users.role)
+# and must accept browser requests, so verify_jwt = false here too.
 [functions.admin-fetch-orders]
 verify_jwt = false
 
@@ -69,4 +91,40 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.admin-save-toy-images]
+verify_jwt = false
+
+[functions.admin-update-user]
+verify_jwt = false
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-create-order]
+verify_jwt = false
+
+[functions.admin-bulk-operations]
+verify_jwt = false
+
+[functions.admin-csv-import]
+verify_jwt = false
+
+# ── INTEGRATIONS ──────────────────────────────────────────────────────────────
+[functions.zoho-sync-contact]
+verify_jwt = false
+
+[functions.create-order-from-subscription]
+verify_jwt = false
+
+# ── LEGACY / UNUSED ───────────────────────────────────────────────────────────
+# Keep deployed but no active callers; keeping false so they don't block if called
+[functions.woocommerce-proxy]
+verify_jwt = false
+
+[functions.woocommerce-test]
+verify_jwt = false
+
+[functions.test-mysql-connection]
 verify_jwt = false
