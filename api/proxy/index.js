@@ -41,7 +41,10 @@ module.exports = async function (context, req) {
         context.log('🔍 Checking URL patterns for:', urlToCheck);
         
         // Route based on URL patterns with enhanced matching
-        if (urlToCheck.includes('featured-products')) {
+        if (urlToCheck.includes('webview-toys') || query['webview-toys']) {
+            context.log('✅ WEBVIEW-TOYS MATCHED - Proxy for old Android app');
+            context.res.body = await getWebviewToysFromSupabase(context);
+        } else if (urlToCheck.includes('featured-products')) {
             context.log('✅ FEATURED PRODUCTS MATCHED - Fetching from Supabase');
             context.res.body = await getFeaturedProductsFromSupabase(context);
             
@@ -369,6 +372,30 @@ module.exports = async function (context, req) {
         };
     }
 };
+
+// Helper: fetch toys for old Android WebView (website proxy - returns raw Supabase rows)
+async function getWebviewToysFromSupabase(context) {
+    try {
+        const supabaseUrl = 'https://wucwpyitzqjukcphczhr.supabase.co';
+        const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J';
+        const url = `${supabaseUrl}/rest/v1/toys?category=neq.ride_on_toys&select=*&order=is_featured.desc&order=name.asc`;
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}`, 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            context.log('Webview-toys Supabase error:', res.status, text.slice(0, 200));
+            return [];
+        }
+        const data = await res.json();
+        context.log('✅ Webview-toys fetched:', Array.isArray(data) ? data.length : 0);
+        return Array.isArray(data) ? data : [];
+    } catch (err) {
+        context.log('Webview-toys error:', err.message);
+        return [];
+    }
+}
 
 // Helper functions for fetching real toys from Supabase
 async function getFeaturedProductsFromSupabase(context) {
