@@ -148,15 +148,10 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
         checkUserStatus(normalizedPhone),
       ]);
       
-      // Auto-switch mode based on user status
-      if (statusResult.success) {
-        if (statusResult.exists && statusResult.isComplete && mode === 'signup') {
-          setMode('signin');
-        } else if (statusResult.exists && !statusResult.isComplete && mode === 'signin') {
-          setMode('signup');
-        } else if (!statusResult.exists && mode === 'signin') {
-          setMode('signup');
-        }
+      // Only suggest sign-in when user chose signup but we detect an existing complete account.
+      // Never switch signin → signup: respect user's choice when they clicked "Sign in".
+      if (statusResult.success && mode === 'signup' && statusResult.exists && statusResult.isComplete) {
+        setMode('signin');
       }
 
       if (result.success) {
