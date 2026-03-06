@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { validateBangalorePincode, formatPincode } from "@/utils/pincodeValidation";
+import { useHybridAuth } from "@/hooks/useHybridAuth";
 import { useToast } from "@/hooks/use-toast";
-import { sendOTP, verifyOTP, completeUserProfile } from "@/components/auth/custom-otp/otpService";
+import { checkUserExistsForSmartLogin, checkUserStatus, completeUserProfile } from "@/components/auth/custom-otp/otpService";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface SignupFirstAuthProps {
@@ -18,291 +19,592 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Check if user came from subscription flow
+  const redirectParam = searchParams.get('redirect');
+  const isFromSubscriptionFlow = redirectParam && decodeURIComponent(redirectParam).includes('/subscription-flow');
+  
+  // Get mode from URL params, default to signup
+  const [mode, setMode] = useState<AuthMode>(() => {
+    const urlMode = searchParams.get('mode');
+    return (urlMode === 'signin' ? 'signin' : 'signup') as AuthMode;
+  });
+  
+  const [pincodeValidation, setPincodeValidation] = useState<any>(null);
+  const [showOTPField, setShowOTPField] = useState(false);
+  const [isOTPSent, setIsOTPSent] = useState(false);
+  const [isOTPVerified, setIsOTPVerified] = useState(false);
+
+  // Use the hybrid auth hook
+  const {
+    isLoading,
+    sendHybridOTP,
+    verifyHybridOTP
+  } = useHybridAuth();
+
+  // Get setAuth from custom auth
   const { setAuth } = useCustomAuth();
 
-  // Mode from URL param — never auto-switch after page load
-  const [mode, setMode] = useState<AuthMode>(() =>
-    searchParams.get('mode') === 'signin' ? 'signin' : 'signup'
-  );
-
-  // Form state
+  // Local state for form management
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [signupData, setSignupData] = useState({ firstName: "", lastName: "", email: "", pincode: "" });
-
-  // Step state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [incompleteUserId, setIncompleteUserId] = useState<string | null>(null);
-
-  // Loading / guard state
-  const [isSending, setIsSending] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Validation state
-  const [pincodeValidation, setPincodeValidation] = useState<any>(null);
+  const [signupData, setSignupData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    pincode: ""
+  });
   const [phoneError, setPhoneError] = useState("");
-  const [devOtp, setDevOtp] = useState("");
+  const [developmentOtp, setDevelopmentOtp] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [incompleteUser, setIncompleteUser] = useState<any>(null);
+  
+  // Add state to prevent duplicate verification calls
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationCompleted, setVerificationCompleted] = useState(false);
 
-  // Cleanup cooldown timer on unmount
-  useEffect(() => {
-    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
-  }, []);
-
-  // Keep URL in sync with mode
-  useEffect(() => {
-    const p = new URLSearchParams(searchParams);
-    mode === 'signup' ? p.delete('mode') : p.set('mode', mode);
-    const qs = p.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
-  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const normalizePhone = (raw: string) => {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.startsWith('91') && digits.length === 12) return digits.slice(2);
-    if (digits.length > 10) return digits.slice(-10);
-    return digits;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhone(val);
-    if (val !== phone) {
-      // Reset whole flow when phone number changes
-      setOtpSent(false);
-      setOtpVerified(false);
-      setOtp("");
-      setDevOtp("");
-      setPhoneError("");
-      setIncompleteUserId(null);
+  // Enhanced phone number normalization function
+  const normalizePhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters
+    const digitsOnly = phone.replace(/[^\d]/g, '');
+    
+    // If it starts with 91 and has 12 digits, remove the 91
+    if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
+      return digitsOnly.slice(2);
     }
+    
+    // If it has more than 10 digits, take the last 10
+    if (digitsOnly.length > 10) {
+      return digitsOnly.slice(-10);
+    }
+    
+    return digitsOnly;
   };
 
-  const handlePincodeChange = (val: string) => {
-    const formatted = formatPincode(val);
-    setSignupData(d => ({ ...d, pincode: formatted }));
+  // Update URL when mode changes
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (mode === 'signup') {
+      newSearchParams.delete('mode');
+    } else {
+      newSearchParams.set('mode', mode);
+    }
+    
+    const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+  }, [mode, searchParams]);
+
+  const handlePincodeChange = (value: string) => {
+    const formatted = formatPincode(value);
+    setSignupData({ ...signupData, pincode: formatted });
+    
     if (formatted.length === 6) {
-      setPincodeValidation(validateBangalorePincode(formatted));
+      const validation = validateBangalorePincode(formatted);
+      setPincodeValidation(validation);
     } else {
       setPincodeValidation(null);
     }
   };
 
-  const handleModeSwitch = (newMode: AuthMode) => {
-    setMode(newMode);
-    setOtpSent(false);
-    setOtpVerified(false);
-    setOtp("");
-    setDevOtp("");
-    setPhoneError("");
-    setIncompleteUserId(null);
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(newPhone);
+    
+    // Reset OTP state when phone changes
+    if (newPhone !== phone) {
+      setShowOTPField(false);
+      setIsOTPSent(false);
+      setIsOTPVerified(false);
+      setOtp("");
+      setIsVerifying(false);
+      setVerificationCompleted(false);
+      setIncompleteUser(null);
+    }
   };
 
-  // ── STEP 1: Send OTP ──────────────────────────────────────────────────────
+  const isPhoneValid = () => {
+    return phone.length === 10;
+  };
+
   const handleSendOTP = async () => {
-    if (phone.length !== 10) {
-      toast({ title: "Enter a valid 10-digit mobile number", variant: "destructive" });
+    if (!isPhoneValid()) {
+      toast({
+        title: "Please enter a valid phone number",
+        description: "Enter your 10-digit mobile number to continue.",
+        variant: "destructive",
+        duration: 6000,
+      });
       return;
     }
-    setPhoneError("");
-    setIsSending(true);
+
+    setShowOTPField(true);
+    
     try {
-      const normalized = normalizePhone(phone);
-      const result = await sendOTP(normalized);
-      if (result.success) {
-        setOtpSent(true);
-        if (result.developmentOtp) setDevOtp(result.developmentOtp);
-        toast({ title: "OTP Sent! 📱", description: "Enter the OTP sent to your phone." });
+      // Normalize phone number before checking
+      const normalizedPhone = normalizePhoneNumber(phone);
+      console.log('🔍 Original phone:', phone, '→ Normalized:', normalizedPhone);
+      
+      // Enhanced user check with normalized phone
+      console.log('🔍 Starting enhanced user check for phone:', normalizedPhone);
+      const statusResult = await checkUserStatus(normalizedPhone);
+      console.log('🔍 User status result:', statusResult);
+      
+      if (statusResult.success) {
+        if (statusResult.exists && statusResult.isComplete) {
+          // Existing user with complete profile - should use signin mode
+          console.log('🔍 Complete user found - switching to signin mode');
+          if (mode === 'signup') {
+            toast({
+              title: "Account Found! 👋",
+              description: "We found your complete account. Switching to sign in mode...",
+              duration: 6000,
+            });
+            setMode('signin');
+            // Don't return here - continue with OTP sending
+          }
+        } else if (statusResult.exists && !statusResult.isComplete) {
+          // Existing user with incomplete profile - should use signup mode to complete
+          console.log('🔍 Incomplete user found - staying in signup mode');
+          if (mode === 'signin') {
+            toast({
+              title: "Profile Incomplete 📝",
+              description: "Please complete your profile to continue. Switching to signup mode...",
+              duration: 6000,
+            });
+            setMode('signup');
+            // Don't return here - continue with OTP sending
+          }
+        } else if (!statusResult.exists) {
+          // New user - should use signup mode
+          console.log('🔍 New user - staying in signup mode');
+          if (mode === 'signin') {
+            toast({
+              title: "No Account Found",
+              description: "No account found with this number. Switching to signup mode...",
+              duration: 6000,
+            });
+            setMode('signup');
+            // Don't return here - continue with OTP sending
+          }
+        }
       } else {
-        const msg = result.error?.message || "Failed to send OTP. Please try again.";
-        setPhoneError(msg);
-        toast({ title: "Failed to send OTP", description: msg, variant: "destructive" });
+        console.error('🔍 User status check failed:', statusResult.error);
+        // Continue with OTP sending even if status check fails
       }
-    } catch {
-      toast({ title: "Error", description: "Could not send OTP. Check your connection.", variant: "destructive" });
-    } finally {
-      setIsSending(false);
+      
+      // Proceed with OTP sending
+      console.log('🔍 Sending OTP for normalized phone:', normalizedPhone);
+      const result = await sendHybridOTP(normalizedPhone);
+      console.log('🔍 OTP send result:', result);
+      
+      if (result.success) {
+        setIsOTPSent(true);
+        if (result.developmentOtp) {
+          setDevelopmentOtp(result.developmentOtp);
+        }
+        
+        // Show appropriate success message based on user status
+        if (statusResult.success && statusResult.exists && statusResult.isComplete) {
+          toast({
+            title: "OTP Sent! 📱",
+            description: "Please enter the OTP to sign in to your account.",
+            duration: 6000,
+          });
+        } else if (statusResult.success && statusResult.exists && !statusResult.isComplete) {
+          toast({
+            title: "OTP Sent! 📝",
+            description: "Please enter the OTP and complete your profile.",
+            duration: 6000,
+          });
+        } else {
+          toast({
+            title: "OTP Sent! 📱",
+            description: "Please enter the OTP to continue with registration.",
+            duration: 6000,
+          });
+        }
+      } else {
+        setShowOTPField(false);
+        setPhoneError(result.error || "Failed to send OTP");
+        toast({
+          title: "Failed to send OTP",
+          description: result.error || "Please try again.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      }
+    } catch (error) {
+      console.error('🔍 OTP send failed:', error);
+      setShowOTPField(false);
+      toast({
+        title: "Error",
+        description: "Failed to check user status. Please try again.",
+        variant: "destructive",
+        duration: 6000,
+      });
     }
   };
 
-  const handleResendOTP = async () => {
-    if (resendCooldown > 0) return;
+  const handleVerifyOTP = async () => {
+    if (otp.length !== 6) {
+      toast({
+        title: "Please enter the complete OTP",
+        description: "Enter the 6-digit OTP sent to your phone.",
+        variant: "destructive",
+        duration: 6000,
+      });
+      return;
+    }
+
+    // Prevent duplicate verification calls
+    if (isVerifying || verificationCompleted) {
+      console.log('🔍 Verification already in progress or completed, skipping...');
+      return;
+    }
+
+    setIsVerifying(true);
+
+    try {
+      // Use normalized phone for OTP verification as well
+      const normalizedPhone = normalizePhoneNumber(phone);
+      console.log('🔍 Starting OTP verification for phone:', phone, '→ Normalized:', normalizedPhone, 'mode:', mode);
+      const result = await verifyHybridOTP(normalizedPhone, otp, mode);
+      console.log('🔍 OTP verification result:', result);
+      
+      if (result.success && result.otpVerified) {
+        setIsOTPVerified(true);
+        setVerificationCompleted(true);
+        
+        if (result.profileComplete) {
+          console.log('🔍 OTP verified and profile complete - user authenticated');
+          toast({
+            title: "Welcome! 🎉",
+            description: "Successfully signed in to your account.",
+            duration: 6000,
+          });
+          // User is now authenticated, redirect will happen automatically
+        } else {
+          // Handle incomplete profile based on mode
+          if (mode === 'signin') {
+            console.log('🔍 SIGNIN MODE - OTP verified, user authenticated even with incomplete profile');
+            toast({
+              title: "Welcome Back! 🎉",
+              description: "Successfully signed in to your account.",
+              duration: 6000,
+            });
+            // User is authenticated, redirect will happen automatically
+          } else {
+            console.log('🔍 SIGNUP MODE - OTP verified but profile incomplete - staying on signup form');
+            // Store the incomplete user info for profile completion
+            setIncompleteUser(result.user);
+            toast({
+              title: "OTP Verified! ✅",
+              description: "Please complete your profile to finish registration.",
+              duration: 6000,
+            });
+            // Stay on the form for profile completion
+          }
+        }
+      } else {
+        // Only show error toast if result indicates a clear failure
+        if (result && result.error) {
+          console.error('🔍 OTP verification failed:', result.error);
+          toast({
+            title: "Verification failed",
+            description: result.error || "Invalid OTP",
+            variant: "destructive",
+            duration: 6000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('🔍 OTP verification exception:', error);
+      toast({
+        title: "Verification failed",
+        description: "An error occurred during verification. Please try again.",
+        variant: "destructive",
+        duration: 6000,
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleFinalRegistration = async () => {
+    // Check form validation based on current state
+    if (incompleteUser && isOTPVerified) {
+      // Profile completion validation
+      if (!isSignupFormValid()) {
+        toast({
+          title: "Please complete all required fields",
+          description: "Make sure to fill in your name and valid Bangalore pincode.",
+          variant: "destructive",
+          duration: 6000,
+        });
+        return;
+      }
+    } else if (mode === 'signup') {
+      // Signup mode - validate all fields including OTP
+      if (!isSignupFormValid()) {
+        toast({
+          title: "Please complete all required fields",
+          description: "Make sure to enter OTP, your name, and valid Bangalore pincode.",
+          variant: "destructive",
+          duration: 6000,
+        });
+        return;
+      }
+    }
+    
+    // If we have an incomplete user (OTP verified but profile incomplete), complete the profile
+    if (incompleteUser && isOTPVerified) {
+      console.log('🔍 Completing profile for user:', incompleteUser.id);
+      try {
+        const result = await completeUserProfile(
+          incompleteUser.id,
+          signupData.firstName,
+          signupData.lastName,
+          signupData.email || undefined,
+          signupData.pincode || undefined
+        );
+        
+        if (result.success) {
+          // CRITICAL: Set authentication state after profile completion
+          setAuth(result.user, result.session);
+          
+          toast({
+            title: "Registration Complete! 🎉",
+            description: "Your profile has been completed successfully. Welcome to ToyFlix!",
+            duration: 6000,
+          });
+          console.log('🔍 Profile completed successfully, user authenticated');
+          
+          // Redirect to toys page with signup parameter
+          setTimeout(() => {
+            navigate('/auth?from=signup', { replace: true });
+          }, 1500);
+        } else {
+          toast({
+            title: "Registration failed",
+            description: result.error?.message || "Failed to complete registration",
+            variant: "destructive",
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error('🔍 Profile completion error:', error);
+        toast({
+          title: "Registration failed",
+          description: "An error occurred during registration. Please try again.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      }
+    } else if (mode === 'signup') {
+      // New signup flow - verify OTP and complete registration in one step
+      console.log('🔍 Starting combined OTP verification and registration');
+      try {
+        const normalizedPhone = normalizePhoneNumber(phone);
+        const result = await verifyHybridOTP(normalizedPhone, otp, mode);
+        console.log('🔍 OTP verification result:', result);
+        
+        if (result.success && result.otpVerified) {
+          setIsOTPVerified(true);
+          
+          if (result.profileComplete) {
+            console.log('🔍 OTP verified and profile complete - user authenticated');
+            toast({
+              title: "Welcome! 🎉",
+              description: "Successfully signed in to your account.",
+              duration: 6000,
+            });
+            
+            // Redirect to toys page with signup parameter
+            setTimeout(() => {
+              navigate('/auth?from=signup', { replace: true });
+            }, 1500);
+          } else {
+            console.log('🔍 OTP verified but profile incomplete - completing profile');
+            // Complete the profile immediately
+            const profileResult = await completeUserProfile(
+              result.user?.id || '',
+              signupData.firstName,
+              signupData.lastName,
+              signupData.email || undefined,
+              signupData.pincode || undefined
+            );
+            
+            if (profileResult.success) {
+              // CRITICAL: Set authentication state after profile completion
+              setAuth(profileResult.user, profileResult.session);
+              
+              toast({
+                title: "Registration Complete! 🎉",
+                description: "Your profile has been completed successfully. Welcome to ToyFlix!",
+                duration: 6000,
+              });
+              console.log('🔍 Profile completed successfully, user authenticated');
+              
+              // Redirect to toys page with signup parameter
+              setTimeout(() => {
+                navigate('/auth?from=signup', { replace: true });
+              }, 1500);
+            } else {
+              toast({
+                title: "Registration failed",
+                description: profileResult.error?.message || "Failed to complete registration",
+                variant: "destructive",
+                duration: 6000,
+              });
+            }
+          }
+        } else {
+          console.error('🔍 OTP verification failed:', result.error);
+          toast({
+            title: "Verification failed",
+            description: result.error || "Invalid OTP",
+            variant: "destructive",
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error('🔍 Combined registration error:', error);
+        toast({
+          title: "Registration failed",
+          description: "An error occurred during registration. Please try again.",
+          variant: "destructive",
+          duration: 6000,
+        });
+      }
+    } else {
+      // For signin mode, just verify OTP (but only if not already completed)
+      if (!verificationCompleted && !isVerifying) {
+        await handleVerifyOTP();
+      }
+    }
+  };
+
+  const isSignupFormValid = () => {
+    return (
+      phone.length === 10 &&
+      showOTPField && // OTP field is shown (OTP was sent)
+      otp.length === 6 && // OTP is entered
+      signupData.firstName.trim() && 
+      signupData.lastName.trim() && 
+      pincodeValidation?.isServiceable
+    );
+  };
+
+  const isSigninFormValid = () => {
+    // If user has incomplete profile, use signup validation for profile completion
+    if (isOTPVerified && incompleteUser) {
+      return isSignupFormValid();
+    }
+    // For signin mode, need phone and OTP input
+    if (showOTPField) {
+      return phone.length === 10 && otp.length === 6;
+    }
+    // Otherwise, just need phone
+    return phone.length === 10;
+  };
+
+  const handleModeSwitch = (newMode: AuthMode) => {
+    setMode(newMode);
+    setShowOTPField(false);
+    setIsOTPSent(false);
+    setIsOTPVerified(false);
     setOtp("");
-    setDevOtp("");
+    setIsVerifying(false);
+    setVerificationCompleted(false);
+    setIncompleteUser(null);
+  };
+
+  const handleResendOTPClick = async () => {
+    if (resendCooldown > 0) return;
+    
     setResendCooldown(30);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
-    cooldownRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       setResendCooldown(prev => {
-        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; }
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
+
     try {
-      const normalized = normalizePhone(phone);
-      const result = await sendOTP(normalized);
+      const normalizedPhone = normalizePhoneNumber(phone);
+      const result = await sendHybridOTP(normalizedPhone);
       if (result.success) {
-        if (result.developmentOtp) setDevOtp(result.developmentOtp);
-        toast({ title: "OTP Resent", description: `Sent to +91 ${phone}` });
-      }
-    } catch { /* silent — cooldown still applies */ }
-  };
-
-  // ── STEP 2 (signin): Verify OTP → navigate to dashboard ──────────────────
-  const handleSignin = async () => {
-    if (otp.length !== 6) {
-      toast({ title: "Enter the 6-digit OTP", variant: "destructive" });
-      return;
-    }
-    setIsVerifying(true);
-    try {
-      const normalized = normalizePhone(phone);
-      const result = await verifyOTP(normalized, otp, 'signin');
-      if (result.success && result.otpVerified) {
-        // Save session if present (profile complete)
-        if (result.session && result.user) {
-          setAuth(result.user as any, result.session as any);
+        toast({
+          title: "OTP Resent",
+          description: `New OTP sent to +91 ${phone}`,
+          duration: 6000,
+        });
+        if (result.developmentOtp) {
+          setDevelopmentOtp(result.developmentOtp);
         }
-        toast({ title: "Welcome back! 🎉", description: "Signed in successfully." });
-        navigate('/dashboard', { replace: true });
-      } else {
-        toast({
-          title: "Verification failed",
-          description: result.error?.message || "Invalid OTP. Please try again.",
-          variant: "destructive",
-        });
       }
-    } catch {
-      toast({ title: "Error", description: "Verification failed. Please try again.", variant: "destructive" });
-    } finally {
-      setIsVerifying(false);
+    } catch (error) {
+      console.error('Resend OTP failed:', error);
     }
   };
 
-  // ── STEP 2 (signup): Verify OTP → reveal profile form ────────────────────
-  const handleVerifyForSignup = async () => {
-    if (otp.length !== 6) {
-      toast({ title: "Enter the 6-digit OTP", variant: "destructive" });
-      return;
-    }
-    setIsVerifying(true);
-    try {
-      const normalized = normalizePhone(phone);
-      const result = await verifyOTP(normalized, otp, 'signup');
-      if (result.success && result.otpVerified) {
-        if (result.profileComplete && result.session && result.user) {
-          // Existing complete user signed up again — just log them in
-          setAuth(result.user as any, result.session as any);
-          toast({ title: "Welcome back! 🎉", description: "Signed in to your existing account." });
-          navigate('/dashboard', { replace: true });
-        } else if (result.user?.id) {
-          // New user — show profile completion form
-          setIncompleteUserId(result.user.id);
-          setOtpVerified(true);
-          toast({ title: "OTP Verified! ✅", description: "Now complete your profile to register." });
-        }
-      } else {
-        toast({
-          title: "Verification failed",
-          description: result.error?.message || "Invalid OTP. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({ title: "Error", description: "Verification failed. Please try again.", variant: "destructive" });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  // ── STEP 3 (signup): Submit profile → navigate to dashboard ──────────────
-  const handleCompleteProfile = async () => {
-    if (!signupData.firstName.trim() || !signupData.lastName.trim()) {
-      toast({ title: "Enter your first and last name", variant: "destructive" });
-      return;
-    }
-    if (!pincodeValidation?.isServiceable) {
-      toast({ title: "Enter a valid Bangalore pincode", variant: "destructive" });
-      return;
-    }
-    if (!incompleteUserId) {
-      toast({ title: "Session error", description: "Please start again.", variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const result = await completeUserProfile(
-        incompleteUserId,
-        signupData.firstName,
-        signupData.lastName,
-        signupData.email || undefined,
-        signupData.pincode || undefined
-      );
-      if (result.success && result.user && result.session) {
-        setAuth(result.user as any, result.session as any);
-        toast({ title: "Welcome to ToyFlix! 🎉", description: "Your account is ready." });
-        navigate('/dashboard', { replace: true });
-      } else {
-        toast({
-          title: "Registration failed",
-          description: result.error?.message || "Could not save your details. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({ title: "Error", description: "Registration failed. Please try again.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
+  const handleGoBack = () => {
+    if (onClose) {
+      // If this is a modal/overlay, close it
+      onClose();
+    } else {
+      // Always use browser back navigation instead of trying to go to protected routes
+      // This prevents the auth loop when redirect target requires authentication
+      window.history.back();
     }
   };
 
   const RequiredStar = () => <span className="text-red-500">*</span>;
 
-  // ── RENDER: Phone + OTP row (shared between signup and signin) ────────────
-  const renderPhoneOtpRow = (inputId: string) => (
-    <>
+  const renderSignupForm = () => (
+    <div className="space-y-5">
+      {/* Phone */}
       <div>
-        <label htmlFor={inputId} className="text-sm font-medium text-foreground mb-1.5 block">
+        <label htmlFor="phone" className="text-sm font-medium text-foreground mb-1.5 block">
           Mobile number <RequiredStar />
         </label>
         <div className="flex gap-2">
-          <div className="flex flex-1">
-            <div className="flex items-center px-3 bg-muted/50 rounded-l-md border border-r-0 border-input text-sm text-muted-foreground">
-              +91
-            </div>
-            <Input
-              id={inputId}
-              type="tel"
-              placeholder="Mobile number"
-              value={phone}
-              onChange={handlePhoneChange}
-              className={`rounded-l-none h-12 flex-1 ${phoneError ? "border-red-500" : ""}`}
-              disabled={isSending || otpSent}
-            />
+        <div className="flex flex-1">
+          <div className="flex items-center px-3 bg-muted/50 rounded-l-md border border-r-0 border-input text-sm text-muted-foreground">
+            +91
           </div>
-          {!otpSent && (
-            <Button
-              onClick={handleSendOTP}
-              disabled={isSending || phone.length !== 10}
-              className="h-12 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-            >
-              {isSending ? "Sending…" : "Get OTP"}
-            </Button>
-          )}
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="Mobile number"
+            value={phone}
+            onChange={handlePhoneChange}
+            className={`rounded-l-none h-12 flex-1 ${phoneError ? "border-red-500" : ""}`}
+            disabled={isLoading || isOTPSent}
+          />
         </div>
-        {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
+        {!isOTPSent && (
+          <Button onClick={handleSendOTP} disabled={isLoading || !isPhoneValid()} className="h-12 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all">
+            {isLoading ? "..." : "Get OTP"}
+          </Button>
+        )}
+        </div>
       </div>
+      {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
 
-      {otpSent && (
+      {/* OTP */}
+      {showOTPField && (
         <div>
           <Input
+            id="otp"
             type="text"
             placeholder="Enter 6-digit OTP"
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            disabled={isVerifying || otpVerified}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            disabled={isLoading}
             className="h-12 text-center text-lg tracking-[0.3em]"
             maxLength={6}
           />
@@ -311,20 +613,18 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
             {resendCooldown > 0 ? (
               <span>Resend in {resendCooldown}s</span>
             ) : (
-              <Button variant="link" onClick={handleResendOTP} className="p-0 h-auto text-sm text-toy-coral font-medium" disabled={isVerifying}>
+              <Button variant="link" onClick={handleResendOTPClick} className="p-0 h-auto text-sm text-toy-coral hover:text-toy-coral/80 font-medium" disabled={isLoading}>
                 Resend
               </Button>
             )}
           </div>
-          {devOtp && <p className="text-xs text-amber-600 mt-1">Dev OTP: {devOtp}</p>}
+          {developmentOtp && (
+            <p className="text-xs text-amber-600 mt-1">Dev OTP: {developmentOtp}</p>
+          )}
         </div>
       )}
-    </>
-  );
 
-  // ── RENDER: Profile fields (shown after OTP verified in signup) ───────────
-  const renderProfileFields = () => (
-    <>
+      {/* Name + Pincode - essential fields only */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="firstName" className="text-sm font-medium text-foreground mb-1.5 block">
@@ -333,10 +633,10 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           <Input
             id="firstName"
             placeholder="First name"
-            value={signupData.firstName}
-            onChange={(e) => setSignupData(d => ({ ...d, firstName: e.target.value }))}
-            disabled={isSubmitting}
-            className="h-11"
+          value={signupData.firstName}
+          onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
+          disabled={isLoading}
+          className="h-11"
           />
         </div>
         <div>
@@ -346,10 +646,10 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           <Input
             id="lastName"
             placeholder="Last name"
-            value={signupData.lastName}
-            onChange={(e) => setSignupData(d => ({ ...d, lastName: e.target.value }))}
-            disabled={isSubmitting}
-            className="h-11"
+          value={signupData.lastName}
+          onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
+          disabled={isLoading}
+          className="h-11"
           />
         </div>
       </div>
@@ -364,7 +664,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           type="text"
           value={signupData.pincode}
           onChange={(e) => handlePincodeChange(e.target.value)}
-          disabled={isSubmitting}
+          disabled={isLoading}
           maxLength={6}
           className={`h-11 ${pincodeValidation && !pincodeValidation.isServiceable ? "border-red-500" : ""}`}
         />
@@ -383,71 +683,117 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
         placeholder="Email (optional)"
         type="email"
         value={signupData.email}
-        onChange={(e) => setSignupData(d => ({ ...d, email: e.target.value }))}
-        disabled={isSubmitting}
-        className="h-11"
+        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+        disabled={isLoading}
+        className="h-11 text-muted-foreground"
       />
-    </>
-  );
 
-  // ── RENDER: Signup form ───────────────────────────────────────────────────
-  const renderSignupForm = () => (
-    <div className="space-y-5">
-      {renderPhoneOtpRow("phone-signup")}
-
-      {/* Profile fields shown only after OTP is verified */}
-      {otpVerified && renderProfileFields()}
-
-      {/* Step action button */}
-      {!otpSent && null /* Get OTP button is inline above */}
-
-      {otpSent && !otpVerified && (
-        <Button
-          onClick={handleVerifyForSignup}
-          disabled={isVerifying || otp.length !== 6}
-          className="w-full h-12 font-semibold bg-gradient-to-r from-toy-coral to-toy-sunshine text-white"
-        >
-          {isVerifying ? "Verifying…" : "Verify OTP"}
-        </Button>
-      )}
-
-      {otpVerified && (
-        <Button
-          onClick={handleCompleteProfile}
-          disabled={isSubmitting || !signupData.firstName.trim() || !signupData.lastName.trim() || !pincodeValidation?.isServiceable}
-          className="w-full h-12 font-semibold bg-gradient-to-r from-toy-coral to-toy-sunshine text-white"
-        >
-          {isSubmitting ? "Creating account…" : "Create account"}
-        </Button>
-      )}
+      <Button
+        onClick={handleFinalRegistration}
+        className="w-full h-12 font-semibold bg-gradient-to-r from-toy-coral to-toy-sunshine hover:from-toy-coral/90 hover:to-toy-sunshine/90 text-white shadow-md hover:shadow-lg transition-all"
+        disabled={isLoading || isVerifying || !isSignupFormValid()}
+      >
+        {isLoading || isVerifying ? "Please wait..." : "Create account"}
+      </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Have an account?{" "}
-        <button type="button" onClick={() => handleModeSwitch("signin")} className="font-semibold text-blue-600 hover:underline">
+        <button type="button" onClick={() => handleModeSwitch("signin")} className="font-semibold text-blue-600 hover:text-blue-700 hover:underline" disabled={isLoading}>
           Sign in
         </button>
       </p>
     </div>
   );
 
-  // ── RENDER: Signin form ───────────────────────────────────────────────────
   const renderSigninForm = () => (
     <div className="space-y-5">
-      {renderPhoneOtpRow("phone-signin")}
+      <div>
+        <label htmlFor="phone-signin" className="text-sm font-medium text-foreground mb-1.5 block">
+          Mobile number <RequiredStar />
+        </label>
+        <div className="flex gap-2">
+        <div className="flex flex-1">
+          <div className="flex items-center px-3 bg-muted/50 rounded-l-md border border-r-0 border-input text-sm text-muted-foreground">
+            +91
+          </div>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="Mobile number"
+            value={phone}
+            onChange={handlePhoneChange}
+            className={`rounded-l-none h-12 flex-1 ${phoneError ? "border-red-500" : ""}`}
+            disabled={isLoading || isOTPSent}
+          />
+        </div>
+        {!isOTPSent && (
+          <Button onClick={handleSendOTP} disabled={isLoading || !isPhoneValid()} className="h-12 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all">
+            {isLoading ? "..." : "Get OTP"}
+          </Button>
+        )}
+        </div>
+      </div>
+      {phoneError && <p className="text-sm text-red-500 mt-1">{phoneError}</p>}
 
-      {otpSent && (
-        <Button
-          onClick={handleSignin}
-          disabled={isVerifying || otp.length !== 6}
-          className="w-full h-12 font-semibold bg-gradient-to-r from-toy-coral to-toy-sunshine text-white"
-        >
-          {isVerifying ? "Signing in…" : "Sign in"}
+      {showOTPField && (
+        <div>
+          <Input
+            id="otp"
+            type="text"
+            placeholder="Enter 6-digit OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            disabled={isLoading}
+            className="h-12 text-center text-lg tracking-[0.3em]"
+            maxLength={6}
+          />
+          <div className="flex justify-between items-center mt-1 text-sm text-muted-foreground">
+            <span>Sent to +91 {phone}</span>
+            {resendCooldown > 0 ? (
+              <span>Resend in {resendCooldown}s</span>
+            ) : (
+              <Button variant="link" onClick={handleResendOTPClick} className="p-0 h-auto text-sm text-toy-coral hover:text-toy-coral/80 font-medium" disabled={isLoading}>
+                Resend
+              </Button>
+            )}
+          </div>
+          {developmentOtp && (
+            <p className="text-xs text-amber-600 mt-1">Dev OTP: {developmentOtp}</p>
+          )}
+        </div>
+      )}
+
+      {isOTPVerified && incompleteUser && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">First name <RequiredStar /></label>
+              <Input placeholder="First name" value={signupData.firstName} onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })} disabled={isLoading} className="h-11" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Last name <RequiredStar /></label>
+              <Input placeholder="Last name" value={signupData.lastName} onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })} disabled={isLoading} className="h-11" />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Pincode (Bangalore) <RequiredStar /></label>
+            <Input placeholder="560001" type="text" value={signupData.pincode} onChange={(e) => handlePincodeChange(e.target.value)} disabled={isLoading} maxLength={6} className={`h-11 ${pincodeValidation && !pincodeValidation.isServiceable ? "border-red-500" : ""}`} />
+            {pincodeValidation?.isServiceable && <p className="text-sm text-green-600 flex items-center gap-1 mt-1"><CheckCircle className="w-4 h-4" />{pincodeValidation.area}</p>}
+            {pincodeValidation && !pincodeValidation.isServiceable && <p className="text-sm text-red-500 mt-1">{pincodeValidation.message}</p>}
+          </div>
+          <Input placeholder="Email (optional)" type="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} disabled={isLoading} className="h-11" />
+        </>
+      )}
+
+      {showOTPField && (
+        <Button onClick={handleFinalRegistration} className="w-full h-12 font-semibold bg-gradient-to-r from-toy-coral to-toy-sunshine hover:from-toy-coral/90 hover:to-toy-sunshine/90 text-white shadow-md hover:shadow-lg transition-all" disabled={isLoading || isVerifying || !isSigninFormValid()}>
+          {isLoading || isVerifying ? "Please wait..." : "Sign in"}
         </Button>
       )}
 
       <p className="text-center text-sm text-muted-foreground">
         New user?{" "}
-        <button type="button" onClick={() => handleModeSwitch("signup")} className="font-semibold text-blue-600 hover:underline">
+        <button type="button" onClick={() => handleModeSwitch("signup")} className="font-semibold text-blue-600 hover:text-blue-700 hover:underline" disabled={isLoading}>
           Create account
         </button>
       </p>
@@ -456,36 +802,25 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
 
   return (
     <div className="w-full max-w-sm mx-auto relative pt-10">
-      <button
-        type="button"
-        onClick={onClose ? onClose : () => window.history.back()}
-        className="absolute top-0 left-0 p-2 -ml-2 text-muted-foreground hover:text-toy-coral transition-colors"
-        aria-label="Back"
-      >
+      <button type="button" onClick={handleGoBack} className="absolute top-0 left-0 p-2 -ml-2 text-muted-foreground hover:text-toy-coral transition-colors" aria-label="Back">
         <ArrowLeft className="w-5 h-5" />
       </button>
-
       {onClose && (
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground"
-          aria-label="Close"
-        >
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground" aria-label="Close">
           ×
         </button>
       )}
-
       <h1 className="text-xl font-semibold text-center mb-1">
         {mode === "signup" ? "Create account" : "Sign in"}
       </h1>
       <p className="text-sm text-muted-foreground text-center mb-6">
         {mode === "signup" ? "We deliver in Bangalore" : "Enter your number"}
       </p>
-
-      {mode === "signup" ? renderSignupForm() : renderSigninForm()}
+      <div className="space-y-5">
+        {mode === "signup" ? renderSignupForm() : renderSigninForm()}
+      </div>
     </div>
   );
 };
 
-export default SignupFirstAuth;
+export default SignupFirstAuth; 

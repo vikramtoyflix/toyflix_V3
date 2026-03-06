@@ -1,7 +1,6 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 import SignupFirstAuth from "@/components/auth/SignupFirstAuth";
-import { E2EAdminLoginForm } from "@/components/auth/E2EAdminLoginForm";
 import MobileLayout from "@/components/mobile/MobileLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -68,42 +67,31 @@ const Auth = () => {
       return <Navigate to="/dashboard?referral=active" replace />;
     }
 
-    // Check for redirect parameter — only allow relative paths (no open redirect)
+    // Check for redirect parameter first
     const redirectTo = searchParams.get('redirect');
     if (redirectTo) {
+      // Decode the redirect URL and navigate there
       const decodedRedirect = decodeURIComponent(redirectTo);
-      // Reject absolute URLs (http/https/protocol-relative) to prevent open redirect
-      if (decodedRedirect.startsWith('/') && !decodedRedirect.startsWith('//')) {
-        return <Navigate to={decodedRedirect} replace />;
-      }
+      return <Navigate to={decodedRedirect} replace />;
     }
 
     // Check for ride-on toy selection (legacy support)
     const rideOnSelection = sessionStorage.getItem('ride-on-selection');
     if (rideOnSelection) {
-      try {
-        const selection = JSON.parse(rideOnSelection);
-        sessionStorage.removeItem('ride-on-selection');
-        if (selection?.toyId) {
-          return <Navigate to={`/subscription-flow?rideOnToy=${selection.toyId}`} replace />;
-        }
-      } catch {
-        sessionStorage.removeItem('ride-on-selection');
-      }
+      const selection = JSON.parse(rideOnSelection);
+      // Clear the selection as we're now processing it
+      sessionStorage.removeItem('ride-on-selection');
+      return <Navigate to={`/subscription-flow?rideOnToy=${selection.toyId}`} replace />;
     }
     
     // Default redirect for authenticated users
     return <Navigate to="/dashboard" replace />;
   }
 
-  // OTP-based auth (SignupFirstAuth) is always the primary path for customers.
-  // E2EAdminLoginForm renders only when VITE_E2E_LOGIN_ENABLED=true (E2E builds); production never sets it.
+  // Show authentication form - minimal layout
   const authContent = (
     <div className={`min-h-screen flex items-center justify-center ${isMobile ? "bg-background" : "bg-slate-50/50"} p-4 sm:p-6`}>
-      <div className="w-full max-w-md space-y-4">
-        <E2EAdminLoginForm />
-        <SignupFirstAuth />
-      </div>
+      <SignupFirstAuth />
     </div>
   );
 
