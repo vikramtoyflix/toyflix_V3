@@ -363,14 +363,19 @@ export const completeUserProfile = async (
   error?: { message: string };
 }> => {
   try {
-    console.log('🔍 Completing user profile for userId:', userId);
+    console.log('🔍 Completing user profile for userId:', userId, 'firstName:', firstName, 'lastName:', lastName);
     
     const completeRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-complete-profile`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, firstName, lastName, email: email || null, pincode: pincode || null }),
     });
-    const data = await completeRes.json();
+    let data: any;
+    try {
+      data = await completeRes.json();
+    } catch {
+      data = {};
+    }
 
     if (!completeRes.ok || !data?.success) {
       const errorMessage = data?.error || data?.message || "Failed to complete profile";
@@ -387,10 +392,14 @@ export const completeUserProfile = async (
       session: data.session as CustomSession
     };
   } catch (error: any) {
-    console.error('🔍 Complete profile error:', error);
+    const raw = error?.message || 'Network error';
+    console.error('[completeUserProfile] request failed:', raw);
+    const message = raw === 'Failed to fetch' || raw.toLowerCase().includes('fetch')
+      ? 'Could not reach server. Check your connection and try again.'
+      : raw;
     return { 
       success: false, 
-      error: { message: error.message || 'Failed to complete profile' } 
+      error: { message } 
     };
   }
 };

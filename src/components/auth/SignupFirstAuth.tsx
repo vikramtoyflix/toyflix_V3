@@ -223,7 +223,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
             description: "Successfully signed in to your account.",
             duration: 6000,
           });
-          // User is now authenticated, redirect will happen automatically
+          navigate('/dashboard', { replace: true });
         } else {
           // Handle incomplete profile based on mode
           if (mode === 'signin') {
@@ -233,7 +233,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
               description: "Successfully signed in to your account.",
               duration: 6000,
             });
-            // User is authenticated, redirect will happen automatically
+            navigate('/dashboard', { replace: true });
           } else {
             console.log('🔍 SIGNUP MODE - OTP verified but profile incomplete - staying on signup form');
             // Store the incomplete user info for profile completion
