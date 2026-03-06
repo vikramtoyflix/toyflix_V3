@@ -1,13 +1,6 @@
+import { supabase } from "@/integrations/supabase/client";
 import { CustomUser, CustomSession } from '@/hooks/auth/types';
 import { saveAuthToStorage, getStoredSession } from "@/hooks/auth/storage";
-
-// Use same Supabase URL and anon key as the rest of the app (edge functions accept anon key)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co";
-const ENV_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const FALLBACK_ANON_KEY = "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
-const LEGACY_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY";
-const EDGE_FUNCTION_KEY = (typeof ENV_ANON_KEY === "string" && ENV_ANON_KEY.length > 0) ? ENV_ANON_KEY : (FALLBACK_ANON_KEY || LEGACY_JWT_KEY);
-const SUPABASE_FUNCTIONS_URL = `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1`;
 
 export const sendOTP = async (phone: string): Promise<{
   success: boolean;
@@ -15,46 +8,30 @@ export const sendOTP = async (phone: string): Promise<{
   developmentOtp?: string;
 }> => {
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+  const { data, error } = await supabase.functions.invoke('send-otp', {
+    body: { phone: fullPhone },
+  });
 
-  const SEND_OTP_TIMEOUT_MS = 15000; // 15s so 2Factor has time to send
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SEND_OTP_TIMEOUT_MS);
-    const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/send-otp`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ phone: fullPhone }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    const data = await response.json();
-
-    if (!response.ok || !data?.success) {
-      const rawMsg = data?.error || data?.message || "Failed to send OTP";
-      const errorMessage =
-        rawMsg === "Invalid JWT" || rawMsg.toLowerCase().includes("jwt")
-          ? "Server configuration error. Please try again later or contact support."
-          : rawMsg;
-      return { success: false, error: { message: errorMessage } };
-    }
-
-    return { success: true, developmentOtp: data.otp_code };
-  } catch (err: any) {
-    const raw = err?.message || "Network error";
-    console.error("[sendOTP] request failed:", err?.name, raw);
-    const message =
-      err?.name === "AbortError"
-        ? "OTP request timed out. Please try again."
-        : raw === "Failed to fetch" || raw.toLowerCase().includes("fetch")
-        ? "Could not reach OTP server. Check your connection or try again in a moment. If it persists, the service may be temporarily limited."
-        : raw;
-    return { success: false, error: { message } };
+  // Check for function invocation errors (network issues, non-2xx status codes)
+  if (error) {
+    console.error('🔍 Supabase function invocation error in sendOTP:', error);
+    return { success: false, error: { message: error.message || "Function invocation failed" } };
   }
+
+  // Check for missing response data
+  if (!data) {
+    console.error('🔍 No response data from send-otp function');
+    return { success: false, error: { message: "No response from server" } };
+  }
+
+  // Handle business logic errors (valid responses with success: false)
+  if (!data.success) {
+    const errorMessage = data.error || "Failed to send OTP";
+    console.log('🔍 OTP sending failed:', errorMessage);
+    return { success: false, error: { message: errorMessage } };
+  }
+  
+  return { success: true, developmentOtp: data.otp_code };
 };
 
 export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'signup' = 'signup'): Promise<{
@@ -66,45 +43,63 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
   error?: { message: string };
 }> => {
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-  console.log('🔍 verifyOTP called for phone:', fullPhone.replace(/.(?=.{4})/g, '*'), 'mode:', mode);
+  console.log('🔍 verifyOTP called with:', { phone: fullPhone, otp, mode });
   
-  let data: any;
-  try {
-    const verifyRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/verify-otp-custom`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: fullPhone, otp, mode }),
-    });
-    try {
-      data = await verifyRes.json();
-    } catch (_) {
-      data = {};
-    }
-
-    if (!verifyRes.ok) {
-      const errorMessage = data?.error || data?.message || (verifyRes.status === 401 ? "Authentication error. Please refresh and try again." : "Verification failed. Please try again.");
-      console.warn('[verifyOTP] verify-otp-custom error:', verifyRes.status, data);
-      return { success: false, error: { message: errorMessage } };
-    }
-  } catch (err: any) {
-    const raw = err?.message || "Network error";
-    console.error("[verifyOTP] request failed:", err?.name, raw);
-    const message =
-      raw === "Failed to fetch" || raw.toLowerCase().includes("fetch")
-        ? "Could not reach verification server. Check your connection or try again."
-        : raw === "Invalid JWT" || raw.toLowerCase().includes("jwt")
-        ? "Server configuration error. Please try again later."
-        : raw;
-    return { success: false, error: { message } };
+  const { data, error } = await supabase.functions.invoke('verify-otp-custom', {
+    body: { phone: fullPhone, otp, mode },
+  });
+  
+  console.log('🔍 Supabase function response:', { data, error });
+  
+  // Check for function invocation errors (network issues, non-2xx status codes)
+  if (error) {
+    console.error('🔍 Supabase function invocation error in verifyOTP:', error);
+    return { success: false, error: { message: error.message || "Function invocation failed" } };
   }
 
-  if (!data?.success) {
-    const errorMessage = data?.error || data?.message || "Verification failed";
+  // Check for missing response data
+  if (!data) {
+    console.error('🔍 No response data from verify-otp-custom function');
+    return { success: false, error: { message: "No response from server" } };
+  }
+
+  // Handle business logic errors (valid responses with success: false)
+  if (!data.success) {
+    const errorMessage = data.error || "Verification failed";
+    console.log('🔍 OTP verification failed:', errorMessage);
     return { success: false, error: { message: errorMessage } };
+  }
+  
+  // CRITICAL FIX: Always ensure phone_verified is true after successful OTP verification
+  if (data.success && data.otpVerified && data.user) {
+    console.log('🔍 Ensuring phone_verified is set to true for user:', data.user.id);
+    
+    // Double-check and force update phone_verified if needed
+    if (!data.user.phone_verified) {
+      console.log('⚠️ User not marked as phone verified, forcing update...');
+      
+      const { data: verifiedUser, error: updateError } = await supabase
+        .from('custom_users')
+        .update({ 
+          phone_verified: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', data.user.id)
+        .select()
+        .single();
+
+      if (!updateError && verifiedUser) {
+        console.log('✅ Force updated phone_verified for user:', verifiedUser.id);
+        data.user = verifiedUser; // Update the user object
+      } else {
+        console.error('❌ Failed to force update phone_verified:', updateError);
+      }
+    } else {
+      console.log('✅ User already marked as phone verified:', data.user.id);
+    }
   }
 
   // Handle different successful response scenarios
-  // Note: phone_verified is set server-side in verify-otp-custom — no client write needed
   if (data.otpVerified && !data.profileComplete) {
     // OTP verified but profile incomplete - don't save auth yet
     console.log('🔍 OTP verified but profile incomplete - not saving auth yet');
@@ -159,15 +154,13 @@ export const updateUserProfile = async (
     return { success: false, error: { message: "No user session found." } };
   }
 
-  const updateRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-update-profile`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId: session.user.id, firstName, lastName, pincode }),
+  const { data, error } = await supabase.functions.invoke('auth-update-profile', {
+    body: { userId: session.user.id, firstName, lastName, pincode }
   });
-  const data = await updateRes.json();
 
-  if (!updateRes.ok || !data?.success) {
-    const errorMessage = data?.error || data?.message || "Failed to update profile.";
+  if (error || !data?.success) {
+    const errorMessage = data?.error || error?.message || "Failed to update profile.";
+    console.error('auth-update-profile function error:', errorMessage);
     return { success: false, error: { message: errorMessage } };
   }
   
@@ -188,15 +181,13 @@ export const deleteUserAccount = async (): Promise<{
     return { success: false, error: { message: "No user session found." } };
   }
 
-  const deleteRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-delete-account`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId: session.user.id }),
+  const { data, error } = await supabase.functions.invoke('auth-delete-account', {
+    body: { userId: session.user.id }
   });
-  const data = await deleteRes.json();
 
-  if (!deleteRes.ok || !data?.success) {
-    const errorMessage = data?.error || data?.message || "Failed to delete account.";
+  if (error || !data?.success) {
+    const errorMessage = data?.error || error?.message || "Failed to delete account.";
+    console.error('auth-delete-account function error:', errorMessage);
     return { success: false, error: { message: errorMessage } };
   }
 
@@ -216,12 +207,12 @@ export const checkUserStatus = async (phone: string): Promise<{
   
   try {
     // Construct URL with query parameter
-    const url = `${SUPABASE_FUNCTIONS_URL}/check-user-status?phone=${encodeURIComponent(fullPhone)}`;
+    const url = `https://wucwpyitzqjukcphczhr.supabase.co/functions/v1/check-user-status?phone=${encodeURIComponent(fullPhone)}`;
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`,
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1Y3dweWl0enFqdWtjcGhjemhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjQyOTYsImV4cCI6MjA2NDkwMDI5Nn0.ci_NkSeC7Klk34egMhLw4HnQ5x08w3PHofDUMtu2DwY`,
         'Content-Type': 'application/json',
       },
     });
@@ -334,22 +325,21 @@ export const completeUserProfile = async (
   error?: { message: string };
 }> => {
   try {
-    console.log('🔍 Completing user profile for userId:', userId, 'firstName:', firstName, 'lastName:', lastName);
+    console.log('🔍 Completing user profile for userId:', userId);
     
-    const completeRes = await fetch(`${SUPABASE_FUNCTIONS_URL}/auth-complete-profile`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${EDGE_FUNCTION_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, firstName, lastName, email: email || null, pincode: pincode || null }),
+    const { data, error } = await supabase.functions.invoke('auth-complete-profile', {
+      body: { 
+        userId, 
+        firstName, 
+        lastName, 
+        email: email || null,
+        pincode: pincode || null
+      }
     });
-    let data: any;
-    try {
-      data = await completeRes.json();
-    } catch {
-      data = {};
-    }
 
-    if (!completeRes.ok || !data?.success) {
-      const errorMessage = data?.error || data?.message || "Failed to complete profile";
+    if (error || !data?.success) {
+      const errorMessage = data?.error || error?.message || "Failed to complete profile";
+      console.error('🔍 auth-complete-profile function error:', errorMessage);
       return { success: false, error: { message: errorMessage } };
     }
 
@@ -363,14 +353,10 @@ export const completeUserProfile = async (
       session: data.session as CustomSession
     };
   } catch (error: any) {
-    const raw = error?.message || 'Network error';
-    console.error('[completeUserProfile] request failed:', raw);
-    const message = raw === 'Failed to fetch' || raw.toLowerCase().includes('fetch')
-      ? 'Could not reach server. Check your connection and try again.'
-      : raw;
+    console.error('🔍 Complete profile error:', error);
     return { 
       success: false, 
-      error: { message } 
+      error: { message: error.message || 'Failed to complete profile' } 
     };
   }
 };
