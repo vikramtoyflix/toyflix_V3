@@ -145,9 +145,10 @@ export function isOldAndroidWebView(): boolean {
 /** Fetch toys via our API so old Android WebView app works without an app update. */
 async function fetchToysViaProxy(): Promise<Toy[]> {
   const base = typeof window !== 'undefined' ? window.location.origin : '';
-  const res = await fetch(`${base}/api/webview-toys`);
+  const res = await fetch(`${base}/api/proxy?webview-toys=1`);
   if (!res.ok) throw new Error(`Proxy error: ${res.status}`);
-  const data = (await res.json()) as any[];
+  const raw = await res.json();
+  const data = Array.isArray(raw) ? raw : (raw?.data ?? []);
   const toys = (data || []).map((toy: any) => ({
     id: toy.id,
     name: toy.name,
