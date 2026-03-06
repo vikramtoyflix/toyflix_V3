@@ -23,7 +23,7 @@ export default function AppAuth() {
 
       <div className="flex-1 px-4">
         <div className="[&_.bg-background]:bg-slate-800 [&_.text-foreground]:text-white [&_.border]:border-slate-700 [&_input]:bg-slate-800 [&_input]:border-slate-700 [&_input]:text-white [&_button]:bg-amber-500 [&_button]:text-slate-900 [&_button:hover]:bg-amber-400">
-          <SignupFirstAuth onClose={() => {}} />
+          <SignupFirstAuth />
         </div>
       </div>
 
