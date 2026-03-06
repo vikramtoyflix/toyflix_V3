@@ -934,6 +934,14 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
               </div>
             </div>
 
+            {addressData.plus_code && (
+              <div className="rounded-md bg-green-50 border border-green-200 p-3">
+                <p className="text-xs font-medium text-green-800 mb-0.5">📍 Plus Code (for delivery)</p>
+                <p className="font-mono text-sm text-green-900">{addressData.plus_code}</p>
+                <p className="text-xs text-green-600 mt-1">Used for precise delivery location.</p>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="delivery_instructions">Delivery Instructions (Optional)</Label>
               <Textarea
