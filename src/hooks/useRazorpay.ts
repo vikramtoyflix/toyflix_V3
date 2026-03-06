@@ -141,11 +141,19 @@ export const useRazorpay = () => {
                   console.error('Analytics tracking error:', error);
                 }
                 
+                const errMsg = verifyError.message || 'Verification failed.';
                 toast({
-                  title: "Payment Verification Failed",
-                  description: "Payment was successful but verification failed. Please contact support.",
+                  title: "Payment verification issue",
+                  description: `Payment was received but verification failed: ${errMsg} You're being taken to order details — please contact support with your Payment ID if the order doesn't appear.`,
                   variant: "destructive",
                 });
+                // Still send user to order summary with payment details so they're not stuck
+                queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
+                queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+                sessionStorage.setItem('payment_success', 'true');
+                setTimeout(() => {
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 2500);
                 return;
               }
 
@@ -168,11 +176,19 @@ export const useRazorpay = () => {
                   console.error('Analytics tracking error:', error);
                 }
                 
+                const errMsg = verifyResponse.error || "Unknown verification error";
                 toast({
-                  title: "Payment Verification Failed",
-                  description: verifyResponse.error || "Unknown verification error",
+                  title: "Payment verification issue",
+                  description: `${errMsg} You're being taken to order details — contact support with your Payment ID if the order doesn't appear.`,
                   variant: "destructive",
                 });
+                // Still send user to order summary with payment details
+                queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
+                queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+                sessionStorage.setItem('payment_success', 'true');
+                setTimeout(() => {
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 2500);
                 return;
               }
 
