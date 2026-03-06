@@ -314,34 +314,30 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           setAuth(result.user, result.session);
           
           toast({
-            title: "Registration Complete! 🎉",
-            description: "Your profile has been completed successfully. Welcome to ToyFlix!",
-            duration: 6000,
-          });
-          console.log('🔍 Profile completed successfully, user authenticated');
-          
-          // Redirect to toys page with signup parameter
-          setTimeout(() => {
-            navigate('/auth?from=signup', { replace: true });
-          }, 1500);
-        } else {
-          toast({
-            title: "Registration failed",
-            description: result.error?.message || "Failed to complete registration",
-            variant: "destructive",
-            duration: 6000,
-          });
-        }
-      } catch (error) {
-        console.error('🔍 Profile completion error:', error);
-        toast({
-          title: "Registration failed",
-          description: "An error occurred during registration. Please try again.",
-          variant: "destructive",
-          duration: 6000,
-        });
-      }
-    } else if (mode === 'signup') {
+                title: "Registration Complete! 🎉",
+                description: "Your profile has been completed successfully. Welcome to ToyFlix!",
+                duration: 6000,
+              });
+              console.log('🔍 Profile completed successfully, user authenticated');
+              navigate('/dashboard', { replace: true });
+            } else {
+              toast({
+                title: "Registration failed",
+                description: result.error?.message || "Failed to complete registration",
+                variant: "destructive",
+                duration: 6000,
+              });
+            }
+          } catch (error) {
+            console.error('🔍 Profile completion error:', error);
+            toast({
+              title: "Registration failed",
+              description: "An error occurred during registration. Please try again.",
+              variant: "destructive",
+              duration: 6000,
+            });
+          }
+        } else if (mode === 'signup') {
       // New signup flow - verify OTP and complete registration in one step
       console.log('🔍 Starting combined OTP verification and registration');
       try {
@@ -359,11 +355,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
               description: "Successfully signed in to your account.",
               duration: 6000,
             });
-            
-            // Redirect to toys page with signup parameter
-            setTimeout(() => {
-              navigate('/auth?from=signup', { replace: true });
-            }, 1500);
+            navigate('/dashboard', { replace: true });
           } else {
             console.log('🔍 OTP verified but profile incomplete - completing profile');
             // Complete the profile immediately
@@ -385,11 +377,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
                 duration: 6000,
               });
               console.log('🔍 Profile completed successfully, user authenticated');
-              
-              // Redirect to toys page with signup parameter
-              setTimeout(() => {
-                navigate('/auth?from=signup', { replace: true });
-              }, 1500);
+              navigate('/dashboard', { replace: true });
             } else {
               toast({
                 title: "Registration failed",
