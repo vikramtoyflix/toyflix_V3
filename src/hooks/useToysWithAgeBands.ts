@@ -10,6 +10,9 @@ export const useToysWithAgeBands = () => {
   return useQuery({
     queryKey: ['toys-all-no-age-filter'],
     queryFn: async (): Promise<Toy[]> => {
+      if (isOldAndroidWebView()) {
+        return fetchToysViaProxy();
+      }
       const { data, error } = await supabase
         .from('toys')
         .select('*')
@@ -133,6 +136,44 @@ const TOYS_TIMEOUT_MS = 15_000;
 const withTimeout = <T>(p: Promise<T>) =>
   Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), TOYS_TIMEOUT_MS))]);
 
+/** Old Android app sends this in user agent; Supabase blocks it. Use proxy when present. */
+export function isOldAndroidWebView(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /TOYFLIX-APP|Android.*WebView/i.test(navigator.userAgent);
+}
+
+/** Fetch toys via our API so old Android WebView app works without an app update. */
+async function fetchToysViaProxy(): Promise<Toy[]> {
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  const res = await fetch(`${base}/api/webview-toys`);
+  if (!res.ok) throw new Error(`Proxy error: ${res.status}`);
+  const data = (await res.json()) as any[];
+  const toys = (data || []).map((toy: any) => ({
+    id: toy.id,
+    name: toy.name,
+    description: toy.description ?? null,
+    category: toy.category ?? 'general',
+    subscription_category: toy.subscription_category ?? null,
+    age_range: toy.age_range ?? '',
+    brand: toy.brand ?? null,
+    pack: toy.pack ?? null,
+    retail_price: toy.retail_price ?? null,
+    rental_price: toy.rental_price ?? null,
+    image_url: toy.image_url ?? null,
+    available_quantity: toy.available_quantity ?? 0,
+    total_quantity: toy.total_quantity ?? 0,
+    rating: toy.rating ?? 0,
+    min_age: toy.min_age ?? null,
+    max_age: toy.max_age ?? null,
+    show_strikethrough_pricing: toy.show_strikethrough_pricing ?? false,
+    display_order: toy.display_order ?? 0,
+    is_featured: toy.is_featured ?? false,
+    created_at: toy.created_at ?? '',
+    updated_at: toy.updated_at ?? '',
+  })) as Toy[];
+  return sortToysByCategory(toys);
+}
+
 /** Query key for homepage Featured Toys – used for prefetch so carousel has data on first load/refresh. */
 export const HOMEPAGE_TOYS_QUERY_KEY = ['toys-age-table-direct', undefined] as const;
 
@@ -173,8 +214,11 @@ async function fetchToysMinimal(): Promise<Toy[]> {
   return sortToysByCategory(toys);
 }
 
-/** Fetches toys for homepage (all ages). Used for prefetch and by useToysForAgeGroup. */
+/** Fetches toys for homepage; uses proxy when old Android WebView so prefetch works. */
 export async function fetchHomepageToys(): Promise<Toy[]> {
+  if (isOldAndroidWebView()) {
+    return fetchToysViaProxy();
+  }
   const { data, error } = await supabase
     .from('toys')
     .select('*')
@@ -220,6 +264,13 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
   return useQuery({
     queryKey: ['toys-age-table-direct', ageGroup],
     queryFn: async (): Promise<Toy[]> => {
+      if (isOldAndroidWebView()) {
+        try {
+          return await withTimeout(fetchToysViaProxy());
+        } catch {
+          return [];
+        }
+      }
       const fetchMain = async (): Promise<Toy[]> => {
         const { data, error } = await supabase
           .from('toys')
@@ -281,6 +332,11 @@ export const useToysWithAgeBandsByCategory = (category?: string) => {
   return useQuery({
     queryKey: ['toys-category-no-age-filter', category],
     queryFn: async (): Promise<Toy[]> => {
+      if (isOldAndroidWebView()) {
+        const all = await fetchToysViaProxy();
+        if (!category || category === 'all') return all;
+        return all.filter((t) => t.category === category);
+      }
       let query = supabase.from('toys').select('*');
       
       if (category && category !== 'all') {
