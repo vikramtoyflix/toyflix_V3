@@ -122,12 +122,8 @@ const OrderSummary = () => {
       duration: 5000,
     });
 
-    // Load order details in background after short delay
-    const timer = setTimeout(() => {
-      fetchOrderDetails();
-    }, 1000); // 1 second delay for better UX
-
-    return () => clearTimeout(timer);
+    // Load order details immediately so success page shows without delay
+    fetchOrderDetails();
   }, [user]);
 
   const handleGoToDashboard = () => {
