@@ -233,8 +233,33 @@ const LocationPicker = ({ onLocationSelect, initialPosition, onError }: Location
             onLocationSelect(locationData);
             toast.success("Address selected and populated!");
           } else if (status === 'ZERO_RESULTS') {
-            setShowInfoWindow(false);
-            toast.error("No address found for this location. Try clicking on a road or building.");
+            // Still capture plus_code for Circuit (e.g. empty plot or new area)
+            const apiPlusCode = await getPlusCodeFromApi(lat, lng);
+            if (apiPlusCode) {
+              setCurrentAddress("Selected point");
+              setShowInfoWindow(true);
+              const fallbackData = {
+                address: `Selected location (Plus Code: ${apiPlusCode})`,
+                lat,
+                lng,
+                plus_code: apiPlusCode,
+                plus_code_data: { clean: apiPlusCode },
+                addressComponents: {
+                  country: 'India',
+                  address_line1: '',
+                  apartment: '',
+                  city: '',
+                  state: '',
+                  zip_code: '',
+                },
+              };
+              geocodingCache.set(cacheKey, fallbackData);
+              onLocationSelect(fallbackData);
+              toast.success("Plus Code captured. Please fill in your full address below for delivery.");
+            } else {
+              setShowInfoWindow(false);
+              toast.error("No address found for this location. Try clicking on a road or building.");
+            }
           } else if (status === 'OVER_QUERY_LIMIT') {
             setShowInfoWindow(false);
             toast.error("Geocoding quota exceeded. Please try again later.");
@@ -242,8 +267,33 @@ const LocationPicker = ({ onLocationSelect, initialPosition, onError }: Location
             setShowInfoWindow(false);
             toast.error("Geocoding request denied. Please enable the Geocoding API in Google Cloud Console.");
           } else {
-            setShowInfoWindow(false);
-            toast.error(`Unable to get address for this location. Status: ${status}`);
+            // Still capture plus_code for Circuit when full geocode fails
+            const apiPlusCode = await getPlusCodeFromApi(lat, lng);
+            if (apiPlusCode) {
+              setCurrentAddress("Selected point");
+              setShowInfoWindow(true);
+              const fallbackData = {
+                address: `Selected location (Plus Code: ${apiPlusCode})`,
+                lat,
+                lng,
+                plus_code: apiPlusCode,
+                plus_code_data: { clean: apiPlusCode },
+                addressComponents: {
+                  country: 'India',
+                  address_line1: '',
+                  apartment: '',
+                  city: '',
+                  state: '',
+                  zip_code: '',
+                },
+              };
+              geocodingCache.set(cacheKey, fallbackData);
+              onLocationSelect(fallbackData);
+              toast.success("Plus Code captured for delivery. Please fill in address details below.");
+            } else {
+              setShowInfoWindow(false);
+              toast.error(`Unable to get address for this location. Status: ${status}`);
+            }
           }
         });
       }
@@ -398,7 +448,32 @@ const LocationPicker = ({ onLocationSelect, initialPosition, onError }: Location
             onLocationSelect(locationData);
             toast.success("Address selected and populated!");
           } else {
-            toast.error("Unable to get address for your current location");
+            // Still capture plus_code for Circuit even when full address fails
+            const apiPlusCode = await getPlusCodeFromApi(lat, lng);
+            if (apiPlusCode) {
+              setCurrentAddress("Current location");
+              setShowInfoWindow(true);
+              const fallbackData = {
+                address: "Current location (please confirm or edit address below)",
+                lat,
+                lng,
+                plus_code: apiPlusCode,
+                plus_code_data: { clean: apiPlusCode },
+                addressComponents: {
+                  country: 'India',
+                  address_line1: '',
+                  apartment: '',
+                  city: '',
+                  state: '',
+                  zip_code: '',
+                },
+              };
+              geocodingCache.set(cacheKey, fallbackData);
+              onLocationSelect(fallbackData);
+              toast.success("Location and Plus Code captured. Please fill in your address details below for delivery.");
+            } else {
+              toast.error("Unable to get address for your current location. Try searching or clicking on the map.");
+            }
           }
           setIsGettingLocation(false);
         });
