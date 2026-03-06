@@ -146,23 +146,20 @@ export const useHybridAuth = () => {
         throw new Error("Authentication failed - no session created");
       }
 
-      const migrationInfo = await checkMigrationStatus(otpResult.user);
       const hybridUser: HybridUser = {
         ...otpResult.user,
-        source: migrationInfo.has_woocommerce_data ? 'woocommerce' : 'supabase',
-        has_woocommerce_data: migrationInfo.has_woocommerce_data,
-        migration_metadata: migrationInfo.metadata,
+        source: 'supabase',
+        has_woocommerce_data: false,
       };
 
       setAuth(hybridUser as any, otpResult.session);
-      toast({
-        title: migrationInfo.has_woocommerce_data ? "Welcome back!" : "Welcome!",
-        description: migrationInfo.has_woocommerce_data
-          ? "Successfully signed in. Loading your historical data..."
-          : "Successfully signed in to your account.",
-      });
 
-      return { success: true, user: hybridUser };
+      return {
+        success: true,
+        otpVerified: true,
+        profileComplete: true,
+        user: hybridUser,
+      };
     } catch (error: any) {
       console.error('Error in hybrid OTP verification:', error);
       toast({
@@ -183,121 +180,13 @@ export const useHybridAuth = () => {
   };
 };
 
-// Enhanced migration status checker based on your migration client patterns
-const checkMigrationStatus = async (user: any): Promise<{
+// Migration status: all users are now native Supabase users.
+// WooCommerce was decommissioned; we no longer have a reliable way to detect
+// migrated users via heuristics, and the old phone-pattern check was a false
+// positive for every Indian user. Always return false so no misleading toasts.
+const checkMigrationStatus = async (_user: any): Promise<{
   has_woocommerce_data: boolean;
-  metadata: {
-    original_wc_id?: string;
-    migration_date?: string;
-    has_subscription_history?: boolean;
-    has_order_history?: boolean;
-    detection_method?: string;
-  };
+  metadata: Record<string, never>;
 }> => {
-  try {
-    console.log('🔍 Checking migration status for user:', user.id);
-    
-    // Strategy 1: Check by registration date (users before migration)
-    const migrationDate = new Date('2024-06-01'); // Adjust to your actual migration date
-    const userCreatedDate = new Date(user.created_at);
-    
-    if (userCreatedDate < migrationDate) {
-      console.log('✅ User created before migration - likely migrated from WooCommerce');
-      return {
-        has_woocommerce_data: true,
-        metadata: {
-          migration_date: migrationDate.toISOString(),
-          detection_method: 'creation_date',
-          has_subscription_history: true, // Assume yes for pre-migration users
-          has_order_history: true
-        }
-      };
-    }
-
-    // Strategy 2: Check for WooCommerce-style metadata patterns
-    // Based on your migration client, WooCommerce users have specific patterns:
-    
-    // Check if user has billing address data (indicates WooCommerce origin)
-    if (user.address_line1 || user.city || user.zip_code) {
-      console.log('✅ User has address data - likely migrated from WooCommerce');
-      return {
-        has_woocommerce_data: true,
-        metadata: {
-          detection_method: 'address_data',
-          has_subscription_history: true,
-          has_order_history: true
-        }
-      };
-    }
-
-    // Strategy 3: Check phone number patterns
-    // Your migration client shows billing_phone is key field
-    if (user.phone && user.phone.length === 10 && !user.phone.startsWith('+')) {
-      // Indian phone numbers without country code suggest WooCommerce migration
-      const phonePattern = /^[6-9]\d{9}$/; // Indian mobile pattern
-      if (phonePattern.test(user.phone)) {
-        console.log('✅ User has Indian phone pattern - likely migrated from WooCommerce');
-        return {
-          has_woocommerce_data: true,
-          metadata: {
-            detection_method: 'phone_pattern',
-            has_subscription_history: true,
-            has_order_history: true
-          }
-        };
-      }
-    }
-
-    // Strategy 4: Check for subscription-related metadata
-    // If user has subscription_plan or subscription_active fields
-    if (user.subscription_plan || user.subscription_active !== undefined) {
-      console.log('✅ User has subscription metadata - likely migrated from WooCommerce');
-      return {
-        has_woocommerce_data: true,
-        metadata: {
-          detection_method: 'subscription_metadata',
-          has_subscription_history: true,
-          has_order_history: true
-        }
-      };
-    }
-
-    // Strategy 5: Check for specific user ID patterns
-    // If your migration preserved WooCommerce IDs in a specific range or pattern
-    const userId = parseInt(user.id.replace(/\D/g, ''));
-    if (userId && userId < 10000) { // Assuming WooCommerce users have lower IDs
-      console.log('✅ User has low ID number - likely migrated from WooCommerce');
-      return {
-        has_woocommerce_data: true,
-        metadata: {
-          original_wc_id: userId.toString(),
-          detection_method: 'user_id_pattern',
-          has_subscription_history: true,
-          has_order_history: true
-        }
-      };
-    }
-
-    console.log('ℹ️ User appears to be new Supabase user');
-    return {
-      has_woocommerce_data: false,
-      metadata: {
-        detection_method: 'new_user',
-        has_subscription_history: false,
-        has_order_history: false
-      }
-    };
-    
-  } catch (error) {
-    console.error('Error checking migration status:', error);
-    // Default to false (new user) if unsure
-    return {
-      has_woocommerce_data: false,
-      metadata: {
-        detection_method: 'error_fallback',
-        has_subscription_history: false,
-        has_order_history: false
-      }
-    };
-  }
+  return { has_woocommerce_data: false, metadata: {} };
 }; 

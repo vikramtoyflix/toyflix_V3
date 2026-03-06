@@ -323,7 +323,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
             } else {
               toast({
                 title: "Registration failed",
-                description: result.error?.message || "Failed to complete registration",
+                description: result.error?.message || (result.error as any) || "Failed to complete registration",
                 variant: "destructive",
                 duration: 6000,
               });
@@ -391,7 +391,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           console.error('🔍 OTP verification failed:', result.error);
           toast({
             title: "Verification failed",
-            description: result.error || "Invalid OTP",
+            description: typeof result.error === 'string' ? result.error : (result.error as any)?.message || "Invalid OTP",
             variant: "destructive",
             duration: 6000,
           });
