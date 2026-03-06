@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { CustomUser, CustomSession } from '@/hooks/auth/types';
 import { saveAuthToStorage, getStoredSession } from "@/hooks/auth/storage";
 
@@ -67,7 +66,7 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
   error?: { message: string };
 }> => {
   const fullPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-  console.log('🔍 verifyOTP called with:', { phone: fullPhone, otp, mode });
+  console.log('🔍 verifyOTP called for phone:', fullPhone.replace(/.(?=.{4})/g, '*'), 'mode:', mode);
   
   let data: any;
   try {
@@ -104,36 +103,8 @@ export const verifyOTP = async (phone: string, otp: string, mode: 'signin' | 'si
     return { success: false, error: { message: errorMessage } };
   }
 
-  // CRITICAL FIX: Always ensure phone_verified is true after successful OTP verification
-  if (data.success && data.otpVerified && data.user) {
-    console.log('🔍 Ensuring phone_verified is set to true for user:', data.user.id);
-    
-    // Double-check and force update phone_verified if needed
-    if (!data.user.phone_verified) {
-      console.log('⚠️ User not marked as phone verified, forcing update...');
-      
-      const { data: verifiedUser, error: updateError } = await supabase
-        .from('custom_users')
-        .update({ 
-          phone_verified: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.user.id)
-        .select()
-        .single();
-
-      if (!updateError && verifiedUser) {
-        console.log('✅ Force updated phone_verified for user:', verifiedUser.id);
-        data.user = verifiedUser; // Update the user object
-      } else {
-        console.error('❌ Failed to force update phone_verified:', updateError);
-      }
-    } else {
-      console.log('✅ User already marked as phone verified:', data.user.id);
-    }
-  }
-
   // Handle different successful response scenarios
+  // Note: phone_verified is set server-side in verify-otp-custom — no client write needed
   if (data.otpVerified && !data.profileComplete) {
     // OTP verified but profile incomplete - don't save auth yet
     console.log('🔍 OTP verified but profile incomplete - not saving auth yet');
