@@ -51,7 +51,7 @@ const SignupSuccess: React.FC = () => {
       // Facebook Pixel - CompleteRegistration
       if (window.fbq) {
         window.fbq('track', 'CompleteRegistration', {
-          content_name: 'ToyJoyBox User Registration',
+          content_name: 'Toyflix User Registration',
           status: 'completed',
           content_category: 'signup',
           value: 0,
@@ -60,7 +60,7 @@ const SignupSuccess: React.FC = () => {
 
         // Also track as Lead
         window.fbq('track', 'Lead', {
-          content_name: 'ToyJoyBox New User',
+          content_name: 'Toyflix New User',
           content_category: 'user_acquisition',
           value: 0,
           currency: 'INR'
@@ -98,7 +98,7 @@ const SignupSuccess: React.FC = () => {
 
           {/* Success Message */}
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Welcome to ToyJoyBox! 🎉
+            Welcome to Toyflix! 🎉
           </h1>
           
           <p className="text-gray-600 mb-6">
