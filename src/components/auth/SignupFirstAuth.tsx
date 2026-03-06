@@ -137,17 +137,18 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
       return;
     }
 
-    setShowOTPField(true);
-    
+    // Clear any previous phone error before a new attempt
+    setPhoneError("");
+
     try {
       const normalizedPhone = normalizePhoneNumber(phone);
 
-      // Fire OTP send and user status check in parallel — cuts wait time in half
+      // Fire OTP send and user status check in parallel
       const [result, statusResult] = await Promise.all([
         sendHybridOTP(normalizedPhone),
         checkUserStatus(normalizedPhone),
       ]);
-      
+
       // Only suggest sign-in when user chose signup but we detect an existing complete account.
       // Never switch signin → signup: respect user's choice when they clicked "Sign in".
       if (statusResult.success && mode === 'signup' && statusResult.exists && statusResult.isComplete) {
@@ -155,6 +156,8 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
       }
 
       if (result.success) {
+        // Show OTP field only after confirmed success
+        setShowOTPField(true);
         setIsOTPSent(true);
         if (result.developmentOtp) {
           setDevelopmentOtp(result.developmentOtp);
@@ -166,10 +169,11 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
         });
       } else {
         setShowOTPField(false);
-        setPhoneError(result.error || "Failed to send OTP");
+        const errMsg = result.error || "Failed to send OTP";
+        setPhoneError(errMsg);
         toast({
           title: "Failed to send OTP",
-          description: result.error || "Please try again.",
+          description: errMsg,
           variant: "destructive",
           duration: 6000,
         });
@@ -179,7 +183,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
       setShowOTPField(false);
       toast({
         title: "Error",
-        description: "Failed to check user status. Please try again.",
+        description: "Failed to send OTP. Please try again.",
         variant: "destructive",
         duration: 6000,
       });
@@ -450,8 +454,14 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
 
   const handleResendOTPClick = async () => {
     if (resendCooldown > 0) return;
-    
+
+    // Allow re-verification with the new OTP
+    setVerificationCompleted(false);
+    setIsVerifying(false);
+    setOtp("");
+
     setResendCooldown(30);
+    // Store interval ref so it can be cleared if component unmounts
     const interval = setInterval(() => {
       setResendCooldown(prev => {
         if (prev <= 1) {
@@ -464,16 +474,10 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
 
     try {
       const normalizedPhone = normalizePhoneNumber(phone);
+      // sendHybridOTP already shows a toast on success/failure — just grab devOtp
       const result = await sendHybridOTP(normalizedPhone);
-      if (result.success) {
-        toast({
-          title: "OTP Resent",
-          description: `New OTP sent to +91 ${phone}`,
-          duration: 6000,
-        });
-        if (result.developmentOtp) {
-          setDevelopmentOtp(result.developmentOtp);
-        }
+      if (result.success && result.developmentOtp) {
+        setDevelopmentOtp(result.developmentOtp);
       }
     } catch (error) {
       console.error('Resend OTP failed:', error);
@@ -646,7 +650,7 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
             +91
           </div>
           <Input
-            id="phone"
+            id="phone-signin"
             type="tel"
             placeholder="Mobile number"
             value={phone}

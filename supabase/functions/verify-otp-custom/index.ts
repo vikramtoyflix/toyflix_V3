@@ -40,7 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { phone, otp, mode = 'signup' } = await req.json();
-    console.log('Received verification request for phone:', phone, 'with OTP:', otp, 'mode:', mode);
+    // OTP deliberately not logged — it is a one-time secret
+    console.log('Received verification request for phone:', phone?.replace(/.(?=.{4})/g, '*'), 'mode:', mode);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -76,31 +77,6 @@ const handler = async (req: Request): Promise<Response> => {
     const uniquePhoneFormats = [...new Set(phoneVariations)];
     console.log('Phone number variations to check:', uniquePhoneFormats);
 
-    // First, let's check what OTPs exist for this phone number
-    const { data: allOtps, error: checkError } = await supabaseAdmin
-      .from('otp_verifications')
-      .select('*')
-      .in('phone_number', uniquePhoneFormats)
-      .order('created_at', { ascending: false })
-      .limit(5);  // Get last 5 OTPs for debugging
-
-    if (checkError) {
-      console.error('Error checking existing OTPs:', checkError);
-    } else {
-      console.log('Recent OTPs in database:', allOtps?.length || 0);
-      if (allOtps && allOtps.length > 0) {
-        console.log('Recent OTP records:', allOtps.map(otp => ({
-          phone: otp.phone_number,
-          otp: otp.otp_code,
-          created: otp.created_at,
-          expires: otp.expires_at,
-          verified: otp.is_verified,
-          provider: otp.provider,
-          session_id: otp.session_id
-        })));
-      }
-    }
-
     // Get the most recent unverified OTP record to check the session_id
     const { data: otpRecord, error: otpError } = await supabaseAdmin
       .from('otp_verifications')
@@ -131,6 +107,20 @@ const handler = async (req: Request): Promise<Response> => {
         message: 'Please request a new OTP'
       }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Brute-force protection: max 5 attempts per OTP record
+    const MAX_ATTEMPTS = 5;
+    if ((otpRecord.attempts || 0) >= MAX_ATTEMPTS) {
+      console.error('Too many OTP attempts for record:', otpRecord.id);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Too many attempts',
+        message: 'Too many incorrect attempts. Please request a new OTP.'
+      }), {
+        status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -218,13 +208,18 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Increment attempt counter immediately (before verification) to count this try
+    await supabaseAdmin
+      .from('otp_verifications')
+      .update({ attempts: (otpRecord.attempts || 0) + 1 })
+      .eq('id', otpRecord.id);
+
     // Mark OTP as verified in our database
     const { error: updateError } = await supabaseAdmin
       .from('otp_verifications')
       .update({ 
         is_verified: true,
         verified_at: new Date().toISOString(),
-        attempts: (otpRecord.attempts || 0) + 1
       })
       .eq('id', otpRecord.id);
 
@@ -459,14 +454,18 @@ const handler = async (req: Request): Promise<Response> => {
     const expiresAt = Math.floor(Date.now() / 1000) + (60 * 60); // 1 hour
     const refreshExpiresAt = Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30); // 30 days
 
-    await supabaseAdmin.from('user_sessions').insert({
+    const { error: sessionInsertError } = await supabaseAdmin.from('user_sessions').insert({
       user_id: user.id,
       session_token: accessToken,
       refresh_token: refreshToken,
       expires_at: new Date(expiresAt * 1000).toISOString(),
       refresh_expires_at: new Date(refreshExpiresAt * 1000).toISOString(),
     });
-    
+    if (sessionInsertError) {
+      console.error('Failed to persist user_session:', sessionInsertError.message);
+      // Non-fatal: return session anyway so user can still log in
+    }
+
     const session = {
       access_token: accessToken,
       refresh_token: refreshToken,

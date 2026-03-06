@@ -265,13 +265,17 @@ const handler = async (req: Request): Promise<Response> => {
     const expiresAt = Math.floor(Date.now() / 1000) + (60 * 60); // 1 hour
     const refreshExpiresAt = Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30); // 30 days
 
-    await supabaseAdmin.from('user_sessions').insert({
+    const { error: sessionInsertError } = await supabaseAdmin.from('user_sessions').insert({
       user_id: updatedUser.id,
       session_token: accessToken,
       refresh_token: refreshToken,
       expires_at: new Date(expiresAt * 1000).toISOString(),
       refresh_expires_at: new Date(refreshExpiresAt * 1000).toISOString(),
     });
+    if (sessionInsertError) {
+      console.error('Failed to persist user_session:', sessionInsertError.message);
+      // Non-fatal: return session anyway so user can still complete registration
+    }
 
     const session = {
       access_token: accessToken,
