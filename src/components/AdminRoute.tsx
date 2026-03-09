@@ -90,7 +90,20 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   }
 
   if (!isCompletelySetup) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/20 p-4">
+        <div className="w-full max-w-md text-center space-y-4">
+          <p className="text-muted-foreground">Please complete your account setup to continue.</p>
+          <button
+            type="button"
+            onClick={() => navigate("/auth?redirect=" + encodeURIComponent(location.pathname + location.search))}
+            className="text-primary font-medium underline hover:no-underline"
+          >
+            Go to sign in
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!isAdmin && !isImpersonating) {

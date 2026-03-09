@@ -14,17 +14,17 @@ describe('fomoSelection', () => {
     it('excludes big_toys', () => {
       expect(FOMO_SELECTION_STEPS).not.toContain('big_toys');
     });
-    it('includes stem_toys, educational_toys, books', () => {
-      expect(FOMO_SELECTION_STEPS).toContain('stem_toys');
+    it('includes educational_toys, developmental_toys, books', () => {
       expect(FOMO_SELECTION_STEPS).toContain('educational_toys');
+      expect(FOMO_SELECTION_STEPS).toContain('developmental_toys');
       expect(FOMO_SELECTION_STEPS).toContain('books');
     });
   });
 
   describe('isFOMOStep', () => {
-    it('returns true for stem_toys, educational_toys, books', () => {
-      expect(isFOMOStep('stem_toys')).toBe(true);
+    it('returns true for educational_toys, developmental_toys, books', () => {
       expect(isFOMOStep('educational_toys')).toBe(true);
+      expect(isFOMOStep('developmental_toys')).toBe(true);
       expect(isFOMOStep('books')).toBe(true);
     });
     it('returns false for big_toys', () => {
@@ -44,13 +44,13 @@ describe('fomoSelection', () => {
   });
 
   describe('FOMO_SECTION_COPY', () => {
-    it('has title and subline for stem_toys (UI: Educational)', () => {
-      expect(FOMO_SECTION_COPY.stem_toys.title).toContain("Parents' Favourite Learning Toys");
-      expect(FOMO_SECTION_COPY.stem_toys.subline).toContain("500+ Toyflix parents");
+    it('has title and subline for educational_toys (UI: Educational)', () => {
+      expect(FOMO_SECTION_COPY.educational_toys.title).toContain("Parents' Favourite Learning Toys");
+      expect(FOMO_SECTION_COPY.educational_toys.subline).toContain("500+ Toyflix parents");
     });
-    it('has title and subline for educational_toys (UI: Developmental)', () => {
-      expect(FOMO_SECTION_COPY.educational_toys.title).toContain("Parents' Top Picks for Development");
-      expect(FOMO_SECTION_COPY.educational_toys.subline).toContain("Bangalore");
+    it('has title and subline for developmental_toys (UI: Developmental)', () => {
+      expect(FOMO_SECTION_COPY.developmental_toys.title).toContain("Parents' Top Picks for Development");
+      expect(FOMO_SECTION_COPY.developmental_toys.subline).toContain("Bangalore");
     });
   });
 

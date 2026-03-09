@@ -62,11 +62,11 @@ export const FOMO_TOY_TAG_LABELS: Record<FOMOToyTag, string> = {
 
 /** Step-specific FOMO tag labels. Rank 0–3 map to first 4 toys in banner. */
 export const FOMO_TAG_LABELS_BY_STEP: Record<
-  'stem_toys' | 'educational_toys' | 'books',
+  'educational_toys' | 'developmental_toys' | 'books',
   [string, string, string, string]
 > = {
-  stem_toys: ['Toyflix Bestseller', 'Learning Favourite', 'Expert Pick', 'Top Learning Toy'],
-  educational_toys: ['🏆 Toyflix Bestseller', '🔥 High Demand', '⭐ Kids Favourite', '🚀 Trending Toy'],
+  educational_toys: ['Toyflix Bestseller', 'High Demand', 'Kids Favourite', 'Trending Toy'],
+  developmental_toys: ['Toyflix Bestseller', 'High Demand', 'Kids Favourite', 'Trending Toy'],
   books: ['Must-Read for Kids', 'Top Learning Book', 'Storytime Favourite', "Parents' Choice"],
 };
 
