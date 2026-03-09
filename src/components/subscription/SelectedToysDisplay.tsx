@@ -1,8 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { X, ToyBrick, Bot, BrainCircuit, BookOpen, Blocks } from "lucide-react";
+import { X, ToyBrick, Bot, BrainCircuit, BookOpen } from "lucide-react";
 import { Toy } from "@/hooks/useToys";
 import { SubscriptionCategory } from "@/types/toy";
 import { CATEGORY_LABELS } from "@/constants/categoryMapping";
@@ -29,11 +28,12 @@ const categoryIcons: { [key: string]: React.ReactNode } = {
   'ride_on_toys': <ToyBrick className="w-4 h-4" />
 };
 
-// Selection flow display labels: Step 2=Educational (stem_toys), Step 3=Developmental (educational_toys)
+// Selection flow display labels: Step 2=Educational, Step 3=Developmental
 const SELECTION_CATEGORY_LABELS: Record<string, string> = {
   ...CATEGORY_LABELS,
+  'educational_toys': 'Educational',
+  'developmental_toys': 'Developmental',
   'stem_toys': 'Educational',
-  'educational_toys': 'Developmental',
 };
 
 export const SelectedToysDisplay = ({ stepSelections, onRemove, currentStep }: SelectedToysDisplayProps) => {
@@ -43,53 +43,48 @@ export const SelectedToysDisplay = ({ stepSelections, onRemove, currentStep }: S
     return null;
   }
 
+  // Flatten all toys with category into one array for side-by-side layout
+  const allToysWithCategory = Object.entries(stepSelections).flatMap(([category, toys]) =>
+    toys.map((toy) => ({ toy, category }))
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Your Selected Toys</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {Object.entries(stepSelections).map(([category, toys]) => {
-          if (toys.length === 0) return null;
-          
-          return (
-            <div key={category} className="space-y-3">
-              <div className="flex items-center gap-2">
-                {categoryIcons[category]}
-                <h3 className="font-medium">{SELECTION_CATEGORY_LABELS[category] || CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category}</h3>
-                <Badge variant="secondary">{toys.length} selected</Badge>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {allToysWithCategory.map(({ toy, category }) => (
+            <div
+              key={`${category}-${toy.id}`}
+              className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg min-w-0"
+            >
+              {toy.image_url && (
+                <img
+                  src={toy.image_url}
+                  alt={toy.name}
+                  className="w-12 h-12 object-cover rounded flex-shrink-0"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-sm truncate">{toy.name}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="flex-shrink-0">{categoryIcons[category]}</span>
+                  <span className="truncate">{SELECTION_CATEGORY_LABELS[category] || CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category}</span>
+                </p>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {toys.map((toy) => (
-                  <div key={toy.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      {toy.image_url && (
-                        <img 
-                          src={toy.image_url} 
-                          alt={toy.name}
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium text-sm">{toy.name}</p>
-                        <p className="text-xs text-muted-foreground">{toy.brand}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemove(toy.id, category as SubscriptionCategory)}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRemove(toy.id, category as SubscriptionCategory)}
+                className="h-8 w-8 p-0 flex-shrink-0 text-red-500 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
