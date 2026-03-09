@@ -20,13 +20,13 @@ export class ToySelectionService {
       {
         step: 2,
         description: "Educational",
-        subscriptionCategory: "stem_toys",
+        subscriptionCategory: "educational_toys",
         icon: "BrainCircuit"
       },
       {
         step: 3,
         description: "Developmental",
-        subscriptionCategory: "educational_toys",
+        subscriptionCategory: "developmental_toys",
         icon: "Bot"
       },
       {

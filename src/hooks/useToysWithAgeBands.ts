@@ -13,43 +13,66 @@ export const useToysWithAgeBands = () => {
       if (isOldAndroidWebView()) {
         return fetchToysViaProxy();
       }
-      const { data, error } = await supabase
-        .from('toys')
-        .select('*')
-        .order('is_featured', { ascending: false })
-        .order('name', { ascending: true });
+      const fetchMain = async (): Promise<Toy[]> => {
+        const { data, error } = await supabase
+          .from('toys')
+          .select('*')
+          .order('is_featured', { ascending: false })
+          .order('name', { ascending: true });
 
-      if (error) throw error;
+        if (error) {
+          console.error('❌ useToysWithAgeBands fetch error:', error);
+          throw error;
+        }
 
-      const toys = (data || []).map(toy => ({
-        id: toy.id,
-        name: toy.name,
-        description: toy.description,
-        category: toy.category,
-        subscription_category: toy.subscription_category,
-        age_range: toy.age_range,
-        brand: toy.brand,
-        pack: toy.pack,
-        retail_price: toy.retail_price,
-        rental_price: toy.rental_price,
-        image_url: toy.image_url,
-        available_quantity: toy.available_quantity,
-        total_quantity: toy.total_quantity,
-        rating: toy.rating,
-        min_age: toy.min_age,
-        max_age: toy.max_age,
-        show_strikethrough_pricing: toy.show_strikethrough_pricing,
-        display_order: toy.display_order,
-        is_featured: toy.is_featured,
-        created_at: toy.created_at,
-        updated_at: toy.updated_at,
-      })) as Toy[];
+        const toys = (data || []).map(toy => ({
+          id: toy.id,
+          name: toy.name,
+          description: toy.description,
+          category: toy.category,
+          subscription_category: toy.subscription_category,
+          age_range: toy.age_range,
+          brand: toy.brand,
+          pack: toy.pack,
+          retail_price: toy.retail_price,
+          rental_price: toy.rental_price,
+          image_url: toy.image_url,
+          available_quantity: toy.available_quantity,
+          total_quantity: toy.total_quantity,
+          rating: toy.rating,
+          min_age: toy.min_age,
+          max_age: toy.max_age,
+          show_strikethrough_pricing: toy.show_strikethrough_pricing,
+          display_order: toy.display_order,
+          is_featured: toy.is_featured,
+          created_at: toy.created_at,
+          updated_at: toy.updated_at,
+        })) as Toy[];
 
-      return sortToysByCategory(toys);
+        return sortToysByCategory(toys);
+      };
+
+      try {
+        const result = await withTimeout(fetchMain());
+        if (!result || result.length === 0) {
+          console.warn('⚠️ useToysWithAgeBands: main fetch empty, trying fallback...');
+          return sortToysByCategory(await fetchToysMinimal());
+        }
+        return result;
+      } catch (e) {
+        console.warn('⚠️ useToysWithAgeBands: fetch failed, trying fallback:', e);
+        try {
+          return sortToysByCategory(await fetchToysMinimal());
+        } catch {
+          throw e;
+        }
+      }
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
   });
 };
 
@@ -131,8 +154,8 @@ export async function queryAgeSpecificTable(tableName: string): Promise<Toy[]> {
   }
 }
 
-/** 15s timeout so Toys page never hangs; then fallback runs. */
-const TOYS_TIMEOUT_MS = 15_000;
+/** 30s timeout so Toys page never hangs; then fallback runs. */
+const TOYS_TIMEOUT_MS = 30_000;
 const withTimeout = <T>(p: Promise<T>) =>
   Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), TOYS_TIMEOUT_MS))]);
 
@@ -178,16 +201,18 @@ async function fetchToysViaProxy(): Promise<Toy[]> {
 /** Query key for homepage Featured Toys – used for prefetch so carousel has data on first load/refresh. */
 export const HOMEPAGE_TOYS_QUERY_KEY = ['toys-age-table-direct', undefined] as const;
 
-/** Minimal fetch: no filters, so it works even if RLS or filters cause issues. */
+/** Minimal fetch: no filters, no limit – fallback when main fetch fails. */
 async function fetchToysMinimal(): Promise<Toy[]> {
   const { data, error } = await supabase
     .from('toys')
     .select('*')
     .order('is_featured', { ascending: false })
-    .order('name', { ascending: true })
-    .limit(80);
+    .order('name', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ fetchToysMinimal error:', error);
+    throw error;
+  }
 
   const toys = (data || []).map((toy: any) => ({
     id: toy.id,
@@ -279,7 +304,10 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
           .neq('category', 'ride_on_toys')
           .order('is_featured', { ascending: false })
           .order('name', { ascending: true });
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Toys fetch error:', error);
+          throw error;
+        }
         const toys = (data || []).map(toy => ({
           id: toy.id, name: toy.name, description: toy.description, category: toy.category,
           subscription_category: toy.subscription_category, age_range: toy.age_range, brand: toy.brand,
@@ -293,10 +321,18 @@ export const useToysForAgeGroup = (ageGroup?: string) => {
 
       const tryWithFallback = async (fn: () => Promise<Toy[]>): Promise<Toy[]> => {
         try {
-          return await withTimeout(fn());
+          const result = await withTimeout(fn());
+          if (!result || result.length === 0) {
+            console.warn('⚠️ Main toys fetch returned empty, trying fallback...');
+            const fallback = await fetchToysMinimal();
+            return sortToysByCategory(fallback.filter((t) => t.category !== 'ride_on_toys'));
+          }
+          return result;
         } catch (e) {
+          console.warn('⚠️ Toys fetch failed, trying fallback:', e);
           try {
-            return await fetchToysMinimal();
+            const fallback = await fetchToysMinimal();
+            return sortToysByCategory(fallback.filter((t) => t.category !== 'ride_on_toys'));
           } catch {
             throw e;
           }

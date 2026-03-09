@@ -7,10 +7,10 @@
 
 export type SubscriptionCategory = 'big_toys' | 'stem_toys' | 'educational_toys' | 'developmental_toys' | 'books';
 
-/** Steps that show FOMO tags (not Big Toys). Step 2=stem_toys (UI: Educational), Step 3=educational_toys (UI: Developmental). */
+/** Steps that show FOMO tags (not Big Toys). Step 2=Educational, Step 3=Developmental, Step 4=Books. */
 export const FOMO_SELECTION_STEPS: SubscriptionCategory[] = [
-  'stem_toys',
   'educational_toys',
+  'developmental_toys',
   'books',
 ];
 
@@ -35,9 +35,9 @@ export const FOMO_SECTION_COPY: Record<
     icon: "📚",
   },
   educational_toys: {
-    title: "Parents' Top Picks for Development",
-    subline: "Helping kids build key skills across Bangalore",
-    icon: "🏆",
+    title: "Parents' Favourite Learning Toys",
+    subline: "Chosen by 500+ Toyflix parents this month",
+    icon: "📚",
   },
   developmental_toys: {
     title: "Parents' Top Picks for Development",
@@ -86,7 +86,7 @@ export function getFOMOEmojiForLabel(label: string | undefined | null): string {
 
 /** Get FOMO tag label for a step and rank. Returns null for rank >= 4. */
 export function getFOMOTagLabelForStep(
-  category: 'stem_toys' | 'educational_toys' | 'books',
+  category: 'educational_toys' | 'developmental_toys' | 'books',
   rank: number
 ): string | null {
   const labels = FOMO_TAG_LABELS_BY_STEP[category];
