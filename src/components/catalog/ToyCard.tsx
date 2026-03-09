@@ -29,6 +29,8 @@ interface ToyCardProps {
   isSubscriptionView?: boolean;
   isSelected?: boolean;
   showOutOfStock?: boolean;
+  /** Optional FOMO tag e.g. "🔥 High Demand", "⭐ Parent Favourite", "🏆 Toyflix Bestseller" */
+  tagLabel?: string;
 }
 
 const ToyCard = ({ 
@@ -40,7 +42,8 @@ const ToyCard = ({
   onViewProduct,
   isSubscriptionView = false,
   isSelected = false,
-  showOutOfStock = false
+  showOutOfStock = false,
+  tagLabel,
 }: ToyCardProps) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -218,11 +221,18 @@ const ToyCard = ({
     >
       {/* Optimized Image Section with Carousel */}
       <div 
-        className="relative bg-gradient-to-br from-toy-sky/10 to-toy-mint/10 cursor-pointer"
+        className="relative flex-shrink-0 bg-gradient-to-br from-toy-sky/10 to-toy-mint/10 cursor-pointer"
         onClick={handleImageClick}
       >
-        {/* Dynamic aspect ratio container */}
-        <div className="aspect-[4/3] w-full overflow-hidden">
+        {tagLabel && (
+          <div className="absolute top-2 left-2 z-10">
+            <span className="inline-flex items-center rounded-lg bg-black/90 text-white text-sm font-semibold px-3 py-1.5 shadow-lg ring-1 ring-white/20">
+              {tagLabel}
+            </span>
+          </div>
+        )}
+        {/* Dynamic aspect ratio container — more compact in subscription selection view */}
+        <div className={cn("w-full overflow-hidden", isSubscriptionView ? "aspect-square" : "aspect-[4/3]")}>
           {/* Loading Skeleton */}
           {isImageLoading && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
@@ -274,13 +284,13 @@ const ToyCard = ({
             </div>
           )}
 
-          {/* Out of Stock Badge - Only show in subscription/order selection flows */}
+          {/* Coming Soon Badge - Only show in subscription/order selection flows */}
           {isSubscriptionView && toy.available_quantity === 0 && (
             <Badge
               variant="destructive"
               className="absolute top-2 left-2 text-xs font-bold z-20 bg-red-500/90 text-white shadow-md"
             >
-              Out of Stock
+              Coming Soon
             </Badge>
           )}
         </div>
@@ -345,7 +355,7 @@ const ToyCard = ({
               >
                 {toy.available_quantity === 0 ? (
                   <>
-                    Out of Stock
+                    Coming Soon
                   </>
                 ) : isSelected ? (
                   <>

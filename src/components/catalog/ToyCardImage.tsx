@@ -79,7 +79,7 @@ const ToyCardImage = ({
         </Button>
         {isSubscriptionView && toy.available_quantity === 0 && (
           <Badge className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 text-xs" variant="destructive">
-            Out of Stock
+            Coming Soon
           </Badge>
         )}
         {isSubscriptionView && (

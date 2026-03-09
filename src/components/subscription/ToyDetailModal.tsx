@@ -416,7 +416,7 @@ const ToyDetailModal = ({
                 >
                   {toy.available_quantity === 0 ? (
                     <>
-                      Out of Stock
+                      Coming Soon
                     </>
                   ) : isSelected ? (
                     <>
@@ -442,7 +442,7 @@ const ToyDetailModal = ({
                   )}
                   size="lg"
                 >
-                  {toy.available_quantity === 0 ? "Out of Stock" : "Subscribe Now"}
+                  {toy.available_quantity === 0 ? "Coming Soon" : "Subscribe Now"}
                 </Button>
               )}
 

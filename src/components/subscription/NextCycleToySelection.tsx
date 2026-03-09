@@ -133,7 +133,7 @@ export const NextCycleToySelection = ({
       if (!toyData || !isToySelectable(toyData)) {
         toast({
           title: "Toy Unavailable",
-          description: `${toy.name} is currently out of stock and cannot be selected.`,
+          description: `${toy.name} is coming soon and cannot be selected yet.`,
           variant: "destructive"
         });
         return;
