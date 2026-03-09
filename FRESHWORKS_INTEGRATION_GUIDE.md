@@ -1,5 +1,7 @@
 # 🎯 Freshworks CRM & WhatsApp Business Integration Guide
 
+> **Deprecated:** Freshworks and WhatsApp order-completion integrations have been removed from the app (razorpay-verify, auth-complete-profile). This guide is kept for reference only. The app now uses Supabase-only flows.
+
 ## ✅ **Complete Integration Overview**
 
 This guide documents the comprehensive Freshworks CRM and WhatsApp Business API integration for your ToyFlix application. The integration matches and exceeds the functionality from your old WordPress/WooCommerce website.

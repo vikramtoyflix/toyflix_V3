@@ -51,6 +51,7 @@ const OrderSummary = () => {
   // Payment info for immediate display
   const paymentAmount = searchParams.get("amount");
   const planId = searchParams.get("plan_id");
+  const verificationFailed = searchParams.get("verification") === "failed";
 
   const fetchOrderDetails = async () => {
     if (!user) {
@@ -112,19 +113,23 @@ const OrderSummary = () => {
   };
 
   useEffect(() => {
-    // Show payment success immediately
-    setShowPaymentSuccess(true);
-    
-    // Show success toast immediately
-    toast({
-      title: "Payment Successful! 🎉",
-      description: "Your payment has been processed successfully. Loading order details...",
-      duration: 5000,
-    });
-
-    // Load order details immediately so success page shows without delay
+    setShowPaymentSuccess(!verificationFailed);
+    if (verificationFailed) {
+      toast({
+        title: "Verification in progress",
+        description: "We're confirming your payment. You will not be charged twice. If your order doesn't appear soon, contact support.",
+        variant: "default",
+        duration: 8000,
+      });
+    } else {
+      toast({
+        title: "Payment Successful! 🎉",
+        description: "Your payment has been processed successfully. Loading order details...",
+        duration: 5000,
+      });
+    }
     fetchOrderDetails();
-  }, [user]);
+  }, [user, verificationFailed]);
 
   const handleGoToDashboard = () => {
     window.location.href = "/dashboard";
@@ -162,38 +167,46 @@ const OrderSummary = () => {
     <div className={`${isMobile ? 'pt-4 px-4' : 'pt-20 container mx-auto px-4'} py-8`}>
       <div className="max-w-4xl mx-auto">
         
-        {/* Instant Payment Success */}
-        <Card className={`${isMobile ? 'border-0 shadow-lg' : 'border shadow-xl'} bg-gradient-to-br from-green-50 to-emerald-50 mb-6`}>
+        {/* Payment status: success or verification pending */}
+        <Card className={`${isMobile ? 'border-0 shadow-lg' : 'border shadow-xl'} mb-6 ${verificationFailed ? 'bg-gradient-to-br from-amber-50 to-orange-50' : 'bg-gradient-to-br from-green-50 to-emerald-50'}`}>
           <CardHeader className={`${isMobile ? 'pb-4' : 'pb-6'} text-center`}>
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
-                <CheckCircle className="w-12 h-12 text-green-600" />
-              </div>
+              {verificationFailed ? (
+                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-12 h-12 text-amber-600" />
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
+                  <CheckCircle className="w-12 h-12 text-green-600" />
+                </div>
+              )}
             </div>
-            <CardTitle className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-green-800 mb-2`}>
-              Payment Successful! 🎉
+            <CardTitle className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold mb-2 ${verificationFailed ? 'text-amber-800' : 'text-green-800'}`}>
+              {verificationFailed ? "Confirming your payment" : "Payment Successful! 🎉"}
             </CardTitle>
-            <p className={`${isMobile ? 'text-base' : 'text-lg'} text-green-700 mb-4`}>
-              Thank you for your payment! Your order has been confirmed.
+            <p className={`${isMobile ? 'text-base' : 'text-lg'} mb-4 ${verificationFailed ? 'text-amber-700' : 'text-green-700'}`}>
+              {verificationFailed
+                ? "We couldn't confirm your order automatically. You will not be charged twice. Our team will check and update your order shortly. Contact support if you have questions."
+                : "Thank you for your payment! Your order has been confirmed."}
             </p>
-            
-            {/* Show order number if available, otherwise show generic success */}
-            {orderDetails ? (
-              <Badge variant="default" className="bg-green-600 text-white px-4 py-2 text-lg">
-                Order #{orderDetails.order_number}
-              </Badge>
-            ) : (
-              <div className="space-y-2">
+            {!verificationFailed && (
+              orderDetails ? (
                 <Badge variant="default" className="bg-green-600 text-white px-4 py-2 text-lg">
-                  Payment Confirmed
+                  Order #{orderDetails.order_number}
                 </Badge>
-                {isLoadingOrder && (
-                  <p className="text-sm text-green-600">
-                    <RefreshCw className="w-4 h-4 inline mr-1 animate-spin" />
-                    Loading order details...
-                  </p>
-                )}
-              </div>
+              ) : (
+                <div className="space-y-2">
+                  <Badge variant="default" className="bg-green-600 text-white px-4 py-2 text-lg">
+                    Payment Confirmed
+                  </Badge>
+                  {isLoadingOrder && (
+                    <p className="text-sm text-green-600">
+                      <RefreshCw className="w-4 h-4 inline mr-1 animate-spin" />
+                      Loading order details...
+                    </p>
+                  )}
+                </div>
+              )
             )}
           </CardHeader>
         </Card>

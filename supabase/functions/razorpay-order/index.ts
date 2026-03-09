@@ -101,7 +101,8 @@ serve(async (req) => {
       console.log('⚠️ User creation failed, continuing with order:', userError);
     }
 
-    // Store payment order data in payment_orders table (for admin panel visibility)
+    // Store payment order data so razorpay-verify can find it (payment_orders first, then payment_tracking)
+    let orderStored = false;
     try {
       const { data: paymentRecord, error: paymentError } = await supabaseClient
         .from('payment_orders')
@@ -120,9 +121,7 @@ serve(async (req) => {
         .single();
 
       if (paymentError) {
-        console.log('⚠️ Payment orders insert failed:', paymentError);
-        
-        // Try backup storage in payment_tracking table if it exists
+        console.error('⚠️ Payment orders insert failed:', paymentError.message, paymentError.code);
         try {
           const { data: backupRecord, error: backupError } = await supabaseClient
             .from('payment_tracking')
@@ -142,20 +141,32 @@ serve(async (req) => {
             })
             .select()
             .single();
-          
           if (backupError) {
-            console.log('⚠️ Backup payment tracking also failed:', backupError);
+            console.error('❌ Backup payment_tracking also failed:', backupError.message);
           } else {
-            console.log('✅ Payment stored in backup tracking table:', backupRecord.id);
+            orderStored = true;
+            console.log('✅ Payment stored in payment_tracking:', backupRecord?.id);
           }
-        } catch (backupException) {
-          console.log('⚠️ Backup tracking exception:', backupException);
+        } catch (backupException: any) {
+          console.error('❌ Backup payment_tracking exception:', backupException?.message);
         }
       } else {
-        console.log('✅ Payment order record created:', paymentRecord.id);
+        orderStored = true;
+        console.log('✅ Payment order record created:', paymentRecord?.id);
       }
-    } catch (orderError) {
-      console.log('⚠️ Payment order exception:', orderError);
+    } catch (orderError: any) {
+      console.error('❌ Payment order storage exception:', orderError?.message);
+    }
+
+    if (!orderStored) {
+      console.error('❌ Order not stored in payment_orders or payment_tracking – verification would fail after payment');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Unable to save order. Please try again or contact support.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+      );
     }
 
     return new Response(
