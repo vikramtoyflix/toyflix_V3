@@ -4,10 +4,12 @@ import ToySelectionProgress from "./ToySelectionProgress";
 import ToySelectionStepInfo from "./ToySelectionStepInfo";
 import ToySelectionComplete from "./ToySelectionComplete";
 import ToySelectionNavigation from "./ToySelectionNavigation";
+import { isFOMOStep, getFOMOTagForRank, FOMO_TOY_TAG_LABELS } from "@/constants/fomoSelection";
+import { Toy } from "@/hooks/useToys";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { Toy } from "@/hooks/useToys";
 import { useToySelectionWizardState } from "./hooks/useToySelectionWizardState";
 import { useToySelectionWizardHandlers } from "./hooks/useToySelectionWizardHandlers";
 import React from "react";
@@ -73,7 +75,18 @@ export const ToySelectionWizard = ({
   isQueueManagement = false 
 }: ToySelectionWizardProps) => {
   const [isPopupDismissed, setIsPopupDismissed] = React.useState(false);
-  
+  const prevStepRef = React.useRef(1);
+
+  // Scroll to top when advancing to next step so the new step loads from top
+  React.useEffect(() => {
+    if (currentStep > prevStepRef.current) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      prevStepRef.current = currentStep;
+    } else {
+      prevStepRef.current = currentStep;
+    }
+  }, [currentStep]);
+
   // CRITICAL FIX: Ensure Gold pack always gets 'all' age group
   let validatedAgeGroup: string;
   if (planId === 'gold-pack' && (!ageGroup || ageGroup === '')) {
@@ -171,7 +184,7 @@ export const ToySelectionWizard = ({
   }
 
   return (
-    <div className={`space-y-${isMobile ? '4' : '8'} relative ${!isMobile ? 'pb-24' : 'pb-4'}`}>
+    <div className={cn("relative w-full min-w-0", isMobile ? "space-y-4 pb-4" : "space-y-8 pb-24")} style={!isMobile && currentSelections.length > 0 ? { paddingBottom: "5.5rem" } : undefined}>
       <ToySelectionProgress 
         currentStep={currentStep}
         totalSteps={selectionSteps.length}
@@ -207,6 +220,14 @@ export const ToySelectionWizard = ({
         isSubscriptionView={true}
         selectedToyIds={currentSelections.map(t => t.id)}
         showOutOfStock={true}
+        getToyTagLabel={
+          currentStepInfo && isFOMOStep(currentStepInfo.subscriptionCategory)
+            ? (toy: Toy, index: number) => {
+                const tag = getFOMOTagForRank(index);
+                return tag ? FOMO_TOY_TAG_LABELS[tag] : null;
+              }
+            : undefined
+        }
       />
 
       {/* Mobile Next Step Button - Centered popup in middle of screen */}
@@ -302,8 +323,52 @@ export const ToySelectionWizard = ({
         </div>
       )}
 
-      {/* Desktop navigation */}
-      {!isMobile && (
+      {/* Desktop: fixed bottom bar so Next step is visible without scrolling */}
+      {!isMobile && currentSelections.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="container mx-auto max-w-7xl px-4 py-3">
+            <div className="flex justify-between items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                {currentSelections.length}/{requirement} selected
+                {isFinalStep && isFinalStepComplete && " — Ready to complete!"}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousStep}
+                  disabled={currentStep === 1}
+                  size="lg"
+                >
+                  Previous
+                </Button>
+                {isFinalStep ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={!isFinalStepComplete}
+                    size="lg"
+                    className="px-6"
+                  >
+                    Complete Selection
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={!canProceed}
+                    size="lg"
+                    className="px-6"
+                  >
+                    Next Step
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop in-flow navigation (when no selection yet, so layout is unchanged) */}
+      {!isMobile && currentSelections.length === 0 && (
         <ToySelectionNavigation
           currentStep={currentStep}
           totalSteps={selectionSteps.length}
