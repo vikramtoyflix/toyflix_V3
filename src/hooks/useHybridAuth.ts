@@ -108,35 +108,29 @@ export const useHybridAuth = () => {
   };
 
   // Send OTP (with waterfall user detection)
+  // CRITICAL: Send OTP immediately - don't wait for user check (was causing ~10s delay)
   const sendHybridOTP = async (phone: string) => {
     try {
       setIsLoading(true);
-      
-      // Waterfall check - WooCommerce first, then Supabase
-      const userCheck = await checkUserExistsWaterfall(phone);
-      
-      // Send OTP regardless of user existence
-      const otpResult = await sendOTP(phone);
-      
+
+      // Fire OTP and user check in parallel - OTP sends first, user check for welcome message
+      const otpPromise = sendOTP(phone);
+      const userCheckPromise = checkUserExistsWaterfall(phone);
+
+      const otpResult = await otpPromise;
       if (!otpResult.success) {
         throw new Error(otpResult.error?.message || "Failed to send OTP");
       }
 
-      let welcomeMessage = '';
-      if (userCheck.exists) {
-        if (userCheck.source === 'woocommerce') {
-          welcomeMessage = `Welcome back! Found your account with subscription history. OTP sent to ${phone}`;
-        } else {
-          welcomeMessage = `Welcome back! OTP sent to ${phone}`;
-        }
-      } else {
-        welcomeMessage = `Welcome to Toyflix! OTP sent to ${phone}`;
-      }
-
+      // Show success immediately - don't wait for user check
       toast({
         title: "OTP Sent! 📱",
-        description: welcomeMessage,
+        description: "Check your phone for the verification code.",
       });
+      setIsLoading(false);
+
+      // Resolve user check in background for any future use (welcome message was redundant)
+      const userCheck = await userCheckPromise;
 
       return {
         success: true,

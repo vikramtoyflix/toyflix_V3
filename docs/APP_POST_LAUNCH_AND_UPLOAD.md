@@ -1,6 +1,11 @@
 # iOS & Android App — Post–Website Launch Checklist & Upload Guide
 
-Your app is a **Capacitor** build of the same Vite/React codebase as the website. It mirrors the site by running the same built web app inside native shells. After the new website launch, use this checklist and then upload to the stores.
+You have **two ways** to build the native app:
+
+1. **Website mirror** (default): `npm run build` then `npx cap sync` — same UI as the website. Good if you want one experience everywhere.
+2. **Standalone app UI** (recommended for resilience): `npm run build:app` then `npx cap sync` — a **separate, native-first UI** that talks directly to Supabase. The app keeps running smoothly even when the website is down.
+
+The standalone app uses the same auth and backend as the website but a different UI (dark theme, bottom tabs, Home / Toys / Dashboard / Account). Build it with `npm run build:app` and use the checklist below for store uploads.
 
 ---
 
@@ -44,12 +49,9 @@ The app bakes in `VITE_*` env vars at **build time**. Use the **same production 
 
 ### 1.6 Test before uploading
 
-- [ ] Run a **production** web build and test in Capacitor:
-  - `npm run build`
-  - `npx cap sync`
-  - Open iOS: `npx cap open ios` → run on simulator/device.
-  - Open Android: `npx cap open android` → run on emulator/device.
-- [ ] Verify: login, Supabase data, Razorpay (if used), and any API that the website uses.
+- [ ] For **standalone app UI** (recommended): `npm run build:app` then `npx cap sync`. For website-mirror: `npm run build` then `npx cap sync`.
+- [ ] Open iOS: `npx cap open ios` → run on simulator/device. Open Android: `npx cap open android` → run on emulator/device.
+- [ ] Verify: login, catalog, dashboard, and that the app uses Supabase directly (no dependency on the website being up).
 
 ---
 
@@ -57,14 +59,17 @@ The app bakes in `VITE_*` env vars at **build time**. Use the **same production 
 
 From the project root:
 
+**Option A — Standalone app (runs when website is down):**
 ```bash
-# 1. Install deps (if needed)
 npm ci
+npm run build:app   # Builds app-only UI (index-app.html → dist/)
+npx cap sync        # Copies dist/ into iOS/Android
+```
 
-# 2. Production web build (uses .env in this folder)
-npm run build
-
-# 3. Copy web build into iOS/Android and update native project
+**Option B — Website mirror (same UI as toyflix.in):**
+```bash
+npm ci
+npm run build       # Builds website UI
 npx cap sync
 ```
 
@@ -125,9 +130,9 @@ npx cap sync
 
 | Step | Command / action |
 |------|-------------------|
-| Env | Same production `.env` as website for `npm run build` |
+| Env | Same production `.env` as website for `npm run build` or `npm run build:app` |
 | Version | Bump iOS version/build, Android `versionCode`/`versionName` |
-| Build web | `npm run build` |
+| Build | `npm run build:app` (standalone app) or `npm run build` (website mirror) |
 | Sync native | `npx cap sync` |
 | iOS upload | `npx cap open ios` → Xcode → Product → Archive → Distribute to App Store Connect |
 | Android upload | Build signed AAB → Play Console → upload `.aab` |

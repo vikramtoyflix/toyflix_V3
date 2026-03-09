@@ -10,11 +10,19 @@ export interface ToyImage {
 }
 
 const BULK_CHUNK_SIZE = 100;
+const BULK_TIMEOUT_MS = 12_000;
+
+const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+  Promise.race([
+    p,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 
 /**
  * Fetches ALL toy images in batched queries and returns a map of toy_id -> images[].
  * Use this at the carousel/list level so each card doesn't fire its own query.
  * Batches IDs (100 per request) to avoid limits and keep one fast load for the page.
+ * If fetch exceeds 12s (e.g. slow WebView/emulator), returns {} so cards fall back to toy.image_url.
  */
 export const useBulkToyImages = (toyIds: string[]) => {
   return useQuery({
@@ -28,33 +36,37 @@ export const useBulkToyImages = (toyIds: string[]) => {
         chunks.push(uniqueIds.slice(i, i + BULK_CHUNK_SIZE));
       }
 
-      const results = await Promise.all(
-        chunks.map(async (chunk) => {
-          const { data, error } = await supabase
-            .from('toy_images')
-            .select('id, toy_id, image_url, display_order, is_primary')
-            .in('toy_id', chunk)
-            .order('display_order');
-          if (error) {
-            console.warn('Error fetching bulk toy images chunk:', error);
-            return [];
-          }
-          return (data || []) as ToyImage[];
-        })
-      );
+      const fetchPromise = (async () => {
+        const results = await Promise.all(
+          chunks.map(async (chunk) => {
+            const { data, error } = await supabase
+              .from('toy_images')
+              .select('id, toy_id, image_url, display_order, is_primary')
+              .in('toy_id', chunk)
+              .order('display_order');
+            if (error) {
+              console.warn('Error fetching bulk toy images chunk:', error);
+              return [];
+            }
+            return (data || []) as ToyImage[];
+          })
+        );
 
-      const map: Record<string, ToyImage[]> = {};
-      results.flat().forEach((img) => {
-        if (!map[img.toy_id]) map[img.toy_id] = [];
-        map[img.toy_id].push(img);
-      });
-      return map;
+        const map: Record<string, ToyImage[]> = {};
+        results.flat().forEach((img) => {
+          if (!map[img.toy_id]) map[img.toy_id] = [];
+          map[img.toy_id].push(img);
+        });
+        return map;
+      })();
+
+      return withTimeout(fetchPromise, BULK_TIMEOUT_MS, {});
     },
     enabled: toyIds.length > 0,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
   });
 };

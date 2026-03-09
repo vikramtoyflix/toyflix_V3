@@ -20,6 +20,21 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Warm-up: return immediately to pre-warm the function (reduces cold start when user clicks Send OTP)
+  if (req.method === 'POST') {
+    try {
+      const warmBody = await req.clone().json().catch(() => ({}));
+      if (warmBody?.warm === true || req.headers.get('X-Warm-Up') === '1') {
+        return new Response(JSON.stringify({ success: true, warmed: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch {
+      // Not JSON or empty body - continue to normal flow
+    }
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');

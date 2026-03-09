@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Package, Loader2 } from 'lucide-react';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { ToySelectionWizard } from '@/components/subscription/ToySelectionWizard';
 import MobileLayout from '@/components/mobile/MobileLayout';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -259,7 +258,16 @@ const ToySelection = () => {
       }
     } catch (error: any) {
       console.error('❌ Error creating queue order:', error);
-      toast.error('Failed to create order: ' + error.message);
+      const errMsg = error?.message || String(error);
+      const errCode = error?.code || error?.error_code || '';
+      // PGRST2xx = schema/function errors; surface hint for user
+      const isSchemaError = /PGRST2|2\d{2}/.test(String(errCode)) || errMsg.includes('PGRST');
+      const userMsg = isSchemaError
+        ? 'Server configuration error. Please try again or contact support.'
+        : errMsg.includes('address') || errMsg.includes('shipping')
+          ? 'Please check your delivery address is complete (name, street, city, pincode).'
+          : errMsg;
+      toast.error('Failed to create order: ' + userMsg);
     } finally {
       setIsCreatingOrder(false);
     }
@@ -279,20 +287,27 @@ const ToySelection = () => {
   // 🏠 NOTE: isAddressComplete function is now imported from useAddressPrefill hook
 
   // 🏠 NOTE: standardizeShippingAddress function is now imported from useAddressPrefill hook
-  // Local adapter for ToySelection specific format
-  const formatAddressForQueueOrder = (addr: any) => ({
-    label: `${addr.first_name} ${addr.last_name}`,
-    line1: addr.address_line1,
-    line2: addr.apartment,
-    city: addr.city,
-    state: addr.state,
-    pincode: addr.zip_code,
+  // Local adapter for ToySelection specific format - include address_line1 for queue order validation
+  const formatAddressForQueueOrder = (addr: any) => {
+    if (!addr || typeof addr !== 'object') return { line1: '', address_line1: '', first_name: '', last_name: '', city: '', state: '', pincode: '', zip_code: '', postcode: '', country: 'India' };
+    return {
+    label: `${addr.first_name || ''} ${addr.last_name || ''}`.trim(),
+    line1: addr.address_line1 || addr.line1 || '',
+    line2: addr.apartment || addr.line2 || addr.address_line2 || '',
+    address_line1: addr.address_line1 || addr.line1 || '',
+    address_line2: addr.apartment || addr.line2 || addr.address_line2 || '',
+    city: addr.city || '',
+    state: addr.state || '',
+    pincode: addr.zip_code || addr.pincode || '',
+    zip_code: addr.zip_code || addr.pincode || '',
+    postcode: addr.zip_code || addr.pincode || '',
     country: addr.country || 'India',
-    latitude: addr.latitude,
-    longitude: addr.longitude,
-    first_name: addr.first_name,
-    last_name: addr.last_name
-  });
+    latitude: addr.latitude ?? null,
+    longitude: addr.longitude ?? null,
+    first_name: addr.first_name || '',
+    last_name: addr.last_name || ''
+  };
+  };
 
   // Load user subscription details
   useEffect(() => {
@@ -394,7 +409,7 @@ const ToySelection = () => {
   }, [user?.id, subscriptionData]);
 
   const content = (
-    <ProtectedRoute>
+    <>
       <ImpersonationBanner />
       <div 
         className={`min-h-screen ${isMobile ? 'bg-gray-50' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}
@@ -431,8 +446,8 @@ const ToySelection = () => {
         </div>
 
         {/* Main Content */}
-        <div className={`${isMobile ? 'p-4' : 'p-6'}`}>
-          <div className="max-w-7xl mx-auto">
+        <div className={`${isMobile ? 'p-4' : 'p-6'} w-full min-w-0 overflow-x-hidden`}>
+          <div className="max-w-7xl mx-auto w-full min-w-0">
             {isLoading ? (
               // Loading state
               <div className="flex items-center justify-center py-12">
@@ -443,7 +458,7 @@ const ToySelection = () => {
               </div>
             ) : (
               // Render based on current step
-              <div className="space-y-4">
+              <div className="space-y-4 w-full min-w-0">
                 {currentStep === 'selection' && (
                   isMobile ? (
                     // Mobile: Full-width toy selection
@@ -455,14 +470,14 @@ const ToySelection = () => {
                     />
                   ) : (
                     // Desktop: Card layout for toy selection
-                    <Card className="w-full">
+                    <Card className="w-full min-w-0">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Package className="w-5 h-5" />
                           Select Your Toys
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-6">
+                      <CardContent className="p-6 min-w-0 overflow-hidden">
                         <ToySelectionWizard
                           planId={userPlan}
                           ageGroup={userAgeGroup}
@@ -780,7 +795,7 @@ const ToySelection = () => {
           </div>
         </div>
       )}
-    </ProtectedRoute>
+    </>
   );
 
   if (isMobile) {

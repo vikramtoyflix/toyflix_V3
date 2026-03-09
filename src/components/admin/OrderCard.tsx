@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Eye, Package, Phone, MapPin, Calendar, Truck, CheckCircle, Clock, 
-  X, Edit, User, ShoppingCart, CreditCard, Tag, AlertTriangle
+  X, Edit, User, ShoppingCart, CreditCard, Tag, AlertTriangle, Trash2
 } from "lucide-react";
 import { formatOrderDate, formatOrderTime } from "@/utils/dateUtils";
 
@@ -14,6 +14,7 @@ interface OrderCardProps {
   onSelect: () => void;
   onViewDetails: () => void;
   onEditOrder: () => void;
+  onDeleteOrder?: () => void;
   getStatusColor: (status: string) => string;
   getStatusIcon: (status: string) => JSX.Element;
 }
@@ -24,6 +25,7 @@ const OrderCard = ({
   onSelect, 
   onViewDetails, 
   onEditOrder, 
+  onDeleteOrder,
   getStatusColor, 
   getStatusIcon 
 }: OrderCardProps) => {
@@ -265,6 +267,17 @@ const OrderCard = ({
             <Eye className="w-4 h-4 mr-2" />
             View Details
           </Button>
+          {onDeleteOrder && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDeleteOrder()}
+              className="hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

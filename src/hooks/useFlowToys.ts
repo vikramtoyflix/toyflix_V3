@@ -58,6 +58,8 @@ export const useFlowToys = (planId?: string, ageGroup?: string, subscriptionCate
           query = query.eq('subscription_category', 'stem_toys');
         } else if (subscriptionCategory === 'educational_toys') {
           query = query.eq('subscription_category', 'educational_toys');
+        } else if (subscriptionCategory === 'developmental_toys') {
+          query = query.eq('subscription_category', 'developmental_toys');
         } else if (subscriptionCategory) {
           query = query.eq('subscription_category', subscriptionCategory);
         }
@@ -103,10 +105,13 @@ export const useFlowToys = (planId?: string, ageGroup?: string, subscriptionCate
           .order('name', { ascending: true });
 
         // Use subscription_category so STEM step and Educational step show different toys
+        // For developmental_toys: no subscription_category filter (show all age-matching toys)
         if (subscriptionCategory === 'stem_toys') {
           query = query.eq('subscription_category', 'stem_toys');
         } else if (subscriptionCategory === 'educational_toys') {
           query = query.eq('subscription_category', 'educational_toys');
+        } else if (subscriptionCategory === 'developmental_toys') {
+          query = query.eq('subscription_category', 'developmental_toys');
         } else if (subscriptionCategory) {
           query = query.eq('subscription_category', subscriptionCategory);
         }

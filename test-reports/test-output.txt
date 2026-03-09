@@ -1,0 +1,45 @@
+
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+
+ RUN  v2.1.9 /Users/vikrama.m/Documents/toy-joy-box-club-main
+
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Cycle Calculations > should calculate correct cycle number from subscription start
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Cycle Calculations > should validate cycle progress calculations
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Cycle Calculations > should predict next cycle dates correctly
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Different Subscription Scenarios > should handle new subscriptions (first cycle)
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Different Subscription Scenarios > should handle long-term subscriptions (many cycles)
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Different Subscription Scenarios > should handle paused/resumed subscriptions
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Edge Cases > should handle subscription start on month end
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Edge Cases > should handle leap year dates
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Edge Cases > should handle timezone differences correctly
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Edge Cases > should handle DST transitions
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > User Experience Validation > should display cycle progress accurately
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > User Experience Validation > should show correct next cycle dates
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > User Experience Validation > should provide appropriate status messages
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Error Handling > should handle API errors gracefully
+ ✓ src/services/__tests__/subscriptionCycleService.test.ts > SubscriptionCycleService > Error Handling > should handle missing subscription data
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Cycle Progress Display > should display cycle progress accurately
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Cycle Progress Display > should show correct progress for new subscription (first cycle)
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Cycle Progress Display > should show correct progress for long-term subscription
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Selection Window Status > should display "Selection Open" when window is open
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Selection Window Status > should display "Selection Upcoming" when window is upcoming
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Selection Window Status > should display "Selection Closed" when window is closed
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Edge Cases > should handle paused subscription
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Edge Cases > should handle month-end subscription start
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Edge Cases > should handle leap year dates
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Error Handling > should handle API errors gracefully
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Error Handling > should handle missing subscription data
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Loading States > should show loading spinner while fetching data
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Accessibility > should have proper ARIA labels for progress indicators
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Accessibility > should have proper semantic structure
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Visual Feedback > should show appropriate visual indicators for cycle progress
+ ✓ src/components/__tests__/SubscriptionCycleProgress.test.tsx > SubscriptionCycleProgress > Visual Feedback > should show warning indicators for urgent actions
+
+ Test Files  2 passed (2)
+      Tests  31 passed | 3 skipped (34)
+   Start at  19:04:48
+   Duration  839ms (transform 118ms, setup 308ms, collect 262ms, tests 139ms, environment 582ms, prepare 70ms)
+
+JSON report written to /Users/vikrama.m/Documents/toy-joy-box-club-main/test-reports/results.json

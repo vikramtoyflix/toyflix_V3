@@ -18,18 +18,27 @@ export const useUserRole = () => {
         return user.role;
       }
 
-      // As a fallback, query the function, though the user object should be the source of truth
-      const { data, error } = await supabase
+      // Prefer RPC (SECURITY DEFINER); fallback to direct read in case RPC fails
+      const { data: rpcData, error: rpcError } = await supabase
         .rpc('get_user_role_secure', { user_id_param: user.id });
-      
-      if (error) {
-        console.error('Error fetching user role:', error);
-        return 'user'; // Default to 'user' on error
+
+      if (!rpcError && rpcData) return rpcData as UserRole;
+
+      if (rpcError) {
+        console.warn('get_user_role_secure RPC failed, trying direct read:', rpcError.message);
+        const { data: row, error: selectError } = await supabase
+          .from('custom_users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (!selectError && row?.role === 'admin') return 'admin';
       }
-      
-      return data as UserRole;
+
+      return 'user';
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 };

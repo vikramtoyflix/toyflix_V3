@@ -3,7 +3,7 @@ import { CustomAuthContext } from './context';
 import { CustomUser, CustomSession } from './types';
 import { getStoredSession, getStoredUser, clearAuthStorage, saveAuthToStorage } from './storage';
 import { signOut as customSignOut } from './authActions';
-import { verifySession } from './sessionManagement';
+import { verifySession, refreshSession } from './sessionManagement';
 
 export const CustomAuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CustomUser | null>(null);
@@ -79,8 +79,13 @@ export const CustomAuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isSubscribed) return;
 
         if (valid) {
-          const finalUser = verifiedUser || storedUser;
+          let finalUser = verifiedUser || storedUser;
           const finalSession = verifiedSession || storedSession;
+          // If user has no role (e.g. old stored session), refresh from DB so admin check works
+          if (!finalUser.role) {
+            const { user: refreshedUser } = await refreshSession();
+            if (refreshedUser?.role) finalUser = refreshedUser;
+          }
           setUser(finalUser);
           setSession(finalSession);
         } else {

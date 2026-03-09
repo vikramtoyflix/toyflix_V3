@@ -38,10 +38,10 @@ export function getSubscriptionCategoryForCategory(category: ToyCategory): Subsc
  */
 export const CATEGORY_LABELS: Record<ToyCategory, string> = {
   'big_toys': 'Big Toys',
-  'stem_toys': 'STEM Toys', 
-  'educational_toys': 'Educational Toys',
+  'stem_toys': 'STEM Toys (legacy)',
+  'educational_toys': 'Educational',
   'books': 'Books',
-  'developmental_toys': 'Developmental Toys',
+  'developmental_toys': 'Developmental',
   'ride_on_toys': 'Ride-On Toys'
 };
 
