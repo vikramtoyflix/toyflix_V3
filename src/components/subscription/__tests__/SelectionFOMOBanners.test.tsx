@@ -22,21 +22,10 @@ describe('SelectionFOMOBanners', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders banner for educational_toys step (UI: Developmental) with section title and subline', () => {
+  it('renders banner for educational_toys step (UI: Educational) with section title and subline', () => {
     render(
       <SelectionFOMOBanners
         subscriptionCategory="educational_toys"
-        toys={mockToys}
-      />
-    );
-    expect(screen.getByText(/Parents' Top Picks for Development/i)).toBeInTheDocument();
-    expect(screen.getByText(/Helping kids build key skills across Bangalore/i)).toBeInTheDocument();
-  });
-
-  it('renders banner for stem_toys step (UI: Educational) with section title and subline', () => {
-    render(
-      <SelectionFOMOBanners
-        subscriptionCategory="stem_toys"
         toys={mockToys}
       />
     );
@@ -44,10 +33,21 @@ describe('SelectionFOMOBanners', () => {
     expect(screen.getByText(/Chosen by 500\+ Toyflix parents this month/i)).toBeInTheDocument();
   });
 
+  it('renders banner for developmental_toys step (UI: Developmental) with section title and subline', () => {
+    render(
+      <SelectionFOMOBanners
+        subscriptionCategory="developmental_toys"
+        toys={mockToys}
+      />
+    );
+    expect(screen.getByText(/Parents' Top Picks for Development/i)).toBeInTheDocument();
+    expect(screen.getByText(/Helping kids build key skills across Bangalore/i)).toBeInTheDocument();
+  });
+
   it('renders nothing when toys array is empty', () => {
     const { container } = render(
       <SelectionFOMOBanners
-        subscriptionCategory="stem_toys"
+        subscriptionCategory="educational_toys"
         toys={[]}
       />
     );

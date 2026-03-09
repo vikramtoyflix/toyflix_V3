@@ -27,6 +27,7 @@
     "test:smoke": "node scripts/smoke-test-urls.js",
     "test:smoke:prod": "BASE_URL=https://toyflix.in node scripts/smoke-test-urls.js",
     "supabase:deploy": "supabase functions deploy zoho-sync-contact && supabase functions deploy auth-signup && supabase functions deploy razorpay-verify",
+    "sync:toys": "node scripts/sync-toys-from-csv.js",
 "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios"

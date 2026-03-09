@@ -82,7 +82,7 @@ export default function ToySelectionStepInfo({
                 </Badge>
               )}
               <Badge variant="secondary" className="capitalize">
-                {stepInfo.subscriptionCategory === 'stem_toys' ? 'Educational' : stepInfo.subscriptionCategory === 'educational_toys' ? 'Developmental' : stepInfo.subscriptionCategory === 'developmental_toys' ? 'Developmental' : stepInfo.subscriptionCategory.replace(/_/g, ' ')}
+                {stepInfo.subscriptionCategory === 'educational_toys' ? 'Educational' : stepInfo.subscriptionCategory === 'developmental_toys' ? 'Developmental' : stepInfo.subscriptionCategory.replace(/_/g, ' ')}
               </Badge>
               <Badge variant={isComplete ? "default" : "outline"}>
                 {selected}/{required} Selected

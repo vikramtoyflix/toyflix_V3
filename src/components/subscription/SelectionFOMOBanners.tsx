@@ -46,7 +46,7 @@ export function SelectionFOMOBanners({
       ? toy.image_url.replace("/storage/v1/s3/", "/storage/v1/object/public/")
       : null;
     const tagLabel = getFOMOTagLabelForStep(
-      subscriptionCategory as 'stem_toys' | 'educational_toys' | 'books',
+      subscriptionCategory as 'educational_toys' | 'developmental_toys' | 'books',
       rank
     );
 

@@ -243,7 +243,7 @@ export const ToySelectionWizard = ({
           currentStepInfo && isFOMOStep(currentStepInfo.subscriptionCategory)
             ? (toy: Toy, index: number) =>
                 getFOMOTagLabelForStep(
-                  currentStepInfo!.subscriptionCategory as 'stem_toys' | 'educational_toys' | 'books',
+                  currentStepInfo!.subscriptionCategory as 'educational_toys' | 'developmental_toys' | 'books',
                   index
                 )
             : undefined
