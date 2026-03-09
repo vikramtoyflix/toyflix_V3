@@ -1,49 +1,47 @@
-# Where to set secrets (Facebook, Supabase, Freshworks)
+# Where to set secrets (Supabase, Razorpay)
 
-Secrets are **no longer in the code** so the repo is safe to push. Set them here so the app still works.
+Secrets are **no longer in the code** so the repo is safe to push. Set them where needed.
+
+**Note:** Freshworks/WhatsApp integration has been removed from the app. The following only covers what the app uses now.
 
 ---
 
 ## 1. Azure Static Web App (production site)
 
 1. Azure Portal → your **Static Web App** → **Settings** → **Configuration**.
-2. Under **Application settings**, add these (name + value):
+2. Under **Application settings**, add:
 
 | Name | Where to get the value |
 |------|------------------------|
-| `VITE_FRESHWORKS_DOMAIN` | Your Freshworks URL, e.g. `https://toyflix-team.myfreshworks.com` |
-| `VITE_FRESHWORKS_API_KEY` | Freshworks CRM → Settings → API key |
-| `VITE_WHATSAPP_PHONE_ID` | Meta Business → WhatsApp → Phone number ID |
-| `VITE_WHATSAPP_ACCESS_TOKEN` | Meta Business → WhatsApp → Temporary or permanent token |
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
+| `VITE_RAZORPAY_KEY_ID` | Razorpay key ID (for checkout UI) |
 
-Save. Redeploy if needed so the build picks them up.
+Save. Redeploy if needed.
 
 ---
 
 ## 2. Local development (.env file)
 
-In the project root create (or edit) **.env** with the same names:
+In the project root create (or edit) **.env** (see `.env.example` for full list). At minimum:
 
 ```
-VITE_FRESHWORKS_DOMAIN=https://toyflix-team.myfreshworks.com
-VITE_FRESHWORKS_API_KEY=your_api_key_here
-VITE_WHATSAPP_PHONE_ID=your_phone_id_here
-VITE_WHATSAPP_ACCESS_TOKEN=your_facebook_token_here
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
 
-**.env is gitignored** — it never gets committed. Use your real values only here and in Azure.
+**.env is gitignored** — never commit real values.
 
 ---
 
-## 3. Supabase Edge Functions (auth-complete-profile)
+## 3. Supabase Edge Functions (razorpay-order, razorpay-verify)
 
-If you use the `auth-complete-profile` function:
+In **Supabase Dashboard** → **Project Settings** → **Edge Functions** → **Secrets**, set:
 
-- In **Supabase Dashboard** → **Project Settings** → **Edge Functions** → **Secrets**, add:
-  - `VITE_FRESHWORKS_DOMAIN`
-  - `VITE_FRESHWORKS_API_KEY`
-  - `VITE_WHATSAPP_ACCESS_TOKEN`
-  - `VITE_WHATSAPP_PHONE_ID`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (usually set by default)
 
 ---
 
@@ -53,4 +51,4 @@ If you use the `auth-complete-profile` function:
 
 ---
 
-**Summary:** The app reads these from **environment variables**. Set them in Azure (and in .env locally, and in Supabase for Edge Functions). Facebook and Supabase keep working; only the way we store the secrets changed.
+**Summary:** The app uses Supabase and Razorpay only. Set the variables above in Azure, .env locally, and in Supabase for Edge Functions as needed.

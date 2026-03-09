@@ -26,19 +26,22 @@ const SimpleDashboard = () => {
 
       console.log('🎯 HYBRID Simple dashboard loading for user:', user.id);
 
-      // Get user profile
+      // Get user profile (maybeSingle avoids throw when row missing, e.g. PGRST116)
       const { data: userProfile, error: profileError } = await supabase
         .from('custom_users')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error('❌ Profile error:', profileError);
         throw profileError;
       }
-
-      console.log('✅ User profile:', userProfile.first_name);
+      if (!userProfile) {
+        console.warn('⚠️ No profile found for user:', user.id);
+      } else {
+        console.log('✅ User profile:', userProfile.first_name);
+      }
 
       // STEP 1: Get orders from BOTH tables for complete view
       console.log('🔍 Fetching hybrid orders data...');
@@ -100,8 +103,8 @@ const SimpleDashboard = () => {
         orders: uniqueOrders,
         totalOrders: uniqueOrders.length,
         totalSpent,
-        isActive: userProfile.subscription_active || false,
-        plan: userProfile.subscription_plan || 'Discovery Delight',
+        isActive: userProfile?.subscription_active || false,
+        plan: userProfile?.subscription_plan || 'Discovery Delight',
         breakdown: {
           legacy: legacyOrdersList.length,
           rental: rentalOrdersList.length,

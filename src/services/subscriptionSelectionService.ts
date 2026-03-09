@@ -654,7 +654,7 @@ export class SubscriptionSelectionService {
    */
   private async checkEmergencyOverride(userId: string): Promise<boolean> {
     try {
-      // TODO: Implement user_flags table - for now return false to prevent 404 errors
+      // NOTE: user_flags table not implemented; returning false to avoid 404. Implement when table exists.
       return false;
     } catch (error) {
       console.error('Error checking emergency override:', error);
@@ -667,7 +667,7 @@ export class SubscriptionSelectionService {
    */
   private async checkCustomerServiceOverride(userId: string): Promise<boolean> {
     try {
-      // TODO: Implement user_flags table - for now return false to prevent 404 errors
+      // NOTE: user_flags table not implemented; returning false to avoid 404. Implement when table exists.
       return false;
     } catch (error) {
       console.error('Error checking customer service override:', error);
