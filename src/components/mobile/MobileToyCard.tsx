@@ -19,6 +19,8 @@ interface MobileToyCardProps {
   isSubscriptionView?: boolean;
   isSelected?: boolean;
   showOutOfStock?: boolean;
+  /** Optional FOMO tag e.g. "🔥 High Demand", "⭐ Parent Favourite", "🏆 Toyflix Bestseller" */
+  tagLabel?: string;
 }
 
 const MobileToyCard = ({ 
@@ -29,7 +31,8 @@ const MobileToyCard = ({
   onViewProduct,
   isSubscriptionView = false,
   isSelected = false,
-  showOutOfStock = false
+  showOutOfStock = false,
+  tagLabel,
 }: MobileToyCardProps) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -204,9 +207,16 @@ const MobileToyCard = ({
     >
       <CardContent className="p-0 h-full flex flex-col">
         {/* Optimized Image Section with Carousel */}
-        <div className="relative bg-gradient-to-br from-toy-sky/10 to-toy-mint/10">
-          {/* Dynamic aspect ratio container */}
-          <div className="aspect-[4/3] overflow-hidden">
+        <div className="relative flex-shrink-0 bg-gradient-to-br from-toy-sky/10 to-toy-mint/10">
+          {tagLabel && (
+            <div className="absolute top-2 left-2 z-10">
+              <span className="inline-flex items-center rounded-lg bg-black/90 text-white text-xs font-semibold px-2.5 py-1 shadow-lg ring-1 ring-white/20">
+                {tagLabel}
+              </span>
+            </div>
+          )}
+          {/* Dynamic aspect ratio container - square in subscription view to save vertical space */}
+          <div className={cn(isSubscriptionView ? "aspect-square" : "aspect-[4/3]", "overflow-hidden")}>
             {/* Loading Skeleton */}
             {imageLoading && (
               <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
@@ -262,11 +272,11 @@ const MobileToyCard = ({
             </div>
           )}
 
-          {/* Out of Stock Badge - Only show in subscription/order selection flows */}
+          {/* Coming Soon Badge - Only show in subscription/order selection flows */}
           {isSubscriptionView && toy.available_quantity === 0 && (
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20">
               <span className="text-white text-sm font-bold bg-red-500 px-4 py-2 rounded-full shadow-lg">
-                Out of Stock
+                Coming Soon
               </span>
             </div>
           )}
@@ -311,7 +321,7 @@ const MobileToyCard = ({
                 size="sm"
               >
                 {toy.available_quantity === 0 ? (
-                  "Out of Stock"
+                  "Coming Soon"
                 ) : isSelected ? (
                   <>
                     <Check className="w-3 h-3 mr-1" />

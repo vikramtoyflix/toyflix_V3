@@ -38,7 +38,7 @@ const ToyCardActions = ({
           variant={isOutOfStock ? "secondary" : isSelected ? "default" : "outline"}
         >
           {isOutOfStock ? (
-            <span>Out of Stock</span>
+            <span>Coming Soon</span>
           ) : isSelected ? (
             <>
               <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
