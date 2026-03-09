@@ -3,7 +3,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToySelectionLogic } from "@/hooks/useToySelectionLogic";
 import { useSubscriptionToys } from "@/hooks/useSubscriptionToys";
 import { useFlowToys } from "@/hooks/useFlowToys";
-import { isFOMOStep } from "@/constants/fomoSelection";
 
 interface UseToySelectionWizardStateProps {
   planId: string;
@@ -62,18 +61,22 @@ export const useToySelectionWizardState = ({
   const primaryToys = flowToys.data && flowToys.data.length > 0 ? flowToys : subscriptionToys;
   const { data: rawToys, isLoading } = primaryToys;
 
-  // For FOMO steps (STEM, Educational, Books): sort by inventory so high-stock toys appear first
+  // Deduplicate by toy id, then sort by inventory: in-stock first, then by available_quantity (high → low)
   const toys = useMemo(() => {
     if (!rawToys?.length) return rawToys;
-    const category = currentStepInfo?.subscriptionCategory;
-    if (!isFOMOStep(category)) return rawToys;
-    return [...rawToys].sort((a, b) => {
+    const seen = new Set<string>();
+    const unique = rawToys.filter((t) => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+    return unique.sort((a, b) => {
       const aInStock = (a.available_quantity ?? 0) > 0 ? 1 : 0;
       const bInStock = (b.available_quantity ?? 0) > 0 ? 1 : 0;
       if (aInStock !== bInStock) return bInStock - aInStock;
       return (b.available_quantity ?? 0) - (a.available_quantity ?? 0);
     });
-  }, [rawToys, currentStepInfo?.subscriptionCategory]);
+  }, [rawToys]);
 
   console.log('🔧 useToySelectionWizardState - Fallback logic:', {
     flowToysCount: flowToys.data?.length || 0,
