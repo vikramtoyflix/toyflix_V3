@@ -679,7 +679,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
 
   // Coupon functions removed (queue bypass functionality removed)
 
-  // New promo code functions using DiscountService
+  // New promo code functions: test codes (free flow without paying) + DiscountService for real promos
   const applyPromo = async () => {
     if (!promoCode.trim()) {
       toast.error('Please enter a promo code');
@@ -692,12 +692,37 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
 
     setIsApplyingPromo(true);
-    
+
+    const code = promoCode.trim().toLowerCase();
+
     try {
+      // Test / free codes for flow testing without paying (no DB required)
+      if (code === 'freecode' || code === 'testfree' || code === 'qa2025') {
+        setPromoDiscount(baseAmount);
+        setAppliedPromo(code.toUpperCase());
+        toast.success('🎉 Test coupon applied! Your order is now FREE – use "Confirm Free Order" to test the flow.');
+        setIsApplyingPromo(false);
+        return;
+      }
+      if (code === 'onerupee') {
+        // Target final total ₹1 (100 paise). With 18% GST: base = 1/1.18 ≈ 0.847, so discount = baseAmount - 1/1.18
+        const targetBaseForOneRupee = 1 / 1.18;
+        const discountToMakeOneRupee = baseAmount - targetBaseForOneRupee;
+        if (discountToMakeOneRupee > 0) {
+          setPromoDiscount(discountToMakeOneRupee);
+          setAppliedPromo('ONERUPEE');
+          toast.success('🎉 Test coupon applied! Total is now ₹1 for Razorpay testing.');
+        } else {
+          toast.error('Order amount is already ₹1 or less. This coupon is not applicable.');
+        }
+        setIsApplyingPromo(false);
+        return;
+      }
+
       const validation = await DiscountService.validateDiscount(
         promoCode.trim(),
         user.id,
-        baseAmount // Use base amount instead of subtotal to avoid GST in discount calculation
+        baseAmount
       );
 
       if (validation.isValid && validation.offerDetails) {
