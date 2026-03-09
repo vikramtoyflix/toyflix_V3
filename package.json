@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:app": "vite build --config vite.config.app.ts && cp dist/index-app.html dist/index.html",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -25,7 +26,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:smoke": "node scripts/smoke-test-urls.js",
     "test:smoke:prod": "BASE_URL=https://toyflix.in node scripts/smoke-test-urls.js",
-    "cap:sync": "npx cap sync",
+    "supabase:deploy": "supabase functions deploy zoho-sync-contact && supabase functions deploy auth-signup && supabase functions deploy razorpay-verify",
+"cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios"
   },

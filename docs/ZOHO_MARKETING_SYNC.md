@@ -89,3 +89,64 @@ If signup is done **only** on the client (e.g. direct insert into `custom_users`
   - **Client-side (optional):** POST with `{ tag: "Sign up" }` and `Authorization: Bearer <user_jwt>`.
 
 Sync is **fire-and-forget** from signup and payment so that failures in Zoho do not block signup or payment.
+
+---
+
+## How to deploy (Supabase Edge Functions)
+
+### 1. Install Supabase CLI (if needed)
+
+```bash
+npm install -g supabase
+```
+
+Or use without installing: `npx supabase <command>`.
+
+### 2. Log in and link the project
+
+```bash
+supabase login
+supabase link --project-ref wucwpyitzqjukcphczhr
+```
+
+Use the **Project ref** from [Supabase Dashboard](https://supabase.com/dashboard) → your project → Settings → General if different.
+
+### 3. Set secrets (Zoho + domain)
+
+Set these in Supabase so the functions can call Zoho:
+
+```bash
+supabase secrets set ZOHO_CLIENT_ID="your_client_id"
+supabase secrets set ZOHO_CLIENT_SECRET="your_client_secret"
+supabase secrets set ZOHO_REFRESH_TOKEN="your_refresh_token"
+supabase secrets set ZOHO_ACCOUNTS_DOMAIN="zoho.in"
+```
+
+Optional (for Zoho Campaigns tagging):
+
+```bash
+supabase secrets set ZOHO_CAMPAIGNS_ACCESS_TOKEN="your_campaigns_token"
+```
+
+You can also set secrets in the dashboard: **Project Settings → Edge Functions → Secrets**.
+
+### 4. Deploy the functions
+
+Deploy the Zoho sync and the functions that call it:
+
+```bash
+supabase functions deploy zoho-sync-contact
+supabase functions deploy auth-signup
+supabase functions deploy razorpay-verify
+```
+
+Or deploy all Edge Functions in the project:
+
+```bash
+supabase functions deploy
+```
+
+### 5. Verify
+
+- Do a **new signup** on your site and check **Zoho CRM → Contacts** for a contact with Lead Source `Website - Sign up`.
+- Complete a **subscription payment** and confirm the contact’s Lead Source updates to `Website - Trial` / `Silver plan` / `Gold plan`.

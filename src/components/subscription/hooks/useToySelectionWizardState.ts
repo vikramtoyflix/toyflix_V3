@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToySelectionLogic } from "@/hooks/useToySelectionLogic";
 import { useSubscriptionToys } from "@/hooks/useSubscriptionToys";
 import { useFlowToys } from "@/hooks/useFlowToys";
+import { isFOMOStep } from "@/constants/fomoSelection";
 
 interface UseToySelectionWizardStateProps {
   planId: string;
@@ -59,7 +60,20 @@ export const useToySelectionWizardState = ({
 
   // Smart fallback logic: Use flowToys as primary, subscriptionToys as fallback
   const primaryToys = flowToys.data && flowToys.data.length > 0 ? flowToys : subscriptionToys;
-  const { data: toys, isLoading } = primaryToys;
+  const { data: rawToys, isLoading } = primaryToys;
+
+  // For FOMO steps (STEM, Educational, Books): sort by inventory so high-stock toys appear first
+  const toys = useMemo(() => {
+    if (!rawToys?.length) return rawToys;
+    const category = currentStepInfo?.subscriptionCategory;
+    if (!isFOMOStep(category)) return rawToys;
+    return [...rawToys].sort((a, b) => {
+      const aInStock = (a.available_quantity ?? 0) > 0 ? 1 : 0;
+      const bInStock = (b.available_quantity ?? 0) > 0 ? 1 : 0;
+      if (aInStock !== bInStock) return bInStock - aInStock;
+      return (b.available_quantity ?? 0) - (a.available_quantity ?? 0);
+    });
+  }, [rawToys, currentStepInfo?.subscriptionCategory]);
 
   console.log('🔧 useToySelectionWizardState - Fallback logic:', {
     flowToysCount: flowToys.data?.length || 0,

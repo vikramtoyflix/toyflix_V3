@@ -9,9 +9,10 @@ import { Toy } from "@/hooks/useToys";
  */
 export const CATEGORY_ORDER: Record<string, number> = {
   'big_toys': 1,
-  'stem_toys': 2,
+  'educational_toys': 2,
   'developmental_toys': 3,
   'books': 4,
+  'stem_toys': 5, // legacy
   // Fallback for any other categories
   'ride_on_toys': 999, // These are handled separately
 };

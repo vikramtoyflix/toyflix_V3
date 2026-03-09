@@ -22,11 +22,18 @@ interface SelectedToysDisplayProps {
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
   'big_toys': <ToyBrick className="w-4 h-4" />,
-  'stem_toys': <Bot className="w-4 h-4" />,
-  'educational_toys': <BrainCircuit className="w-4 h-4" />,
+  'educational_toys': <Bot className="w-4 h-4" />,
+  'developmental_toys': <Bot className="w-4 h-4" />,
   'books': <BookOpen className="w-4 h-4" />,
-  'developmental_toys': <Blocks className="w-4 h-4" />,
+  'stem_toys': <BrainCircuit className="w-4 h-4" />,
   'ride_on_toys': <ToyBrick className="w-4 h-4" />
+};
+
+// Selection flow display labels: Step 2=Educational (stem_toys), Step 3=Developmental (educational_toys)
+const SELECTION_CATEGORY_LABELS: Record<string, string> = {
+  ...CATEGORY_LABELS,
+  'stem_toys': 'Educational',
+  'educational_toys': 'Developmental',
 };
 
 export const SelectedToysDisplay = ({ stepSelections, onRemove, currentStep }: SelectedToysDisplayProps) => {
@@ -49,7 +56,7 @@ export const SelectedToysDisplay = ({ stepSelections, onRemove, currentStep }: S
             <div key={category} className="space-y-3">
               <div className="flex items-center gap-2">
                 {categoryIcons[category]}
-                <h3 className="font-medium">{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category}</h3>
+                <h3 className="font-medium">{SELECTION_CATEGORY_LABELS[category] || CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] || category}</h3>
                 <Badge variant="secondary">{toys.length} selected</Badge>
               </div>
               

@@ -2,6 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustomUser, CustomSession } from '@/hooks/auth/types';
 import { saveAuthToStorage, getStoredSession } from "@/hooks/auth/storage";
 
+/** Pre-warm the send-otp edge function to reduce cold start when user clicks Send OTP */
+export const warmSendOTPFunction = (): void => {
+  supabase.functions.invoke('send-otp', { body: { warm: true } }).catch(() => {
+    // Ignore errors - warm-up is best-effort
+  });
+};
+
 export const sendOTP = async (phone: string): Promise<{
   success: boolean;
   error?: { message: string };

@@ -72,6 +72,16 @@ export const useToySelectionLogic = (planId: string) => {
     if (!currentStepInfo) {
       return;
     }
+
+    // Block selection of Coming Soon (out-of-stock) toys
+    if ((toy.available_quantity ?? 0) <= 0) {
+      toast({
+        title: "Coming Soon",
+        description: `${toy.name} is coming soon and cannot be selected yet.`,
+        variant: "destructive",
+      });
+      return;
+    }
     
     const currentSelections = getCurrentStepSelections();
     const required = getStepRequirement(currentStep);

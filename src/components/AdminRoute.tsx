@@ -89,8 +89,28 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
     );
   }
 
-  if (!isCompletelySetup || !isAdmin) {
+  if (!isCompletelySetup) {
     return null;
+  }
+
+  if (!isAdmin && !isImpersonating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/20 p-4">
+        <div className="w-full max-w-md text-center">
+          <p className="text-lg font-medium text-foreground mb-2">Admin access could not be verified</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            If you are an admin, try signing out and signing in again, or refresh the page.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90"
+          >
+            Refresh page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

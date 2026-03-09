@@ -53,10 +53,10 @@ export const ageRangeOptions = [
 // Updated to reflect that both category and subscription_category now have the same values
 export const subscriptionCategoryOptions = [
   { value: 'big_toys', label: 'Big Toys' },
-  { value: 'stem_toys', label: 'STEM Toys' },
-  { value: 'educational_toys', label: 'Educational Toys' },
+  { value: 'educational_toys', label: 'Educational' },
+  { value: 'developmental_toys', label: 'Developmental' },
   { value: 'books', label: 'Books' },
-  { value: 'developmental_toys', label: 'Developmental Toys' },
+  { value: 'stem_toys', label: 'STEM Toys (legacy)' },
   { value: 'ride_on_toys', label: 'Ride On Toys' }
 ];
 

@@ -7,7 +7,6 @@ import { ToyImage } from '@/hooks/useToyImages';
 import { imageService } from '@/services/imageService';
 import { cn } from '@/lib/utils';
 import { 
-  Star, 
   Plus, 
   Check, 
   Sparkles,
@@ -16,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getFOMOEmojiForLabel } from '@/constants/fomoSelection';
 
 interface ToyCardProps {
   toy: Toy;
@@ -31,6 +31,10 @@ interface ToyCardProps {
   showOutOfStock?: boolean;
   /** Optional FOMO tag e.g. "🔥 High Demand", "⭐ Parent Favourite", "🏆 Toyflix Bestseller" */
   tagLabel?: string;
+  /** 0-3: use colored tag (amber, sky, orange, emerald) instead of black */
+  tagColorIndex?: number;
+  /** Staggered animation delay in ms for tag banner */
+  tagAnimationDelay?: number;
 }
 
 const ToyCard = ({ 
@@ -44,6 +48,8 @@ const ToyCard = ({
   isSelected = false,
   showOutOfStock = false,
   tagLabel,
+  tagColorIndex,
+  tagAnimationDelay,
 }: ToyCardProps) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -219,20 +225,54 @@ const ToyCard = ({
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
+      {/* Tag badge above image - centered pill with emoji, animated (subscription view only) */}
+      {isSubscriptionView && tagLabel && (
+        <div className="flex justify-center pt-3 pb-2">
+          <span
+            style={tagAnimationDelay !== undefined ? { animationDelay: `${tagAnimationDelay}ms` } : undefined}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold shadow-md animate-in fade-in slide-in-from-top-2 duration-500",
+              tagColorIndex !== undefined
+                ? [
+                    "bg-amber-100 text-amber-900 ring-1 ring-amber-200/80",
+                    "bg-sky-100 text-sky-800 ring-1 ring-sky-200/80",
+                    "bg-orange-100 text-orange-800 ring-1 ring-orange-200/80",
+                    "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80",
+                  ][tagColorIndex % 4]
+                : "bg-amber-100 text-amber-900 ring-1 ring-amber-200/80"
+            )}
+          >
+            <span className="text-base">{getFOMOEmojiForLabel(tagLabel)}</span>
+            {tagLabel.replace(/^(⭐|🏆|🔥|🚀|📚)\s*/, '')}
+          </span>
+        </div>
+      )}
+
       {/* Optimized Image Section with Carousel */}
       <div 
         className="relative flex-shrink-0 bg-gradient-to-br from-toy-sky/10 to-toy-mint/10 cursor-pointer"
         onClick={handleImageClick}
       >
-        {tagLabel && (
+        {/* Tag overlay for non-subscription view (legacy) */}
+        {!isSubscriptionView && tagLabel && (
           <div className="absolute top-2 left-2 z-10">
-            <span className="inline-flex items-center rounded-lg bg-black/90 text-white text-sm font-semibold px-3 py-1.5 shadow-lg ring-1 ring-white/20">
+            <span className={cn(
+              "inline-flex items-center rounded-lg text-sm font-semibold px-3 py-1.5 shadow-lg",
+              tagColorIndex !== undefined
+                ? [
+                    "bg-amber-100 text-amber-900 ring-1 ring-amber-200",
+                    "bg-sky-100 text-sky-800 ring-1 ring-sky-200",
+                    "bg-orange-100 text-orange-800 ring-1 ring-orange-200",
+                    "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200",
+                  ][tagColorIndex % 4]
+                : "bg-black/90 text-white ring-1 ring-white/20"
+            )}>
               {tagLabel}
             </span>
           </div>
         )}
         {/* Dynamic aspect ratio container — more compact in subscription selection view */}
-        <div className={cn("w-full overflow-hidden", isSubscriptionView ? "aspect-square" : "aspect-[4/3]")}>
+        <div className={cn("w-full overflow-hidden rounded-lg", isSubscriptionView ? "aspect-square mx-3" : "aspect-[4/3]")}>
           {/* Loading Skeleton */}
           {isImageLoading && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
@@ -277,7 +317,7 @@ const ToyCard = ({
           )}
 
           {/* Image Counter - Show on hover for desktop, always visible on mobile if multiple images */}
-          {images.length > 1 && (
+          {images.length > 1 && !isSubscriptionView && (
             <div className="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full backdrop-blur-sm 
                            opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 z-10">
               {currentImageIndex + 1} / {images.length}
@@ -297,39 +337,37 @@ const ToyCard = ({
       </div>
 
       {/* Compact Content Section */}
-      <CardContent className="p-3 flex-grow flex flex-col">
-        {/* Rating Badge - Keep only rating if exists */}
-        {toy.rating > 0 && (
-          <div className="flex justify-end mb-2">
-            <Badge className="bg-toy-sunshine/90 text-white text-xs font-semibold shadow-sm">
-              <Star className="w-3 h-3 mr-1 fill-current" />
-              {toy.rating}
-            </Badge>
-          </div>
-        )}
-
+      <CardContent className={cn("flex-grow flex flex-col", isSubscriptionView ? "p-4 pt-2" : "p-3")}>
         {/* Title */}
-        <h3 className="font-bold text-base mb-2 line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-300">
+        <h3 className={cn(
+          "font-bold line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-300",
+          isSubscriptionView ? "text-base md:text-lg mb-1" : "text-base mb-2"
+        )}>
           {toy.name}
         </h3>
 
-        {/* Description */}
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed flex-grow">
-          {toy.description || "A wonderful toy designed to spark imagination and create lasting memories!"}
+        {/* Description / Social proof */}
+        <p className={cn(
+          "text-muted-foreground line-clamp-2 leading-relaxed flex-grow",
+          isSubscriptionView ? "text-sm text-gray-500 mb-3" : "text-sm mb-3"
+        )}>
+          {isSubscriptionView
+            ? "Loved by Toyflix kids"
+            : (toy.description || "A wonderful toy designed to spark imagination and create lasting memories!")}
         </p>
 
         {/* Compact Pricing Section */}
         {toy.retail_price && (
           <div className="mb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-bold text-muted-foreground line-through">
-                ₹{toy.retail_price}
+                ₹{toy.retail_price.toLocaleString()}
               </span>
-              <Badge className="bg-green-100 text-green-700 text-xs font-medium">
+              <span className="inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 shadow-sm">
                 Free
-              </Badge>
+              </span>
             </div>
-            <p className="text-xs font-semibold text-primary">
+            <p className="text-sm font-medium text-gray-700 mt-1">
               With subscription
             </p>
           </div>

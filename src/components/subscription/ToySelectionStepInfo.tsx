@@ -42,11 +42,13 @@ export default function ToySelectionStepInfo({
       case 'big_toys':
         return "Large toys perfect for physical play, outdoor activities, and building adventures.";
       case 'stem_toys':
-        return "Science, Technology, Engineering, and Math toys that encourage logical thinking and problem-solving.";
-      case 'educational_toys':
         return "Learning-focused toys that develop creativity, language skills, and cognitive abilities.";
+      case 'educational_toys':
+        return "Toys that help kids build key skills—logic, problem-solving, and development across Bangalore.";
       case 'books':
         return "Educational books and reading materials to enhance language development and literacy skills.";
+      case 'developmental_toys':
+        return "Toys that help kids build key skills—logic, problem-solving, and development across Bangalore.";
       default:
         return "Select toys from this category for your monthly box.";
     }
@@ -80,7 +82,7 @@ export default function ToySelectionStepInfo({
                 </Badge>
               )}
               <Badge variant="secondary" className="capitalize">
-                {stepInfo.subscriptionCategory.replace('_', ' ')}
+                {stepInfo.subscriptionCategory === 'stem_toys' ? 'Educational' : stepInfo.subscriptionCategory === 'educational_toys' ? 'Developmental' : stepInfo.subscriptionCategory === 'developmental_toys' ? 'Developmental' : stepInfo.subscriptionCategory.replace(/_/g, ' ')}
               </Badge>
               <Badge variant={isComplete ? "default" : "outline"}>
                 {selected}/{required} Selected

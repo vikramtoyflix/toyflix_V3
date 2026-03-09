@@ -13,6 +13,7 @@ interface VirtualizedOrderListProps {
   onToggleSelection: (orderId: string) => void;
   onViewDetails: (order: any) => void;
   onEditOrder: (order: any) => void;
+  onDeleteOrder?: (order: any) => void;
   getStatusColor: (status: string) => string;
   getStatusIcon: (status: string) => JSX.Element;
   hasNextPage: boolean;
@@ -46,6 +47,7 @@ const OrderListItem = forwardRef<
     onToggleSelection,
     onViewDetails,
     onEditOrder,
+    onDeleteOrder,
     getStatusColor,
     getStatusIcon,
     hasNextPage,
@@ -119,6 +121,7 @@ const VirtualizedOrderList = ({
   onToggleSelection,
   onViewDetails,
   onEditOrder,
+  onDeleteOrder,
   getStatusColor,
   getStatusIcon,
   hasNextPage,
@@ -143,6 +146,7 @@ const VirtualizedOrderList = ({
       onToggleSelection,
       onViewDetails,
       onEditOrder,
+      onDeleteOrder,
       getStatusColor,
       getStatusIcon,
       hasNextPage,
@@ -154,6 +158,7 @@ const VirtualizedOrderList = ({
       onToggleSelection,
       onViewDetails,
       onEditOrder,
+      onDeleteOrder,
       getStatusColor,
       getStatusIcon,
       hasNextPage,

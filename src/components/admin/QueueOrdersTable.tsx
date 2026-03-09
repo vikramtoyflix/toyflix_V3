@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Edit2, Package, Clock, User } from 'lucide-react';
+import { Eye, Edit2, Package, Clock, User, Trash2 } from 'lucide-react';
 // Format currency function
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-IN', {
@@ -105,6 +105,7 @@ export const QueueOrdersTable: React.FC<QueueOrdersTableProps> = ({
   orders,
   onViewOrder,
   onEditOrder,
+  onDeleteOrder,
   isLoading = false
 }) => {
   const queueOrders = orders.filter(order => order.isQueueOrder);
@@ -298,6 +299,16 @@ export const QueueOrdersTable: React.FC<QueueOrdersTableProps> = ({
                             className="h-8 w-8 p-0"
                           >
                             <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onDeleteOrder && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteOrder(order)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>

@@ -19,6 +19,10 @@ interface ToyGridProps {
   selectedToyIds?: string[];
   showOutOfStock?: boolean;
   className?: string;
+  /** Optional: return a FOMO tag label per toy by index (e.g. "🔥 High Demand"). Used on selection steps. */
+  getToyTagLabel?: (toy: Toy, index: number) => string | null;
+  /** When true, use 4 colors (amber, sky, orange, emerald) for tags instead of black. Used with getToyTagLabel. */
+  useColoredTags?: boolean;
 }
 
 const ToyGrid = React.memo(({
@@ -30,7 +34,9 @@ const ToyGrid = React.memo(({
   isSubscriptionView = false,
   selectedToyIds = [],
   showOutOfStock = false,
-  className
+  className,
+  getToyTagLabel,
+  useColoredTags = false,
 }: ToyGridProps) => {
   const isMobile = useIsMobile();
   
@@ -161,11 +167,11 @@ const ToyGrid = React.memo(({
     return (
       <div className="space-y-4">
         {/* Toy Cards in 2-column grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 items-stretch">
           {displayToys.map((toy, index) => (
             <div
               key={toy.id}
-              className="animate-fade-in-up"
+              className="animate-fade-in-up h-full min-h-0 flex flex-col"
               style={{ animationDelay: `${index * 0.05}s` }}
             >
               <MobileToyCard
@@ -178,6 +184,9 @@ const ToyGrid = React.memo(({
                 isSubscriptionView={isSubscriptionView}
                 isSelected={selectedToyIdsSet.has(toy.id)}
                 showOutOfStock={showOutOfStock}
+                tagLabel={getToyTagLabel?.(toy, index) ?? undefined}
+                tagColorIndex={useColoredTags && index < 4 ? index : undefined}
+                tagAnimationDelay={useColoredTags && index < 4 ? index * 100 : undefined}
               />
             </div>
           ))}
@@ -201,20 +210,31 @@ const ToyGrid = React.memo(({
   // Desktop view: Use consistent 4-column grid layout
   return (
     <div className={cn(
-      "grid gap-6 auto-rows-fr",
-      // Consistent 4-column layout for better visual consistency
-      "grid-cols-1",                    // Mobile: 1 column
-      "sm:grid-cols-2",                 // Small: 2 columns
-      "md:grid-cols-4",                 // Medium and up: 4 columns consistently
-      "lg:grid-cols-4",                 // Large: 4 columns
-      "xl:grid-cols-4",                 // XL: 4 columns
-      "2xl:grid-cols-4",                // 2XL: 4 columns
+      "grid gap-4 auto-rows-fr items-stretch",
+      // Subscription view: more compact, more columns
+      isSubscriptionView ? [
+        "grid-cols-2",          // 2 columns base
+        "sm:grid-cols-3",       // 3 at sm
+        "md:grid-cols-4",       // 4 at md and above (max 4 on desktop)
+        "lg:grid-cols-4",
+        "xl:grid-cols-4",
+      ] : [
+        "grid-cols-2",          // 2 columns base
+        "sm:grid-cols-2",
+        "md:grid-cols-4",
+        "lg:grid-cols-4",
+        "xl:grid-cols-4",
+        "2xl:grid-cols-4",
+      ],
       className
     )}>
       {displayToys.map((toy, index) => (
         <div
           key={toy.id}
-          className="animate-fade-in-up"
+          className={cn(
+            "animate-fade-in-up h-full min-h-0 flex flex-col",
+            isSubscriptionView && "max-w-[220px] justify-self-center w-full"
+          )}
           style={{ animationDelay: `${index * 0.05}s` }}
         >
           <ToyCard
@@ -227,6 +247,9 @@ const ToyGrid = React.memo(({
             isSubscriptionView={isSubscriptionView}
             isSelected={selectedToyIdsSet.has(toy.id)}
             showOutOfStock={showOutOfStock}
+            tagLabel={getToyTagLabel?.(toy, index) ?? undefined}
+            tagColorIndex={useColoredTags && index < 4 ? index : undefined}
+            tagAnimationDelay={useColoredTags && index < 4 ? index * 100 : undefined}
           />
         </div>
       ))}

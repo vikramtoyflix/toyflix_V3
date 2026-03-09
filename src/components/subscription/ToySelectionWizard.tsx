@@ -4,10 +4,10 @@ import ToySelectionProgress from "./ToySelectionProgress";
 import ToySelectionStepInfo from "./ToySelectionStepInfo";
 import ToySelectionComplete from "./ToySelectionComplete";
 import ToySelectionNavigation from "./ToySelectionNavigation";
-import { isFOMOStep, getFOMOTagForRank, FOMO_TOY_TAG_LABELS } from "@/constants/fomoSelection";
+import { isFOMOStep, getFOMOTagLabelForStep } from "@/constants/fomoSelection";
 import { Toy } from "@/hooks/useToys";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Rocket, Flame, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useToySelectionWizardState } from "./hooks/useToySelectionWizardState";
@@ -77,16 +77,6 @@ export const ToySelectionWizard = ({
   const [isPopupDismissed, setIsPopupDismissed] = React.useState(false);
   const prevStepRef = React.useRef(1);
 
-  // Scroll to top when advancing to next step so the new step loads from top
-  React.useEffect(() => {
-    if (currentStep > prevStepRef.current) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      prevStepRef.current = currentStep;
-    } else {
-      prevStepRef.current = currentStep;
-    }
-  }, [currentStep]);
-
   // CRITICAL FIX: Ensure Gold pack always gets 'all' age group
   let validatedAgeGroup: string;
   if (planId === 'gold-pack' && (!ageGroup || ageGroup === '')) {
@@ -154,6 +144,16 @@ export const ToySelectionWizard = ({
   const isFinalStep = currentStep === selectionSteps.length;
   const isFinalStepComplete = isFinalStep && isStepComplete(currentStep);
 
+  // Scroll to top when advancing to next step so the new step loads from top
+  React.useEffect(() => {
+    if (currentStep > prevStepRef.current) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      prevStepRef.current = currentStep;
+    } else {
+      prevStepRef.current = currentStep;
+    }
+  }, [currentStep]);
+
   // Debug toy loading state
   React.useEffect(() => {
     console.log('🧸 ToySelectionWizard - Toys state:', {
@@ -211,6 +211,25 @@ export const ToySelectionWizard = ({
         />
       )}
 
+      {/* Trending Toys Banner - below step info, above toys */}
+      <div className="flex justify-center mb-4 md:mb-6">
+        <div
+          className="relative inline-flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-4 rounded-full bg-gradient-to-r from-sky-100 via-blue-50 to-sky-100 shadow-md"
+          style={{ boxShadow: "0 4px 14px rgba(56, 189, 248, 0.2)" }}
+        >
+          <Star className="absolute -top-1 right-8 w-3 h-3 text-amber-400 fill-amber-400" />
+          <Star className="absolute top-1 right-16 w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+          <Star className="absolute -top-0.5 left-12 w-2.5 h-2.5 text-amber-300 fill-amber-300" />
+          <Star className="absolute top-2 left-20 w-2 h-2 text-yellow-300 fill-yellow-300" />
+          <Star className="absolute -bottom-0.5 right-12 w-2 h-2 text-amber-400/80 fill-amber-400/80" />
+          <Rocket className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
+          <span className="font-bold text-base md:text-xl text-slate-800 flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500" />
+            Trending Toys This Month
+          </span>
+        </div>
+      </div>
+
       <ToyGrid 
         toys={toys || []}
         isLoading={isLoading}
@@ -222,12 +241,14 @@ export const ToySelectionWizard = ({
         showOutOfStock={true}
         getToyTagLabel={
           currentStepInfo && isFOMOStep(currentStepInfo.subscriptionCategory)
-            ? (toy: Toy, index: number) => {
-                const tag = getFOMOTagForRank(index);
-                return tag ? FOMO_TOY_TAG_LABELS[tag] : null;
-              }
+            ? (toy: Toy, index: number) =>
+                getFOMOTagLabelForStep(
+                  currentStepInfo!.subscriptionCategory as 'stem_toys' | 'educational_toys' | 'books',
+                  index
+                )
             : undefined
         }
+        useColoredTags={!!(currentStepInfo && isFOMOStep(currentStepInfo.subscriptionCategory))}
       />
 
       {/* Mobile Next Step Button - Centered popup in middle of screen */}

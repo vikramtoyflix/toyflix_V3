@@ -19,15 +19,15 @@ export class ToySelectionService {
       },
       {
         step: 2,
-        description: "STEM Toys",
+        description: "Educational",
         subscriptionCategory: "stem_toys",
-        icon: "Bot"
+        icon: "BrainCircuit"
       },
       {
         step: 3,
-        description: "Educational Toys",
+        description: "Developmental",
         subscriptionCategory: "educational_toys",
-        icon: "BrainCircuit"
+        icon: "Bot"
       },
       {
         step: 4,

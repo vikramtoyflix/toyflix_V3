@@ -26,10 +26,13 @@ import EnhancedCreateOrderDialog from "./EnhancedCreateOrderDialog";
 import ComprehensiveOrderDetails from "./ComprehensiveOrderDetails";
 import { QueueOrdersTable } from "./QueueOrdersTable";
 import { useOptimizedOrders } from "@/hooks/useOptimizedOrders";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
-// ... existing imports and interfaces ...
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wucwpyitzqjukcphczhr.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_FSkXrLtW_fYLLGipAoq1Hw_ltq5Ij-J";
 
 const AdminOrders = () => {
+  const { user } = useCustomAuth();
   // Filter states
   const [searchText, setSearchText] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -212,14 +215,35 @@ const AdminOrders = () => {
     setSelectedOrderIds([]);
   }, [orders, selectedOrderIds, updateOrderOptimistically]);
 
-  const handleBulkDelete = useCallback(async () => {
-    const ordersToDelete = orders.filter(order => selectedOrderIds.includes(order.id));
-    
-    // In a real app, you'd make API calls here
-    toast.success(`Deleted ${ordersToDelete.length} orders`);
-    setSelectedOrderIds([]);
-    invalidateOrders();
-  }, [orders, selectedOrderIds, invalidateOrders]);
+  const handleDeleteOrder = useCallback(async (order: { id: string; isQueueOrder?: boolean }) => {
+    if (!user?.id) {
+      toast.error("Admin login required");
+      return;
+    }
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-delete-orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "X-Admin-User-Id": user.id,
+        },
+        body: JSON.stringify({
+          orderIds: [order.id],
+          isQueueOrders: [!!order.isQueueOrder],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || `Delete failed: ${res.status}`);
+        return;
+      }
+      toast.success("Order deleted");
+      invalidateOrders();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete order");
+    }
+  }, [user?.id, invalidateOrders]);
 
   // Count active filters
   const activeFiltersCount = useMemo(() => {
@@ -660,10 +684,6 @@ const AdminOrders = () => {
                     <Bell className="w-4 h-4 mr-2" />
                     Notify
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
                 </div>
               </div>
               <Button
@@ -764,6 +784,7 @@ const AdminOrders = () => {
                 onToggleSelection={toggleSelection}
                 onViewDetails={handleViewDetails}
                 onEditOrder={handleEditOrder}
+                onDeleteOrder={handleDeleteOrder}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
                 hasNextPage={hasNextPage}
@@ -780,6 +801,7 @@ const AdminOrders = () => {
                 onToggleSelection={toggleSelection}
                 onViewDetails={handleViewDetails}
                 onEditOrder={handleEditOrder}
+                onDeleteOrder={handleDeleteOrder}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
                 hasNextPage={hasNextPage}
@@ -794,6 +816,7 @@ const AdminOrders = () => {
                 orders={orders}
                 onViewOrder={handleViewDetails}
                 onEditOrder={handleEditOrder}
+                onDeleteOrder={handleDeleteOrder}
                 isLoading={isLoading}
               />
             </TabsContent>

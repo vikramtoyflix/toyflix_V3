@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle } from "lucide-react";
 import { validateBangalorePincode, formatPincode } from "@/utils/pincodeValidation";
 import { useHybridAuth } from "@/hooks/useHybridAuth";
 import { useToast } from "@/hooks/use-toast";
-import { checkUserExistsForSmartLogin, checkUserStatus, completeUserProfile } from "@/components/auth/custom-otp/otpService";
+import { checkUserExistsForSmartLogin, checkUserStatus, completeUserProfile, warmSendOTPFunction } from "@/components/auth/custom-otp/otpService";
 import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface SignupFirstAuthProps {
@@ -80,6 +80,11 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
     
     return digitsOnly;
   };
+
+  // Pre-warm send-otp edge function on mount to reduce cold start (~10s) when user clicks Send OTP
+  useEffect(() => {
+    warmSendOTPFunction();
+  }, []);
 
   // Update URL when mode changes
   useEffect(() => {
