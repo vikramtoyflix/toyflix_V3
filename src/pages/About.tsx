@@ -210,7 +210,7 @@ const About = () => {
             See how it works
           </h2>
           <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-black/5">
-            <div className="aspect-video w-full bg-black">
+            <div className="aspect-video w-full bg-black relative">
               <iframe
                 className="w-full h-full"
                 src="https://www.youtube-nocookie.com/embed/0Br1a82-mk0?rel=0&modestbranding=1"
@@ -219,8 +219,20 @@ const About = () => {
                 loading="lazy"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              <a
+                href="https://www.youtube.com/watch?v=0Br1a82-mk0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-primary"
+              >
+                Watch on YouTube
+              </a>
+              {" "}if the player doesn’t load.
+            </p>
           </div>
         </div>
       </section>
