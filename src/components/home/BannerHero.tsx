@@ -31,7 +31,7 @@ const BannerHero = () => {
             child's growing mind.
           </h2>
           <p className="mt-6 sm:mt-8 max-w-2xl mx-auto font-outfit text-[#1e3a5f]/90 text-base sm:text-lg leading-relaxed">
-            In the early years, <strong>play powers learning</strong>. Toyflix helps parents find toys that build language, motor skills, confidence and problem-solving.
+            In the first few years of life, more than <strong>1 million neural connections are formed each second</strong> – a pace never repeated again. – UNICEF
           </p>
         </div>
       </div>
