@@ -386,7 +386,11 @@ const ToyDetailModal = ({
                       "text-sm font-bold",
                       isPremiumToy ? "text-yellow-700" : "text-green-700"
                     )}>
-                      {isPremiumToy ? "⭐ FREE with Gold Pack PRO" : "🎉 FREE with subscription"}
+                      {toy.category === 'ride_on_toys'
+                        ? "⭐ FREE with ride on subscription"
+                        : isPremiumToy
+                          ? "⭐ FREE with Gold Pack PRO"
+                          : "🎉 FREE with subscription"}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
