@@ -130,6 +130,7 @@ export const useRazorpay = () => {
 
               if (verifyError) {
                 console.error('❌ Payment verification failed:', verifyError);
+                console.error('❌ Verify error details:', JSON.stringify(verifyError));
                 try {
                   if (typeof window !== 'undefined' && window.cbq) {
                     window.cbq('track', 'PaymentFailed', {
@@ -159,7 +160,8 @@ export const useRazorpay = () => {
               }
 
               if (!verifyResponse.success) {
-                console.error('❌ Payment verification unsuccessful:', verifyResponse.error);
+                const errDetail = verifyResponse.error || verifyResponse.code || 'Unknown';
+                console.error('❌ Payment verification unsuccessful:', errDetail, verifyResponse);
                 try {
                   if (typeof window !== 'undefined' && window.cbq) {
                     window.cbq('track', 'PaymentFailed', {
@@ -269,8 +271,8 @@ export const useRazorpay = () => {
                 }
               }
 
-            } catch (verifyException) {
-            console.error('❌ Payment verification exception:', verifyException);
+            } catch (verifyException: any) {
+            console.error('❌ Payment verification exception:', verifyException?.message, verifyException);
             queryClient.invalidateQueries({ queryKey: ['subscription-tracking'] });
             queryClient.invalidateQueries({ queryKey: ['entitlements-tracking'] });
             toast({

@@ -33,7 +33,10 @@ serve(async (req) => {
     );
 
     // Parse and validate request body
-    const { amount, currency = 'INR', orderType, orderItems, userId, userEmail, userPhone } = await req.json();
+    const body = await req.json();
+    const { amount, currency = 'INR', orderType, orderItems = {}, userId, userEmail, userPhone } = body;
+    const effectiveEmail = userEmail || orderItems?.userEmail;
+    const effectivePhone = userPhone || orderItems?.userPhone;
 
     if (!amount || !orderType || !userId) {
       console.error('❌ Missing required fields:', { amount, orderType, userId });
@@ -43,9 +46,11 @@ serve(async (req) => {
     console.log('📦 Request data:', { amount, currency, orderType, userId });
 
     // Extract GST information from orderItems if available
-    const baseAmount = orderItems?.baseAmount || amount;
-    const gstAmount = orderItems?.gstAmount || 0;
-    const totalAmount = orderItems?.totalAmount || amount;
+    // amount is in paise from frontend; totalAmount for DB should be in rupees
+    const amountRupees = typeof amount === 'number' && amount >= 100 ? amount / 100 : amount;
+    const baseAmount = orderItems?.baseAmount ?? amountRupees;
+    const gstAmount = orderItems?.gstAmount ?? 0;
+    const totalAmount = orderItems?.totalAmount ?? amountRupees;
 
     console.log('💰 Payment breakdown:', { baseAmount, gstAmount, totalAmount });
 
@@ -81,24 +86,29 @@ serve(async (req) => {
 
     console.log('✅ Razorpay order created:', razorpayOrder.id);
 
-    // Try to create the user in custom_users (ignore if it fails)
-    const phoneValue = userPhone || `temp_${userId.slice(0, 8)}`;
-    
+    // Ensure user exists in custom_users (required for payment_orders FK)
+    const phoneValue = effectivePhone || `pay_${userId.replace(/-/g, '')}`;
     try {
-      await supabaseClient
+      const { error: upsertError } = await supabaseClient
         .from('custom_users')
         .upsert({
           id: userId,
-          email: userEmail || null,
+          email: effectiveEmail || null,
           phone: phoneValue,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'id'
+          onConflict: 'id',
+          ignoreDuplicates: true  // Don't overwrite existing user data
         });
-      console.log('✅ User created/updated in custom_users');
-    } catch (userError) {
-      console.log('⚠️ User creation failed, continuing with order:', userError);
+      if (upsertError) {
+        console.error('⚠️ User upsert failed:', upsertError.message);
+        throw new Error(`User setup failed. Please complete your profile before payment.`);
+      }
+      console.log('✅ User ensured in custom_users');
+    } catch (userError: any) {
+      console.error('❌ User setup failed:', userError?.message);
+      throw userError;
     }
 
     // Store payment order data so razorpay-verify can find it (payment_orders first, then payment_tracking)
@@ -135,8 +145,8 @@ serve(async (req) => {
               status: 'created',
               order_type: orderType,
               order_items: orderItems,
-              user_email: userEmail,
-              user_phone: userPhone,
+              user_email: effectiveEmail,
+              user_phone: effectivePhone,
               created_at: new Date().toISOString()
             })
             .select()

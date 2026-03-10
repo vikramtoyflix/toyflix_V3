@@ -670,6 +670,8 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         couponDiscount: promoDiscount,
         deliveryInstructions,
         shippingAddress: standardizeShippingAddress(addressData),
+        userPhone: profile?.phone || user?.phone || addressData?.phone,
+        userEmail: user?.email || profile?.email || addressData?.email,
         isCycleCompletionFlow: isCycleCompletionFlow,
         completionReason: completionReason
       },
@@ -714,6 +716,20 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
           toast.success('🎉 Test coupon applied! Total is now ₹1 for Razorpay testing.');
         } else {
           toast.error('Order amount is already ₹1 or less. This coupon is not applicable.');
+        }
+        setIsApplyingPromo(false);
+        return;
+      }
+      if (code === 'fiverupees') {
+        // Target final total ₹5. With 18% GST: base = 5/1.18 ≈ 4.24, so discount = baseAmount - 5/1.18
+        const targetBaseForFiveRupees = 5 / 1.18;
+        const discountToMakeFiveRupees = baseAmount - targetBaseForFiveRupees;
+        if (discountToMakeFiveRupees > 0) {
+          setPromoDiscount(discountToMakeFiveRupees);
+          setAppliedPromo('FIVERUPEES');
+          toast.success('🎉 Coupon applied! Total is now ₹5.');
+        } else {
+          toast.error('Order amount is already ₹5 or less. This coupon is not applicable.');
         }
         setIsApplyingPromo(false);
         return;

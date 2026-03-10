@@ -416,12 +416,14 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
-    console.error('❌ Error verifying payment:', error);
+  } catch (error: any) {
+    const errMsg = error?.message || 'Unknown verification error';
+    console.error('❌ Error verifying payment:', errMsg, error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errMsg,
+        code: error?.code || 'VERIFICATION_FAILED',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
