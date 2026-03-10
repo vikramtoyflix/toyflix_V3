@@ -63,7 +63,7 @@ export class PlanService {
         educationalToys: 1,
         books: 1,
         customizationPool: {
-          toys: 220,
+          toys: 350,
           books: 60
         },
         valueCapMin: 8000,

@@ -47,7 +47,7 @@ const plans = [{
   originalPrice: "₹14000",
   period: "6 months",
   description: "6 months PRO plan",
-  features: ["3 toys (1 Big + 1 developmental + 1 educational) + 1 book monthly", "Choose from 220+ premium toys + 90+ big toys including exclusive collection", "Toys worth ₹8,000 to ₹15,000 monthly", "Roller coaster & coupe car worth ₹12,000 each included", "Premium quality toys guaranteed", "Priority access to new toy arrivals", "Pause up to 60 days", "Just ₹44 per day for 6 months of wonder"],
+  features: ["3 toys (1 Big + 1 developmental + 1 educational) + 1 book monthly", "Choose from 350+ premium toys + 90+ big toys including exclusive collection", "Toys worth ₹8,000 to ₹15,000 monthly", "Roller coaster & coupe car worth ₹12,000 each included", "Premium quality toys guaranteed", "Priority access to new toy arrivals", "Pause up to 60 days", "Just ₹44 per day for 6 months of wonder"],
   popular: true,
   recommendedLabel: "⭐ Most Loved by Parents",
   color: "bg-toy-sunshine",

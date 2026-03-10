@@ -587,7 +587,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
 INSERT INTO subscription_plans (plan_type, price, max_toys, max_extensions, features) VALUES
 ('Discovery Delight', 1299.00, 4, 30, '["Monthly plan", "3 toys + 1 book", "Premium quality guaranteed"]'),
 ('Silver Pack', 5999.00, 6, 90, '["6 months plan", "110+ toys selection", "Big adventure toys", "Free delivery"]'),
-('Gold Pack PRO', 7999.00, 8, 180, '["6 months PRO plan", "220+ premium toys", "Early access", "Priority support"]'),
+('Gold Pack PRO', 7999.00, 8, 180, '["6 months PRO plan", "350+ premium toys", "Early access", "Priority support"]'),
 ('Ride-On Monthly', 1999.00, 1, 30, '["Monthly plan", "Large ride-on toys", "No age restrictions", "Premium quality"]')
 ON CONFLICT (plan_type) DO UPDATE SET
     price = EXCLUDED.price,
