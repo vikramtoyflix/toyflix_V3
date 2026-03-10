@@ -4,7 +4,7 @@ const BannerHero = () => {
   return (
     <section className="relative w-full overflow-hidden">
       <div
-        className="relative flex flex-col items-center justify-center min-h-[220px] sm:min-h-[260px] md:min-h-[300px] px-6 py-12 sm:py-16"
+        className="relative flex flex-col items-center justify-center min-h-[280px] sm:min-h-[340px] md:min-h-[380px] px-6 py-12 sm:py-16"
         style={{
           background: "linear-gradient(180deg, #e8f4fc 0%, #d4eaf7 50%, #c5e2f4 100%)",
           boxShadow: "inset 0 0 120px 40px rgba(255,255,255,0.4)",
@@ -30,6 +30,9 @@ const BannerHero = () => {
           <h2 className="font-outfit font-bold text-[#1e3a5f] text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight tracking-tight">
             child's growing mind.
           </h2>
+          <p className="mt-6 sm:mt-8 max-w-2xl mx-auto font-outfit text-[#1e3a5f]/90 text-base sm:text-lg leading-relaxed">
+            In the early years, <strong>play powers learning</strong>. Toyflix helps parents find toys that build language, motor skills, confidence and problem-solving.
+          </p>
         </div>
       </div>
     </section>

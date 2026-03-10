@@ -20,8 +20,11 @@ const ToyCarouselExploreButton = () => {
   };
 
   const handleSubscribeClick = () => {
-    // /pricing is always accessible and has clear CTAs to subscription-flow
-    navigate('/pricing');
+    if (!user) {
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent('/subscription-flow')}`);
+    } else {
+      navigate('/subscription-flow');
+    }
   };
 
   return (

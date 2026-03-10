@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { 
   Sparkles, 
   Heart, 
@@ -28,10 +29,14 @@ const ComponentLoader = ({ text = "Loading..." }) => (
 
 const MobileHeroSection = () => {
   const navigate = useNavigate();
+  const { user } = useCustomAuth();
 
   const handleSubscribeClick = () => {
-    // /pricing is always accessible and has clear CTAs to subscription-flow
-    navigate('/pricing');
+    if (!user) {
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent('/subscription-flow')}`);
+    } else {
+      navigate('/subscription-flow');
+    }
   };
 
   return (

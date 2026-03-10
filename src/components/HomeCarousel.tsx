@@ -70,9 +70,8 @@ const HomeCarousel = () => {
     isError || !slides || slides.length === 0 ? staticSlides : slides;
 
   const handleNavigation = (link: string) => {
-    // /pricing is always accessible; subscription-flow requires auth
     if (link === "/subscription-flow") {
-      navigate("/pricing");
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent(link)}`);
       return;
     }
     navigate(link);

@@ -47,9 +47,8 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ isMobile = false }) => {
   const navigate = useNavigate();
 
   const handleNavigation = (link: string) => {
-    // /pricing is always accessible; subscription-flow requires auth
     if (link === "/subscription-flow") {
-      navigate("/pricing");
+      navigate(`/auth?mode=signup&redirect=${encodeURIComponent(link)}`);
       return;
     }
     navigate(link);
