@@ -43,8 +43,8 @@ jobs:
           action: "upload"
           app_location: "/"
           api_location: "api"
-          output_location: "dist"
-          app_build_command: "npm run build"
+          output_location: "build"
+          app_build_command: "npm run build && cp -r dist build"
           skip_deploy_on_missing_secrets: true
 
   close_pull_request_job:
