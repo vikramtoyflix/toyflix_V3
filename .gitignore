@@ -34,3 +34,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 supabase/.temp/
+
+# Large export zips (exceed GitHub 100MB limit)
+toy-joy-box-club-codebase.zip
