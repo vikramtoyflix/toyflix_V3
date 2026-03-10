@@ -28,20 +28,23 @@
 ### useRazorpay.ts
 - Improve error logging for verification failures
 
-## Deployment
+## Deployment (REQUIRED – orders won't appear until you deploy)
 
-**Deploy the updated Supabase Edge Functions:**
+**The payment fixes only work after deploying the Supabase Edge Functions.**
+
+```bash
+# From project root
+./deploy-supabase-functions.sh
+```
+
+Or manually:
 
 ```bash
 supabase functions deploy razorpay-order
 supabase functions deploy razorpay-verify
 ```
 
-Or deploy all functions:
-
-```bash
-supabase functions deploy
-```
+**If you skip this step, payments will succeed on Razorpay but orders will NOT appear in the admin panel.**
 
 ## Verification
 
