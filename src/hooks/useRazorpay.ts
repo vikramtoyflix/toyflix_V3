@@ -22,7 +22,7 @@ export const useRazorpay = () => {
   const initializePayment = async (paymentData: {
     amount: number;
     currency?: string;
-    orderType: 'subscription' | 'one_time';
+    orderType: 'subscription' | 'one_time' | 'ride_on';
     orderItems?: any;
     description?: string;
   }) => {

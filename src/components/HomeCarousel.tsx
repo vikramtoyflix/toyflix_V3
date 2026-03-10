@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { imageService } from "@/services/imageService";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { ArrowRight } from "lucide-react";
 
 const staticSlides = [
@@ -52,7 +51,6 @@ const staticSlides = [
 const HomeCarousel = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { user } = useCustomAuth();
 
   const { data: slides, isLoading, isError } = useQuery({
     queryKey: ["homeCarouselSlides"],
@@ -72,8 +70,9 @@ const HomeCarousel = () => {
     isError || !slides || slides.length === 0 ? staticSlides : slides;
 
   const handleNavigation = (link: string) => {
-    if (link === "/subscription-flow" && !user) {
-      navigate(`/auth?redirect=${encodeURIComponent(link)}`);
+    // /pricing is always accessible; subscription-flow requires auth
+    if (link === "/subscription-flow") {
+      navigate("/pricing");
       return;
     }
     navigate(link);

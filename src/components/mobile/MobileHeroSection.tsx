@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { 
   Sparkles, 
   Heart, 
@@ -29,14 +28,10 @@ const ComponentLoader = ({ text = "Loading..." }) => (
 
 const MobileHeroSection = () => {
   const navigate = useNavigate();
-  const { user } = useCustomAuth();
 
   const handleSubscribeClick = () => {
-    if (!user) {
-      navigate('/auth?redirect=%2Fsubscription-flow');
-    } else {
-      navigate('/subscription-flow');
-    }
+    // /pricing is always accessible and has clear CTAs to subscription-flow
+    navigate('/pricing');
   };
 
   return (
@@ -104,8 +99,9 @@ const MobileHeroSection = () => {
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
           <Button 
-            size="sm"
             onClick={handleSubscribeClick}
+            size="sm"
+            type="button"
             className="w-full bg-gradient-to-r from-toy-mint to-toy-sky hover:from-toy-mint/90 hover:to-toy-sky/90 text-white font-semibold py-3 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
           >
             <Gift className="w-4 h-4 mr-2" />

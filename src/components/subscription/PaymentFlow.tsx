@@ -657,7 +657,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     await initializePayment({
       amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
       currency: 'INR',
-      orderType: 'subscription', // Both regular and ride-on use subscription type
+      orderType: isRideOnPayment ? 'ride_on' : 'subscription',
       orderItems: {
         planId: selectedPlan,
         selectedToys: isRideOnPayment ? [] : selectedToys,

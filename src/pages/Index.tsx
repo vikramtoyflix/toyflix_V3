@@ -38,6 +38,8 @@ const Header = React.lazy(() => import("@/components/Header"));
 const PremiumPartners = React.lazy(() => import("@/components/PremiumPartners"));
 const CertifiedBy = React.lazy(() => import("@/components/CertifiedBy"));
 const HeroCarousel = React.lazy(() => import("@/components/HeroCarousel"));
+const BannerHero = React.lazy(() => import("@/components/home/BannerHero"));
+const DevelopmentalImagesCarousel = React.lazy(() => import("@/components/home/DevelopmentalImagesCarousel"));
 const MobileLayout = React.lazy(() => import("@/components/mobile/MobileLayout"));
 const Index = () => {
   const isMobile = useIsMobile();
@@ -68,6 +70,16 @@ const Index = () => {
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Suspense fallback={<ComponentLoader text="Loading carousel..." />}>
                             <HomeCarousel />
+                          </Suspense>
+                        </ErrorBoundary>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Suspense fallback={<ComponentLoader text="Loading banner..." />}>
+                            <BannerHero />
+                          </Suspense>
+                        </ErrorBoundary>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Suspense fallback={<ComponentLoader text="Loading developmental images..." />}>
+                            <DevelopmentalImagesCarousel />
                           </Suspense>
                         </ErrorBoundary>
                         
@@ -155,6 +167,16 @@ const Index = () => {
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Suspense fallback={<ComponentLoader text="Loading hero carousel..." />}>
             <HeroCarousel />
+          </Suspense>
+        </ErrorBoundary>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<ComponentLoader text="Loading banner..." />}>
+            <BannerHero />
+          </Suspense>
+        </ErrorBoundary>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <Suspense fallback={<ComponentLoader text="Loading developmental images..." />}>
+            <DevelopmentalImagesCarousel />
           </Suspense>
         </ErrorBoundary>
         <section className="bg-white">

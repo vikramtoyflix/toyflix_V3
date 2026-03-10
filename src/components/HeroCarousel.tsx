@@ -7,7 +7,6 @@ import {
 import Autoplay from "embla-carousel-autoplay";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { ArrowRight } from "lucide-react";
 
 interface HeroCarouselProps {
@@ -46,11 +45,11 @@ const heroSlides = [
 
 const HeroCarousel: React.FC<HeroCarouselProps> = ({ isMobile = false }) => {
   const navigate = useNavigate();
-  const { user } = useCustomAuth();
 
   const handleNavigation = (link: string) => {
-    if (link === "/subscription-flow" && !user) {
-      navigate(`/auth?redirect=${encodeURIComponent(link)}`);
+    // /pricing is always accessible; subscription-flow requires auth
+    if (link === "/subscription-flow") {
+      navigate("/pricing");
       return;
     }
     navigate(link);

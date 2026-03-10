@@ -8,7 +8,6 @@ import Autoplay from "embla-carousel-autoplay";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { 
   Sparkles, 
   ArrowRight,
@@ -85,14 +84,12 @@ const mobileHeroSlides = [
 
 const MobileHeroCarousel = () => {
   const navigate = useNavigate();
-  const { user } = useCustomAuth();
 
   const handleNavigation = (link: string) => {
+    // /pricing is always accessible; subscription-flow requires auth
     if (link === '/subscription-flow') {
-      if (!user) {
-        navigate(`/auth?redirect=${encodeURIComponent(link)}`);
-        return;
-      }
+      navigate('/pricing');
+      return;
     }
     navigate(link);
   };

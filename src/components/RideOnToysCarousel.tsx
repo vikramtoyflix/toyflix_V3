@@ -46,8 +46,8 @@ const RideOnToysCarousel = () => {
   };
 
   const handleSubscribeClick = () => {
-    if (!user) navigate('/auth?redirect=%2Fsubscription-flow');
-    else navigate('/subscription-flow');
+    // /pricing is always accessible and has clear CTAs to subscription-flow
+    navigate('/pricing');
   };
 
   const RideOnExploreButton = () => (
@@ -63,6 +63,7 @@ const RideOnToysCarousel = () => {
       <div className={`flex ${isMobile ? "flex-col gap-3" : "flex-row justify-center gap-4"}`}>
         <Button
           onClick={() => navigate('/toys?tab=ride_on')}
+          type="button"
           size="lg"
           className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-600 hover:via-red-600 hover:to-pink-600 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse hover:animate-ride-on-bounce relative overflow-hidden group"
         >
@@ -72,6 +73,7 @@ const RideOnToysCarousel = () => {
         <Button
           onClick={handleSubscribeClick}
           variant="outline"
+          type="button"
           className={`bg-white border-2 border-toy-mint text-toy-mint hover:bg-toy-mint hover:text-white font-semibold rounded-full transition-colors duration-200 ${isMobile ? "py-3 text-base" : "px-8 py-3 text-lg"}`}
         >
           <Gift className={`${isMobile ? "w-4 h-4" : "w-5 h-5"} mr-2`} />

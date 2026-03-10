@@ -384,9 +384,13 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
           });
           console.log('🔍 Profile completed successfully, user authenticated');
           
-          // Redirect to toys page with signup parameter
+          // Preserve redirect param (e.g. /subscription-flow from Subscribe Now) - otherwise go to signup-success
+          const redirectParam = searchParams.get('redirect');
+          const postSignupUrl = redirectParam
+            ? `/auth?redirect=${encodeURIComponent(redirectParam)}`
+            : '/auth?from=signup';
           setTimeout(() => {
-            navigate('/auth?from=signup', { replace: true });
+            navigate(postSignupUrl, { replace: true });
           }, 1500);
         } else {
           toast({
@@ -424,9 +428,13 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
               duration: 6000,
             });
             
-            // Redirect to toys page with signup parameter
+            // Preserve redirect param (e.g. /subscription-flow from Subscribe Now) - otherwise go to signup-success
+            const redirectParam = searchParams.get('redirect');
+            const postSignupUrl = redirectParam
+              ? `/auth?redirect=${encodeURIComponent(redirectParam)}`
+              : '/auth?from=signup';
             setTimeout(() => {
-              navigate('/auth?from=signup', { replace: true });
+              navigate(postSignupUrl, { replace: true });
             }, 1500);
           } else {
             console.log('🔍 OTP verified but profile incomplete - completing profile');
@@ -450,9 +458,13 @@ const SignupFirstAuth = ({ onClose }: SignupFirstAuthProps) => {
               });
               console.log('🔍 Profile completed successfully, user authenticated');
               
-              // Redirect to toys page with signup parameter
+              // Preserve redirect param (e.g. /subscription-flow from Subscribe Now) - otherwise go to signup-success
+              const redirectParam = searchParams.get('redirect');
+              const postSignupUrl = redirectParam
+                ? `/auth?redirect=${encodeURIComponent(redirectParam)}`
+                : '/auth?from=signup';
               setTimeout(() => {
-                navigate('/auth?from=signup', { replace: true });
+                navigate(postSignupUrl, { replace: true });
               }, 1500);
             } else {
               toast({

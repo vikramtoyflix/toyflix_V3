@@ -166,8 +166,9 @@ serve(async (req) => {
     endDate.setMonth(endDate.getMonth() + subscriptionMonths);
 
     // ✅ CRITICAL: Always create rental_orders for admin panel visibility (subscription AND ride_on / new customers)
-    const allowedOrderTypes = ['subscription', 'one_time', 'trial'];
-    const rentalOrderTypeForDb = allowedOrderTypes.includes(order.order_type) ? order.order_type : 'subscription';
+    const allowedOrderTypes = ['subscription', 'one_time', 'trial', 'ride_on'];
+    const rentalOrderTypeForDb = allowedOrderTypes.includes(order.order_type) ? order.order_type : 
+      (orderItems.rideOnToyId ? 'ride_on' : 'subscription');
     try {
       console.log('📦 Creating rental order record for admin panel (order_type:', order.order_type, '-> db:', rentalOrderTypeForDb, ')');
       
@@ -205,8 +206,9 @@ serve(async (req) => {
         plus_code: addressToUse.plus_code,
         delivery_instructions: orderItems.deliveryInstructions || null
       };
+      const totalAmountRupees = orderItems.totalAmount ?? order.total_amount ?? (typeof order.amount === 'number' && order.amount > 1000 ? order.amount / 100 : order.amount) ?? 0;
       const toysData = orderItems.rideOnToyId ?
-        [{ toy_id: orderItems.rideOnToyId, name: 'Ride-on Toy', category: 'ride_on', quantity: 1, unit_price: order.total_amount || order.amount || 0, total_price: order.total_amount || order.amount || 0, returned: false }] :
+        [{ toy_id: orderItems.rideOnToyId, name: 'Ride-on Toy', category: 'ride_on', quantity: 1, unit_price: totalAmountRupees, total_price: totalAmountRupees, returned: false }] :
         (orderItems.selectedToys || []).map((toy: any) => ({
           toy_id: toy.id, name: toy.name, category: toy.category, image_url: toy.image_url, quantity: 1,
           unit_price: toy.rental_price || 0, total_price: toy.rental_price || 0, returned: false
@@ -216,9 +218,9 @@ serve(async (req) => {
         status: 'pending',
         order_type: rentalOrderTypeForDb,
         subscription_plan: orderItems.planId || 'basic',
-        total_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
-        base_amount: order.base_amount || 0,
-        gst_amount: order.gst_amount || 0,
+        total_amount: totalAmountRupees,
+        base_amount: orderItems.baseAmount ?? order.base_amount ?? 0,
+        gst_amount: orderItems.gstAmount ?? order.gst_amount ?? 0,
         discount_amount: order.discount_amount || 0,
         coupon_code: orderItems.appliedCoupon || order.coupon_code || null,
         payment_status: 'paid',
@@ -226,7 +228,7 @@ serve(async (req) => {
         razorpay_order_id: razorpay_order_id,
         razorpay_payment_id: razorpay_payment_id,
         razorpay_signature: razorpay_signature,
-        payment_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
+        payment_amount: totalAmountRupees,
         payment_currency: order.currency || 'INR',
         cycle_number: 1,
         rental_start_date: startDate.toISOString().split('T')[0],
@@ -263,8 +265,8 @@ serve(async (req) => {
       throw new Error(`CRITICAL FAILURE: Rental order creation failed - ${orderCreationError?.message}. Payment verification ABORTED.`);
     }
 
-    // Create subscription tracking only for subscription orders (not for ride_on-only path that already created rental_orders above)
-    if (order.order_type === 'subscription') {
+    // Create subscription tracking for subscription AND ride_on orders (rental_orders already created above)
+    if (order.order_type === 'subscription' || order.order_type === 'ride_on') {
       console.log('🔄 Creating subscription tracking entry');
       try {
         // Create subscription in NEW tracking table
@@ -283,7 +285,7 @@ serve(async (req) => {
             selected_toys: orderItems.selectedToys || [],
             age_group: orderItems.ageGroup || '3-5',
             ride_on_toy_id: orderItems.rideOnToyId || null,
-            payment_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
+            payment_amount: totalAmountRupees,
             payment_currency: order.currency || 'INR',
             order_items: orderItems,
             shipping_address: orderItems.shippingAddress || {},
