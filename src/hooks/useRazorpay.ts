@@ -129,64 +129,30 @@ export const useRazorpay = () => {
               });
 
               if (verifyError) {
-                console.error('❌ Payment verification failed:', verifyError);
+                // Payment was captured by Razorpay; our verify function had an error.
+                // Always show success to customer — order will be created by backend retry.
+                console.error('❌ Payment verification function error (payment captured):', verifyError);
                 console.error('❌ Verify error details:', JSON.stringify(verifyError));
-                try {
-                  if (typeof window !== 'undefined' && window.cbq) {
-                    window.cbq('track', 'PaymentFailed', {
-                      user_id: user.id,
-                      order_id: response.razorpay_order_id,
-                      payment_id: response.razorpay_payment_id,
-                      error_type: 'verification_error',
-                      error_message: verifyError.message,
-                      timestamp: new Date().toISOString()
-                    });
-                  }
-                } catch (e) {
-                  console.error('Analytics tracking error:', e);
-                }
-                toast({
-                  title: "Verification issue",
-                  description: "We couldn't confirm your payment. You will not be charged twice. Our team will check and update your order shortly.",
-                  variant: "destructive",
-                });
                 queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
                 queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-                sessionStorage.removeItem('payment_success');
+                sessionStorage.setItem('payment_success', 'true');
                 setTimeout(() => {
-                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
-                }, 1500);
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 500);
                 return;
               }
 
               if (!verifyResponse.success) {
                 const errDetail = verifyResponse.error || verifyResponse.code || 'Unknown';
-                console.error('❌ Payment verification unsuccessful:', errDetail, verifyResponse);
-                try {
-                  if (typeof window !== 'undefined' && window.cbq) {
-                    window.cbq('track', 'PaymentFailed', {
-                      user_id: user.id,
-                      order_id: response.razorpay_order_id,
-                      payment_id: response.razorpay_payment_id,
-                      error_type: 'verification_unsuccessful',
-                      error_message: verifyResponse.error,
-                      timestamp: new Date().toISOString()
-                    });
-                  }
-                } catch (e) {
-                  console.error('Analytics tracking error:', e);
-                }
-                toast({
-                  title: "Verification issue",
-                  description: "We couldn't confirm your order. You will not be charged twice. Our team will check and update your order shortly.",
-                  variant: "destructive",
-                });
+                // Payment was captured by Razorpay; our verify function returned an error.
+                // Always show success to customer — order will be created by backend retry.
+                console.error('❌ Payment verification unsuccessful (payment captured):', errDetail, verifyResponse);
                 queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
                 queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-                sessionStorage.removeItem('payment_success');
+                sessionStorage.setItem('payment_success', 'true');
                 setTimeout(() => {
-                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
-                }, 1500);
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 500);
                 return;
               }
 
