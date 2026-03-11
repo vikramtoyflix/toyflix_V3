@@ -145,17 +145,17 @@ export const useRazorpay = () => {
                 } catch (e) {
                   console.error('Analytics tracking error:', e);
                 }
+                // Original flow: still take user to order summary (payment succeeded on Razorpay; backend will reconcile)
                 toast({
-                  title: "Verification issue",
-                  description: "We couldn't confirm your payment. You will not be charged twice. Our team will check and update your order shortly.",
-                  variant: "destructive",
+                  title: "Confirming your order...",
+                  description: "Taking you to your order details.",
                 });
                 queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
                 queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-                sessionStorage.removeItem('payment_success');
+                sessionStorage.setItem('payment_success', 'true');
                 setTimeout(() => {
-                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
-                }, 1500);
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 800);
                 return;
               }
 
@@ -176,17 +176,17 @@ export const useRazorpay = () => {
                 } catch (e) {
                   console.error('Analytics tracking error:', e);
                 }
+                // Original flow: still take user to order summary (payment succeeded on Razorpay; backend will reconcile)
                 toast({
-                  title: "Verification issue",
-                  description: "We couldn't confirm your order. You will not be charged twice. Our team will check and update your order shortly.",
-                  variant: "destructive",
+                  title: "Confirming your order...",
+                  description: "Taking you to your order details.",
                 });
                 queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
                 queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-                sessionStorage.removeItem('payment_success');
+                sessionStorage.setItem('payment_success', 'true');
                 setTimeout(() => {
-                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
-                }, 1500);
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                }, 800);
                 return;
               }
 
@@ -275,15 +275,15 @@ export const useRazorpay = () => {
             console.error('❌ Payment verification exception:', verifyException?.message, verifyException);
             queryClient.invalidateQueries({ queryKey: ['subscription-tracking'] });
             queryClient.invalidateQueries({ queryKey: ['entitlements-tracking'] });
+            // Original flow: still take user to order summary (payment succeeded on Razorpay; backend will reconcile)
             toast({
-              title: "Verification issue",
-              description: "We couldn't confirm your payment. You will not be charged twice. Our team will check and update your order shortly.",
-              variant: "destructive",
+              title: "Confirming your order...",
+              description: "Taking you to your order details.",
             });
-            sessionStorage.removeItem('payment_success');
+            sessionStorage.setItem('payment_success', 'true');
             setTimeout(() => {
-              window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
-            }, 1500);
+              window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+            }, 800);
             return;
           }
 
