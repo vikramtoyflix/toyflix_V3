@@ -26,6 +26,20 @@ CREATE POLICY "allow_public_read_plans" ON public.subscription_plans FOR SELECT 
 -- Admin users: restrict (service role only via Edge Functions)
 ALTER TABLE IF EXISTS public.admin_users ENABLE ROW LEVEL SECURITY;
 
+-- Subscriptions: add admin manage policy (unifiedOrderService cleanup on failed create)
+DROP POLICY IF EXISTS "Admins can manage all subscriptions" ON public.subscriptions;
+CREATE POLICY "Admins can manage all subscriptions" ON public.subscriptions
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.custom_users WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Custom users: add admin read-all for admin panel (preserve existing permissive SELECT)
+DROP POLICY IF EXISTS "Admins can view all users" ON public.custom_users;
+CREATE POLICY "Admins can view all users" ON public.custom_users
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.custom_users cu WHERE cu.id = auth.uid() AND cu.role = 'admin')
+  );
+
 -- Other tables: enable RLS, no policy (service_role bypasses; anon/authenticated get no rows)
 ALTER TABLE IF EXISTS public.notification_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.dispatch_orders ENABLE ROW LEVEL SECURITY;
