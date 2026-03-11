@@ -186,17 +186,11 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
   }
 
   // Calculate final amounts with discounts (apply discount to base amount, then recalculate GST)
-  // Round all amounts to avoid floating-point display issues (e.g. ₹0.8474576271187289)
-  const roundedPromoDiscount = Math.round(promoDiscount * 100) / 100;
-  const discountedBaseAmount = Math.round(Math.max(0, baseAmount - roundedPromoDiscount) * 100) / 100;
+  const discountedBaseAmount = Math.max(0, baseAmount - promoDiscount);
   const finalGstAmount = isRideOnPayment ? 
-    Math.round((1999 - roundedPromoDiscount) * 18 / 100) : 
+    Math.round((1999 - promoDiscount) * 18 / 100) : 
     PlanService.calculateGST(discountedBaseAmount);
-  // ONERUPEE/FIVERUPEES target exact amounts; otherwise round calculated total
-  const calculatedTotal = discountedBaseAmount + finalGstAmount;
-  const finalTotalAmount = appliedPromo === 'ONERUPEE' ? 1 : 
-    appliedPromo === 'FIVERUPEES' ? 5 : 
-    Math.round(calculatedTotal * 100) / 100;
+  const finalTotalAmount = discountedBaseAmount + finalGstAmount;
 
   // Handle location selection from map - SIMPLIFIED
   const handleLocationSelect = ({ lat, lng, plus_code, addressComponents }: any) => {
@@ -661,9 +655,9 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
     
     await initializePayment({
-      amount: Math.round(finalTotalAmount * 100), // Convert to paise (integer required by Razorpay)
+      amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
       currency: 'INR',
-      orderType: isRideOnPayment ? 'ride_on' : 'subscription',
+      orderType: 'subscription', // Both regular and ride-on use subscription type
       orderItems: {
         planId: selectedPlan,
         selectedToys: isRideOnPayment ? [] : selectedToys,
@@ -676,8 +670,6 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         couponDiscount: promoDiscount,
         deliveryInstructions,
         shippingAddress: standardizeShippingAddress(addressData),
-        userPhone: profile?.phone || user?.phone || addressData?.phone,
-        userEmail: user?.email || profile?.email || addressData?.email,
         isCycleCompletionFlow: isCycleCompletionFlow,
         completionReason: completionReason
       },
@@ -687,7 +679,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
 
   // Coupon functions removed (queue bypass functionality removed)
 
-  // New promo code functions: test codes (free flow without paying) + DiscountService for real promos
+  // New promo code functions using DiscountService
   const applyPromo = async () => {
     if (!promoCode.trim()) {
       toast.error('Please enter a promo code');
@@ -700,51 +692,12 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
 
     setIsApplyingPromo(true);
-
-    const code = promoCode.trim().toLowerCase();
-
+    
     try {
-      // Test / free codes for flow testing without paying (no DB required)
-      if (code === 'freecode' || code === 'testfree' || code === 'qa2025') {
-        setPromoDiscount(baseAmount);
-        setAppliedPromo(code.toUpperCase());
-        toast.success('🎉 Test coupon applied! Your order is now FREE – use "Confirm Free Order" to test the flow.');
-        setIsApplyingPromo(false);
-        return;
-      }
-      if (code === 'onerupee') {
-        // Target final total ₹1 (100 paise). With 18% GST: base = 1/1.18 ≈ 0.85, so discount = baseAmount - 0.85
-        const targetBaseForOneRupee = Math.round((1 / 1.18) * 100) / 100;
-        const discountToMakeOneRupee = Math.round((baseAmount - targetBaseForOneRupee) * 100) / 100;
-        if (discountToMakeOneRupee > 0) {
-          setPromoDiscount(discountToMakeOneRupee);
-          setAppliedPromo('ONERUPEE');
-          toast.success('🎉 Test coupon applied! Total is now ₹1 for Razorpay testing.');
-        } else {
-          toast.error('Order amount is already ₹1 or less. This coupon is not applicable.');
-        }
-        setIsApplyingPromo(false);
-        return;
-      }
-      if (code === 'fiverupees') {
-        // Target final total ₹5. With 18% GST: base = 5/1.18 ≈ 4.24, so discount = baseAmount - 4.24
-        const targetBaseForFiveRupees = Math.round((5 / 1.18) * 100) / 100;
-        const discountToMakeFiveRupees = Math.round((baseAmount - targetBaseForFiveRupees) * 100) / 100;
-        if (discountToMakeFiveRupees > 0) {
-          setPromoDiscount(discountToMakeFiveRupees);
-          setAppliedPromo('FIVERUPEES');
-          toast.success('🎉 Coupon applied! Total is now ₹5.');
-        } else {
-          toast.error('Order amount is already ₹5 or less. This coupon is not applicable.');
-        }
-        setIsApplyingPromo(false);
-        return;
-      }
-
       const validation = await DiscountService.validateDiscount(
         promoCode.trim(),
         user.id,
-        baseAmount
+        baseAmount // Use base amount instead of subtotal to avoid GST in discount calculation
       );
 
       if (validation.isValid && validation.offerDetails) {
@@ -821,7 +774,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             {promoDiscount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount ({appliedPromo}):</span>
-                <span>-₹{Math.round(promoDiscount * 100) / 100}</span>
+                <span>-₹{promoDiscount}</span>
               </div>
             )}
             <div className="flex justify-between">
@@ -981,14 +934,6 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
               </div>
             </div>
 
-            {addressData.plus_code && (
-              <div className="rounded-md bg-green-50 border border-green-200 p-3">
-                <p className="text-xs font-medium text-green-800 mb-0.5">📍 Plus Code (for delivery)</p>
-                <p className="font-mono text-sm text-green-900">{addressData.plus_code}</p>
-                <p className="text-xs text-green-600 mt-1">Used for precise delivery location.</p>
-              </div>
-            )}
-
             <div>
               <Label htmlFor="delivery_instructions">Delivery Instructions (Optional)</Label>
               <Textarea
@@ -1052,7 +997,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             </div>
             {appliedPromo && (
               <p className="text-sm text-green-600 mt-1">
-                🎉 Promo "{appliedPromo}" applied - You save: ₹{Math.round(promoDiscount * 100) / 100}
+                🎉 Promo "{appliedPromo}" applied - You save: ₹{promoDiscount}
               </p>
             )}
           </div>
@@ -1062,10 +1007,10 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-green-800">Total Savings:</span>
-                <span className="text-lg font-bold text-green-600">₹{Math.round(promoDiscount * 100) / 100}</span>
+                <span className="text-lg font-bold text-green-600">₹{promoDiscount}</span>
               </div>
               <div className="text-xs text-green-600 mt-1">
-                {promoDiscount > 0 && `Promo Discount: ₹${Math.round(promoDiscount * 100) / 100}`}
+                {promoDiscount > 0 && `Promo Discount: ₹${promoDiscount}`}
               </div>
             </div>
           )}
@@ -1084,7 +1029,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             {isCreatingFreeOrder ? 'Processing...' : 
              !isAddressComplete(addressData) ? 'Complete Address to Continue' :
              finalTotalAmount === 0 ? (isQueueOrder ? '🎉 Confirm Order Update' : '🎉 Confirm Free Order') :
-             isQueueOrder ? `Update Queue - ₹${Math.round(finalTotalAmount * 100) / 100}` : `Pay ₹${Math.round(finalTotalAmount * 100) / 100}`}
+             isQueueOrder ? `Update Queue - ₹${finalTotalAmount}` : `Pay ₹${finalTotalAmount}`}
           </Button>
         </div>
         

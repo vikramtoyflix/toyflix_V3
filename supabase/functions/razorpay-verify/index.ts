@@ -18,16 +18,226 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   throw new Error('Razorpay credentials not configured in environment variables');
 }
 
-/** Map subscription plan ID to Zoho Marketing tag for cart abandonment / lifecycle journeys */
-function planIdToZohoTag(planId: string): 'Trial' | 'Silver plan' | 'Gold plan' {
-  const id = (planId || '').toLowerCase();
-  if (id.includes('gold') || id === 'family' || id === 'gold-pack' || id === 'gold-pack-pro') return 'Gold plan';
-  if (id.includes('silver') || id === 'premium' || id === 'quarterly' || id === '6_month' || id === 'silver-pack') return 'Silver plan';
-  return 'Trial'; // Discovery Delight, basic, monthly, trial, ride_on, etc.
-}
+/**
+ * Freshworks CRM Integration for Order Completion
+ * Handles contact update with subscription details and confirmation messages
+ */
+async function handleFreshworksOrderCompletion(
+  user: any, 
+  orderData: any, 
+  orderItems: any
+): Promise<{ success: boolean; errors?: string[] }> {
+  const FRESHWORKS_DOMAIN = Deno.env.get('VITE_FRESHWORKS_DOMAIN') || 'https://toyflix-team.myfreshworks.com';
+  const FRESHWORKS_API_KEY = Deno.env.get('VITE_FRESHWORKS_API_KEY') || '6E4UMQZXl21gF_h5KwmUxQ';
+  const WHATSAPP_ACCESS_TOKEN = Deno.env.get('VITE_WHATSAPP_ACCESS_TOKEN') || 'EAAKqaQXUICYBACJHCpLiuGui8WggYbB34HIs8elyg3P4ZCeq8VEeMvPm2cM9HPZAZAnhSDl5cQxdT9OOSPgX8h3qQCDGvx25XERd42CJIbZAy3OUUtMuZANEsGMo5a7Hj38aUDZBBEIy1NKVE6xS9fN1wZAn4GuM8XWxjGW9qvOy7fWjEPctQZD';
+  const WHATSAPP_PHONE_ID = Deno.env.get('VITE_WHATSAPP_PHONE_ID') || '108801041898772';
 
-// Freshworks/WhatsApp integration removed – not in use. Order completion flow uses Supabase only (rental_orders, subscription_tracking, Zoho sync).
-// Edge function uses service_role; RLS is bypassed for server-side order creation.
+  const errors: string[] = [];
+  
+  try {
+    console.log('🔧 Starting Freshworks order completion integration for user:', user.id);
+
+    // Step 1: Search for existing contact by phone/email
+    let contactId = null;
+    try {
+      const searchUrl = `${FRESHWORKS_DOMAIN}/crm/sales/api/search?q=${encodeURIComponent(user.phone)}&include=contact`;
+      const searchResponse = await fetch(searchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token token=${FRESHWORKS_API_KEY}`,
+        },
+      });
+
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        if (searchData.length > 0) {
+          contactId = searchData[0].id;
+          console.log('✅ Found existing Freshworks contact:', contactId);
+        }
+      }
+    } catch (searchError: any) {
+      console.warn('⚠️ Contact search failed:', searchError.message);
+    }
+
+    // Step 2: Update contact with subscription details
+    try {
+      // Map plan to product tag
+      const productTagMapping: { [key: string]: string } = {
+        'discovery-delight': 'Trail plan deal',
+        'silver-pack': '6 Months plan deal',
+        'gold-pack': '6 Months pro plan deal',
+        'ride_on_fixed': 'Car plan deal',
+        'trial': 'Trail plan deal',
+        'basic': 'Trail plan deal',
+        'quarterly': '6 Months plan deal',
+        '6_month': '6 Months pro plan deal'
+      };
+
+      // Map age group
+      const ageGroupMapping: { [key: string]: string } = {
+        '1-2': '6m-2 years',
+        '2-3': '2-3 years',
+        '3-4': '3-4 years',
+        '4-6': '4-6 years',
+        '6-8': '6-8 years',
+        'all': '1-8 years'
+      };
+
+      const productTag = productTagMapping[orderItems.planId] || 'ToyFlix Subscriber';
+      const ageGroupText = ageGroupMapping[orderItems.ageGroup] || orderItems.ageGroup;
+      
+      // Calculate subscription end date (1 year from now)
+      const subscriptionEndDate = new Date();
+      subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1);
+
+      const contactUpdateData = {
+        contact: {
+          tags: [productTag],
+          custom_field: {
+            cf_kids_age_group: ageGroupText,
+            cf_subscription_end_date: subscriptionEndDate.toISOString().split('T')[0]
+          }
+        }
+      };
+
+      if (contactId) {
+        // Update existing contact
+        const updateUrl = `${FRESHWORKS_DOMAIN}/crm/sales/api/contacts/${contactId}`;
+        const updateResponse = await fetch(updateUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token token=${FRESHWORKS_API_KEY}`,
+          },
+          body: JSON.stringify(contactUpdateData),
+        });
+
+        if (updateResponse.ok) {
+          console.log('✅ Freshworks contact updated with subscription data');
+        } else {
+          const errorText = await updateResponse.text();
+          console.error('❌ Freshworks contact update failed:', updateResponse.status, errorText);
+          errors.push(`CRM Update: HTTP ${updateResponse.status}`);
+        }
+      } else {
+        // Create new contact with subscription data
+        const createData = {
+          contact: {
+            first_name: user.first_name || 'Customer',
+            last_name: user.last_name || '',
+            email: user.email || '',
+            mobile_number: user.phone,
+            tags: [productTag],
+            custom_field: {
+              cf_kids_age_group: ageGroupText,
+              cf_subscription_end_date: subscriptionEndDate.toISOString().split('T')[0]
+            }
+          }
+        };
+
+        const createUrl = `${FRESHWORKS_DOMAIN}/crm/sales/api/contacts`;
+        const createResponse = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token token=${FRESHWORKS_API_KEY}`,
+          },
+          body: JSON.stringify(createData),
+        });
+
+        if (createResponse.ok) {
+          const createResult = await createResponse.json();
+          console.log('✅ Freshworks contact created with subscription data:', createResult.contact?.id);
+        } else {
+          const errorText = await createResponse.text();
+          console.error('❌ Freshworks contact creation failed:', createResponse.status, errorText);
+          errors.push(`CRM Create: HTTP ${createResponse.status}`);
+        }
+      }
+    } catch (crmError: any) {
+      console.error('❌ CRM integration error:', crmError.message);
+      errors.push(`CRM: ${crmError.message}`);
+    }
+
+    // Step 3: Send subscription confirmation WhatsApp message
+    try {
+      if (user.first_name && user.phone) {
+        // Format phone number for WhatsApp
+        let formattedPhone = user.phone.replace(/\D/g, '');
+        if (formattedPhone.startsWith('91') && formattedPhone.length === 12) {
+          // Already has country code
+        } else if (formattedPhone.length === 10) {
+          formattedPhone = `91${formattedPhone}`;
+        }
+
+        const planName = orderItems.planId || 'subscription plan';
+        const confirmationMessage = `Thank you ${user.first_name}! 🎉\n\nYour ${planName} subscription payment was successful! Your toys will be delivered to you soon.\n\nGet ready for an amazing toy rental experience! We can't wait for your little one to start playing! 🧸`;
+
+        const whatsappData = {
+          messaging_product: 'whatsapp',
+          to: formattedPhone,
+          type: 'template',
+          template: {
+            name: 'toyflix_promotion',
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'header',
+                parameters: [
+                  {
+                    type: 'image',
+                    image: { link: 'https://i.ibb.co/hFVFrvC/TFwhatsapp1.jpg' }
+                  }
+                ]
+              },
+              {
+                type: 'body',
+                parameters: [
+                  {
+                    type: 'text',
+                    text: confirmationMessage
+                  }
+                ]
+              }
+            ]
+          }
+        };
+
+        console.log('📱 Sending subscription confirmation WhatsApp message...');
+        const whatsappResponse = await fetch(`https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          },
+          body: JSON.stringify(whatsappData),
+        });
+
+        if (whatsappResponse.ok) {
+          const whatsappResult = await whatsappResponse.json();
+          console.log('✅ WhatsApp confirmation message sent successfully:', whatsappResult.messages?.[0]?.id);
+        } else {
+          const errorText = await whatsappResponse.text();
+          console.error('❌ WhatsApp confirmation message failed:', whatsappResponse.status, errorText);
+          errors.push(`WhatsApp: HTTP ${whatsappResponse.status}`);
+        }
+      }
+    } catch (whatsappError: any) {
+      console.error('❌ WhatsApp integration error:', whatsappError.message);
+      errors.push(`WhatsApp: ${whatsappError.message}`);
+    }
+
+    const success = errors.length === 0;
+    console.log(`🔧 Order completion integration ${success ? 'completed successfully' : 'completed with errors'}. Errors: ${errors.length}`);
+    
+    return { success, errors: errors.length > 0 ? errors : undefined };
+
+  } catch (error: any) {
+    console.error('❌ Freshworks order completion integration failed:', error.message);
+    return { success: false, errors: [`Integration failed: ${error.message}`] };
+  }
+}
 
 serve(async (req) => {
   console.log('🔄 Payment verification request received');
@@ -107,21 +317,6 @@ serve(async (req) => {
     }
 
     console.log('📦 Found order for user:', order.user_id);
-    const userId = order.user_id;
-    const orderItems = order.order_items || {};
-
-    // Fetch user profile once for address fallback (critical for new customers)
-    let userProfile: any = null;
-    try {
-      const { data: profileData } = await supabaseClient
-        .from('custom_users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      userProfile = profileData || null;
-    } catch (_) {
-      // Non-blocking; address fallback will use order_items only
-    }
 
     // Update payment status in the appropriate table
     if (orderSource === 'payment_orders') {
@@ -158,116 +353,20 @@ serve(async (req) => {
       }
     }
 
-    // Calculate dates (used for both rental_orders and subscription tracking)
-    const startDate = new Date();
-    const endDate = new Date();
-    const subscriptionMonths = orderItems.planId === 'quarterly' ? 3 : 
-                              orderItems.planId === '6_month' ? 6 : 1;
-    endDate.setMonth(endDate.getMonth() + subscriptionMonths);
-
-    // ✅ CRITICAL: Always create rental_orders for admin panel visibility (subscription AND ride_on / new customers)
-    const allowedOrderTypes = ['subscription', 'one_time', 'trial', 'ride_on'];
-    const rentalOrderTypeForDb = allowedOrderTypes.includes(order.order_type) ? order.order_type : 
-      (orderItems.rideOnToyId ? 'ride_on' : 'subscription');
-    try {
-      console.log('📦 Creating rental order record for admin panel (order_type:', order.order_type, '-> db:', rentalOrderTypeForDb, ')');
-      
-      const shippingAddress = orderItems.shippingAddress || {};
-      const hasShippingAddress = shippingAddress.address_line1 || shippingAddress.address1;
-      let addressToUse = shippingAddress;
-      if (!hasShippingAddress && userProfile) {
-        console.log('🏠 Using profile address as fallback for shipping address');
-        addressToUse = {
-          first_name: userProfile.first_name || '',
-          last_name: userProfile.last_name || '',
-          phone: userProfile.phone || '',
-          email: userProfile.email || '',
-          address_line1: userProfile.address_line1 || '',
-          address_line2: userProfile.address_line2 || '',
-          city: userProfile.city || '',
-          state: userProfile.state || '',
-          postcode: userProfile.zip_code || '',
-          country: 'India'
-        };
-      }
-      const standardizedAddress = {
-        first_name: addressToUse.first_name || addressToUse.firstName || userProfile?.first_name || '',
-        last_name: addressToUse.last_name || addressToUse.lastName || userProfile?.last_name || '',
-        phone: addressToUse.phone || userProfile?.phone || '',
-        email: addressToUse.email || userProfile?.email || '',
-        address_line1: addressToUse.address_line1 || addressToUse.address1 || '',
-        address_line2: addressToUse.address_line2 || addressToUse.address2 || addressToUse.apartment || '',
-        city: addressToUse.city || '',
-        state: addressToUse.state || '',
-        postcode: addressToUse.postcode || addressToUse.zip_code || '',
-        country: addressToUse.country || 'India',
-        latitude: addressToUse.latitude,
-        longitude: addressToUse.longitude,
-        plus_code: addressToUse.plus_code,
-        delivery_instructions: orderItems.deliveryInstructions || null
-      };
-      const totalAmountRupees = orderItems.totalAmount ?? order.total_amount ?? (typeof order.amount === 'number' && order.amount > 1000 ? order.amount / 100 : order.amount) ?? 0;
-      const toysData = orderItems.rideOnToyId ?
-        [{ toy_id: orderItems.rideOnToyId, name: 'Ride-on Toy', category: 'ride_on', quantity: 1, unit_price: totalAmountRupees, total_price: totalAmountRupees, returned: false }] :
-        (orderItems.selectedToys || []).map((toy: any) => ({
-          toy_id: toy.id, name: toy.name, category: toy.category, image_url: toy.image_url, quantity: 1,
-          unit_price: toy.rental_price || 0, total_price: toy.rental_price || 0, returned: false
-        }));
-      const rentalOrderPayload = {
-        user_id: userId,
-        status: 'pending',
-        order_type: rentalOrderTypeForDb,
-        subscription_plan: orderItems.planId || 'basic',
-        total_amount: totalAmountRupees,
-        base_amount: orderItems.baseAmount ?? order.base_amount ?? 0,
-        gst_amount: orderItems.gstAmount ?? order.gst_amount ?? 0,
-        discount_amount: order.discount_amount || 0,
-        coupon_code: orderItems.appliedCoupon || order.coupon_code || null,
-        payment_status: 'paid',
-        payment_method: 'razorpay',
-        razorpay_order_id: razorpay_order_id,
-        razorpay_payment_id: razorpay_payment_id,
-        razorpay_signature: razorpay_signature,
-        payment_amount: totalAmountRupees,
-        payment_currency: order.currency || 'INR',
-        cycle_number: 1,
-        rental_start_date: startDate.toISOString().split('T')[0],
-        rental_end_date: endDate.toISOString().split('T')[0],
-        toys_data: toysData,
-        toys_delivered_count: toysData.length,
-        toys_returned_count: 0,
-        shipping_address: standardizedAddress,
-        age_group: orderItems.ageGroup || '3-5',
-        subscription_category: orderItems.planId || 'basic',
-        delivery_instructions: orderItems.deliveryInstructions || null,
-        user_phone: orderItems.userPhone || orderItems.phone || userProfile?.phone || (order as any).user_phone || null,
-        confirmed_at: null,
-        shipped_at: null,
-        delivered_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      const { data: rentalOrder, error: rentalError } = await supabaseClient
-        .from('rental_orders')
-        .insert(rentalOrderPayload)
-        .select()
-        .single();
-      if (rentalError) {
-        console.error('❌ CRITICAL: Rental order creation failed:', rentalError.message, rentalError.details);
-        throw new Error(`CRITICAL: Failed to create rental order: ${rentalError.message}. Payment: ${razorpay_payment_id}, User: ${userId}`);
-      }
-      if (!rentalOrder?.id) {
-        throw new Error(`CRITICAL: Rental order creation returned no data. Payment: ${razorpay_payment_id}, User: ${userId}`);
-      }
-      console.log('✅ Rental order created for admin panel:', rentalOrder.id, rentalOrder.order_number);
-    } catch (orderCreationError: any) {
-      console.error('❌ CRITICAL: Rental order creation failed:', orderCreationError?.message);
-      throw new Error(`CRITICAL FAILURE: Rental order creation failed - ${orderCreationError?.message}. Payment verification ABORTED.`);
-    }
-
-    // Create subscription tracking for subscription AND ride_on orders (rental_orders already created above)
-    if (order.order_type === 'subscription' || order.order_type === 'ride_on') {
+    // Create subscription in NEW tracking table
+    if (order.order_type === 'subscription') {
       console.log('🔄 Creating subscription tracking entry');
+      
+      const orderItems = order.order_items || {};
+      const userId = order.user_id;
+      
+      // Calculate subscription dates
+      const startDate = new Date();
+      const endDate = new Date();
+      const subscriptionMonths = orderItems.planId === 'quarterly' ? 3 : 
+                                orderItems.planId === '6_month' ? 6 : 1;
+      endDate.setMonth(endDate.getMonth() + subscriptionMonths);
+
       try {
         // Create subscription in NEW tracking table
         const { data: subscriptionTracking, error: trackingError } = await supabaseClient
@@ -285,7 +384,7 @@ serve(async (req) => {
             selected_toys: orderItems.selectedToys || [],
             age_group: orderItems.ageGroup || '3-5',
             ride_on_toy_id: orderItems.rideOnToyId || null,
-            payment_amount: totalAmountRupees,
+            payment_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
             payment_currency: order.currency || 'INR',
             order_items: orderItems,
             shipping_address: orderItems.shippingAddress || {},
@@ -351,25 +450,239 @@ serve(async (req) => {
           } else {
             console.log('✅ User subscription status updated - subscription_active=true');
           }
-
-          // Sync to Zoho Marketing/CRM with plan tag (Trial / Silver plan / Gold plan) for cart abandonment journey
-          const planId = orderItems?.planId || 'basic';
-          const zohoTag = planIdToZohoTag(planId);
-          const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-          const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-          if (supabaseUrl && serviceKey && userId) {
-            fetch(`${supabaseUrl}/functions/v1/zoho-sync-contact`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${serviceKey}`,
-              },
-              body: JSON.stringify({ userId, tag: zohoTag }),
-            }).catch((err) => console.warn('Zoho sync (subscription) failed:', err?.message));
-          }
         } catch (userProfileError) {
           console.error('❌ Critical error updating user profile:', userProfileError);
           throw userProfileError;
+        }
+
+        // ✅ CRITICAL: Create order record for admin panel visibility
+        try {
+          console.log('📦 Creating unified rental order record...');
+          console.log('📦 Order items data:', JSON.stringify(orderItems, null, 2));
+          console.log('📦 User ID:', userId);
+          console.log('📦 Payment amount:', order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0);
+          
+          // Prepare standardized shipping address with fallback to user profile
+          const shippingAddress = orderItems.shippingAddress || {};
+          
+          // Check if shipping address is empty or incomplete
+          const hasShippingAddress = shippingAddress.address_line1 || shippingAddress.address1;
+          
+          // Use profile address as fallback if shipping address is missing
+          let addressToUse = shippingAddress;
+          if (!hasShippingAddress && userProfile) {
+            console.log('🏠 Using profile address as fallback for shipping address');
+            addressToUse = {
+              first_name: userProfile.first_name || '',
+              last_name: userProfile.last_name || '',
+              phone: userProfile.phone || '',
+              email: userProfile.email || '',
+              address_line1: userProfile.address_line1 || '',
+              address_line2: userProfile.address_line2 || '',
+              city: userProfile.city || '',
+              state: userProfile.state || '',
+              postcode: userProfile.zip_code || '',
+              country: 'India'
+            };
+          }
+          
+          const standardizedAddress = {
+            first_name: addressToUse.first_name || addressToUse.firstName || userProfile?.first_name || '',
+            last_name: addressToUse.last_name || addressToUse.lastName || userProfile?.last_name || '',
+            phone: addressToUse.phone || userProfile?.phone || '',
+            email: addressToUse.email || userProfile?.email || '',
+            address_line1: addressToUse.address_line1 || addressToUse.address1 || '',
+            address_line2: addressToUse.address_line2 || addressToUse.address2 || addressToUse.apartment || '',
+            city: addressToUse.city || '',
+            state: addressToUse.state || '',
+            postcode: addressToUse.postcode || addressToUse.zip_code || '',
+            country: addressToUse.country || 'India',
+            latitude: addressToUse.latitude,
+            longitude: addressToUse.longitude,
+            plus_code: addressToUse.plus_code,
+            delivery_instructions: orderItems.deliveryInstructions || null
+          };
+
+          console.log('📦 Prepared shipping address:', JSON.stringify(standardizedAddress, null, 2));
+
+          // Prepare toys data for JSONB storage
+          const toysData = orderItems.rideOnToyId ? 
+            [{ 
+              toy_id: orderItems.rideOnToyId, 
+              name: 'Ride-on Toy', 
+              category: 'ride_on',
+              quantity: 1, 
+              unit_price: order.total_amount || order.amount || 0,
+              total_price: order.total_amount || order.amount || 0,
+              returned: false 
+            }] :
+            (orderItems.selectedToys || []).map((toy: any) => ({
+              toy_id: toy.id,
+              name: toy.name,
+              category: toy.category,
+              image_url: toy.image_url,
+              quantity: 1,
+              unit_price: toy.rental_price || 0,
+              total_price: toy.rental_price || 0,
+              returned: false
+            }));
+
+          console.log('📦 Prepared toys data:', JSON.stringify(toysData, null, 2));
+          console.log('📦 Toys count:', toysData.length);
+
+          // Prepare the complete rental order data with validation
+          const rentalOrderPayload = {
+            user_id: userId,
+            status: 'pending',
+            order_type: order.order_type,
+            subscription_plan: orderItems.planId || 'basic',
+            total_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
+            base_amount: order.base_amount || 0,
+            gst_amount: order.gst_amount || 0,
+            discount_amount: order.discount_amount || 0,
+            coupon_code: orderItems.appliedCoupon || order.coupon_code || null,
+            payment_status: 'paid',
+            payment_method: 'razorpay',
+            razorpay_order_id: razorpay_order_id,
+            razorpay_payment_id: razorpay_payment_id,
+            razorpay_signature: razorpay_signature,
+            payment_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,
+            payment_currency: order.currency || 'INR',
+            cycle_number: 1,
+            rental_start_date: startDate.toISOString().split('T')[0],
+            rental_end_date: endDate.toISOString().split('T')[0],
+            toys_data: toysData,
+            toys_delivered_count: toysData.length,
+            toys_returned_count: 0,
+            shipping_address: standardizedAddress,
+            age_group: orderItems.ageGroup || '3-5',
+            subscription_category: orderItems.planId || 'basic',
+            delivery_instructions: orderItems.deliveryInstructions || null,
+            confirmed_at: null,
+            shipped_at: null,
+            delivered_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          console.log('📦 Final rental order payload prepared');
+          console.log('📦 Payload keys:', Object.keys(rentalOrderPayload));
+          console.log('📦 Attempting database insert...');
+
+          // ✅ UNIFIED APPROACH - Single INSERT to rental_orders with detailed error handling
+          const { data: rentalOrder, error: rentalError } = await supabaseClient
+            .from('rental_orders')
+            .insert(rentalOrderPayload)
+            .select()
+            .single();
+
+          if (rentalError) {
+            console.error('❌ CRITICAL: Rental order creation failed with detailed error:');
+            console.error('❌ Error code:', rentalError.code);
+            console.error('❌ Error message:', rentalError.message);
+            console.error('❌ Error details:', rentalError.details);
+            console.error('❌ Error hint:', rentalError.hint);
+            console.error('❌ Error payload:', JSON.stringify(rentalOrderPayload, null, 2));
+            
+            // Log the specific error type for debugging
+            if (rentalError.message?.includes('permission')) {
+              console.error('❌ PERMISSION ERROR: Edge function may not have INSERT permission on rental_orders table');
+            }
+            if (rentalError.message?.includes('column')) {
+              console.error('❌ COLUMN ERROR: Database schema mismatch - rental_orders table structure issue');
+            }
+            if (rentalError.message?.includes('constraint')) {
+              console.error('❌ CONSTRAINT ERROR: Database constraint violation');
+            }
+            if (rentalError.message?.includes('foreign key')) {
+              console.error('❌ FOREIGN KEY ERROR: Referenced data does not exist');
+            }
+            
+            // This is CRITICAL - if rental order creation fails, the entire payment verification should fail
+            throw new Error(`CRITICAL: Failed to create rental order: ${rentalError.message}. Payment: ${razorpay_payment_id}, User: ${userId}`);
+          }
+
+          if (!rentalOrder || !rentalOrder.id) {
+            console.error('❌ CRITICAL: Rental order creation returned no data');
+            throw new Error(`CRITICAL: Rental order creation returned no data. Payment: ${razorpay_payment_id}, User: ${userId}`);
+          }
+
+          console.log('✅ SUCCESS: Unified rental order created successfully');
+          console.log('✅ Order ID:', rentalOrder.id);
+          console.log('✅ Order Number:', rentalOrder.order_number);
+          console.log('✅ Status:', rentalOrder.status);
+          console.log('✅ Amount:', rentalOrder.total_amount);
+          console.log('✅ User ID:', rentalOrder.user_id);
+          console.log('✅ Payment ID:', rentalOrder.razorpay_payment_id);
+
+          // 📊 Log purchase data for Meta Signals Gateway tracking
+          // This will be picked up by client-side tracking systems
+          console.log('📊 PURCHASE_EVENT_DATA:', JSON.stringify({
+            event: 'Purchase',
+            payment_id: razorpay_payment_id,
+            order_id: rentalOrder.id,
+            order_number: rentalOrder.order_number,
+            user_id: userId,
+            plan_id: orderItems.planId,
+            value: order.total_amount || order.amount || 0,
+            currency: 'INR',
+            content_ids: toysData.map((toy: any) => toy.toy_id),
+            content_names: toysData.map((toy: any) => toy.name),
+            num_items: toysData.length,
+            content_type: 'product',
+            content_category: 'subscription',
+            subscription_plan: orderItems.planId,
+            order_type: order.order_type,
+            timestamp: new Date().toISOString()
+          }));
+
+          // 🎯 NEW: Freshworks CRM & WhatsApp Integration for Order Completion
+          try {
+            // Get user data for integration
+            const { data: userData, error: userError } = await supabaseClient
+              .from('custom_users')
+              .select('*')
+              .eq('id', userId)
+              .single();
+
+            if (userData && !userError) {
+              const integrationResult = await handleFreshworksOrderCompletion(
+                userData,
+                order,
+                orderItems
+              );
+              
+              if (integrationResult.success) {
+                console.log('✅ Freshworks order completion integration successful');
+              } else {
+                console.warn('⚠️ Freshworks order completion integration had errors:', integrationResult.errors);
+                // Don't fail payment verification if CRM integration fails
+              }
+            } else {
+              console.warn('⚠️ Could not get user data for Freshworks integration:', userError);
+            }
+          } catch (integrationError: any) {
+            console.error('⚠️ Freshworks order completion integration failed (non-critical):', integrationError.message);
+            // Continue with payment verification even if integration fails
+          }
+
+        } catch (orderCreationError) {
+          console.error('❌ CRITICAL: Rental order creation failed with exception:');
+          console.error('❌ Exception message:', orderCreationError.message);
+          console.error('❌ Exception stack:', orderCreationError.stack);
+          console.error('❌ Payment ID:', razorpay_payment_id);
+          console.error('❌ User ID:', userId);
+          console.error('❌ Order source:', orderSource);
+          
+          // Log detailed error for debugging
+          if (orderCreationError.code) {
+            console.error('❌ Database error code:', orderCreationError.code);
+            console.error('❌ Database error details:', orderCreationError.details);
+          }
+          
+          // This is CRITICAL - rental order creation failure should cause the entire payment verification to fail
+          // This prevents the scenario where subscription is created but no order exists
+          throw new Error(`CRITICAL FAILURE: Rental order creation failed - ${orderCreationError.message}. Payment verification ABORTED to prevent data inconsistency.`);
         }
 
         // Also update legacy subscribers table for backward compatibility
@@ -416,14 +729,12 @@ serve(async (req) => {
       }
     );
 
-  } catch (error: any) {
-    const errMsg = error?.message || 'Unknown verification error';
-    console.error('❌ Error verifying payment:', errMsg, error);
+  } catch (error) {
+    console.error('❌ Error verifying payment:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: errMsg,
-        code: error?.code || 'VERIFICATION_FAILED',
+        error: error.message,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
