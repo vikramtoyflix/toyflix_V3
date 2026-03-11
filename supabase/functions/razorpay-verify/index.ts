@@ -165,12 +165,37 @@ serve(async (req) => {
                               orderItems.planId === '6_month' ? 6 : 1;
     endDate.setMonth(endDate.getMonth() + subscriptionMonths);
 
-    // ✅ CRITICAL: Always create rental_orders for admin panel visibility (subscription AND ride_on / new customers)
+    // ✅ CRITICAL: Update existing pending rental_order OR create new one for admin panel visibility
     const allowedOrderTypes = ['subscription', 'one_time', 'trial', 'ride_on'];
     const rentalOrderTypeForDb = allowedOrderTypes.includes(order.order_type) ? order.order_type : 
       (orderItems.rideOnToyId ? 'ride_on' : 'subscription');
     try {
-      console.log('📦 Creating rental order record for admin panel (order_type:', order.order_type, '-> db:', rentalOrderTypeForDb, ')');
+      // Check for existing pending rental_order (created by razorpay-order)
+      const { data: existingRental } = await supabaseClient
+        .from('rental_orders')
+        .select('id, order_number')
+        .eq('razorpay_order_id', razorpay_order_id)
+        .eq('payment_status', 'pending')
+        .maybeSingle();
+
+      if (existingRental?.id) {
+        const { error: updateErr } = await supabaseClient
+          .from('rental_orders')
+          .update({
+            payment_status: 'paid',
+            razorpay_payment_id: razorpay_payment_id,
+            razorpay_signature: razorpay_signature,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingRental.id);
+        if (updateErr) {
+          console.error('❌ Failed to update pending rental_order:', updateErr.message);
+          throw new Error(`Failed to update rental order: ${updateErr.message}`);
+        }
+        console.log('✅ Pending rental_order updated to paid:', existingRental.id, existingRental.order_number);
+      } else {
+        // No pending order – create new (legacy path or razorpay-order didn't create)
+        console.log('📦 Creating rental order record for admin panel (order_type:', order.order_type, '-> db:', rentalOrderTypeForDb, ')');
       
       const shippingAddress = orderItems.shippingAddress || {};
       const hasShippingAddress = shippingAddress.address_line1 || shippingAddress.address1;
@@ -260,6 +285,7 @@ serve(async (req) => {
         throw new Error(`CRITICAL: Rental order creation returned no data. Payment: ${razorpay_payment_id}, User: ${userId}`);
       }
       console.log('✅ Rental order created for admin panel:', rentalOrder.id, rentalOrder.order_number);
+      }
     } catch (orderCreationError: any) {
       console.error('❌ CRITICAL: Rental order creation failed:', orderCreationError?.message);
       throw new Error(`CRITICAL FAILURE: Rental order creation failed - ${orderCreationError?.message}. Payment verification ABORTED.`);

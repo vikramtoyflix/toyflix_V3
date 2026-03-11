@@ -179,6 +179,78 @@ serve(async (req) => {
       );
     }
 
+    // Create rental_orders with payment_status=pending (reserves inventory; verify will update to paid)
+    try {
+      const { data: profileData } = await supabaseClient.from('custom_users').select('*').eq('id', userId).maybeSingle();
+      const userProfile = profileData || null;
+      const shippingAddress = orderItems.shippingAddress || {};
+      const hasAddr = shippingAddress?.address_line1 || shippingAddress?.address1;
+      const addressToUse = hasAddr ? shippingAddress : (userProfile ? {
+        first_name: userProfile.first_name || '', last_name: userProfile.last_name || '', phone: userProfile.phone || '',
+        email: userProfile.email || '', address_line1: userProfile.address_line1 || '', address_line2: userProfile.address_line2 || '',
+        city: userProfile.city || '', state: userProfile.state || '', postcode: userProfile.zip_code || '', country: 'India'
+      } : {});
+      const standardizedAddress = {
+        first_name: addressToUse.first_name || addressToUse.firstName || userProfile?.first_name || '',
+        last_name: addressToUse.last_name || addressToUse.lastName || userProfile?.last_name || '',
+        phone: addressToUse.phone || userProfile?.phone || '',
+        email: addressToUse.email || userProfile?.email || '',
+        address_line1: addressToUse.address_line1 || addressToUse.address1 || '',
+        address_line2: addressToUse.address_line2 || addressToUse.address2 || addressToUse.apartment || '',
+        city: addressToUse.city || '', state: addressToUse.state || '',
+        postcode: addressToUse.postcode || addressToUse.zip_code || '',
+        country: addressToUse.country || 'India',
+        delivery_instructions: orderItems.deliveryInstructions || null
+      };
+      const startDate = new Date();
+      const endDate = new Date();
+      const subMonths = orderItems.planId === 'quarterly' ? 3 : orderItems.planId === '6_month' ? 6 : 1;
+      endDate.setMonth(endDate.getMonth() + subMonths);
+      const toysData = orderItems.rideOnToyId ?
+        [{ toy_id: orderItems.rideOnToyId, name: 'Ride-on Toy', category: 'ride_on', quantity: 1, unit_price: totalAmount, total_price: totalAmount, returned: false }] :
+        (orderItems.selectedToys || []).map((toy: any) => ({
+          toy_id: toy.id, name: toy.name, category: toy.category, image_url: toy.image_url, quantity: 1,
+          unit_price: toy.rental_price || 0, total_price: toy.rental_price || 0, returned: false
+        }));
+      const rentalType = ['subscription', 'one_time', 'trial', 'ride_on'].includes(orderType) ? orderType : (orderItems.rideOnToyId ? 'ride_on' : 'subscription');
+      const { error: rentalErr } = await supabaseClient.from('rental_orders').insert({
+        user_id: userId,
+        status: 'pending',
+        order_type: rentalType,
+        subscription_plan: orderItems.planId || 'basic',
+        total_amount: totalAmount,
+        base_amount: baseAmount,
+        gst_amount: gstAmount,
+        discount_amount: 0,
+        coupon_code: orderItems.appliedCoupon || null,
+        payment_status: 'pending',
+        payment_method: 'razorpay',
+        razorpay_order_id: razorpayOrder.id,
+        razorpay_payment_id: null,
+        razorpay_signature: null,
+        payment_amount: totalAmount,
+        payment_currency: currency,
+        cycle_number: 1,
+        rental_start_date: startDate.toISOString().split('T')[0],
+        rental_end_date: endDate.toISOString().split('T')[0],
+        toys_data: toysData,
+        toys_delivered_count: toysData.length,
+        toys_returned_count: 0,
+        shipping_address: standardizedAddress,
+        age_group: orderItems.ageGroup || '3-5',
+        subscription_category: orderItems.planId || 'basic',
+        delivery_instructions: orderItems.deliveryInstructions || null,
+        user_phone: effectivePhone || orderItems.userPhone || userProfile?.phone || null,
+      });
+      if (rentalErr) {
+        console.error('⚠️ Pending rental_order creation failed (verify will create):', rentalErr.message);
+      } else {
+        console.log('✅ Pending rental_order created (inventory reserved); verify will update to paid');
+      }
+    } catch (rentalEx: any) {
+      console.warn('⚠️ Pending rental_order creation exception:', rentalEx?.message);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

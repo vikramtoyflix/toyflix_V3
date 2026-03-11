@@ -3,7 +3,12 @@
 # Run from project root: ./deploy-supabase-functions.sh
 
 set -e
-echo "Deploying razorpay-order and razorpay-verify..."
+echo "Deploying razorpay-order, razorpay-verify, release-abandoned-orders..."
 supabase functions deploy razorpay-order
 supabase functions deploy razorpay-verify
+supabase functions deploy release-abandoned-orders
 echo "✅ Payment functions deployed. Test a payment to verify."
+echo ""
+echo "Cron: Call release-abandoned-orders every 5–10 mins to release unpaid orders after 25 mins."
+echo "  curl -X POST 'https://<project>.supabase.co/functions/v1/release-abandoned-orders' \\"
+echo "    -H 'Authorization: Bearer <anon-or-service-key>'"
