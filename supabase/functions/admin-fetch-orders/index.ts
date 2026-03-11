@@ -50,7 +50,7 @@ serve(async (req) => {
     // Fetch rental_orders
     let rentalQuery = supabaseAdmin
       .from("rental_orders")
-      .select("id, order_number, user_id, status, total_amount, created_at, rental_start_date, rental_end_date, order_type, payment_status, user_phone, subscription_plan, coupon_code, discount_amount, toys_data");
+      .select("id, order_number, user_id, status, total_amount, created_at, rental_start_date, rental_end_date, order_type, payment_status, user_phone, subscription_plan, coupon_code, discount_amount, toys_data, shipping_address, age_group, razorpay_payment_id, base_amount, gst_amount");
 
     if (filters.orderNumber) rentalQuery = rentalQuery.ilike("order_number", `%${filters.orderNumber}%`);
     if (filters.customerPhone) rentalQuery = rentalQuery.ilike("user_phone", `%${filters.customerPhone}%`);
