@@ -116,7 +116,8 @@ const ToyDetailModal = ({
     return s3Url.replace('/storage/v1/s3/', '/storage/v1/object/public/');
   };
 
-  const imageUrl = convertToPublicUrl(mainImage || toy.image_url);
+  const rawImageUrl = mainImage || toy.image_url;
+  const imageUrl = rawImageUrl ? convertToPublicUrl(rawImageUrl) : imageService.getFallbackChain('toy')[0];
   const fallbackUrl = imageService.getFallbackChain('toy')[0];
   const finalImageUrl = imageError ? fallbackUrl : imageUrl;
 

@@ -45,6 +45,11 @@ export const imageService = {
       return cleanUrl.split('?')[0];
     }
 
+    // Supabase S3 storage URL → convert to public object URL (S3 URLs don't load in browser)
+    if (cleanUrl.includes('/storage/v1/s3/')) {
+      return cleanUrl.replace('/storage/v1/s3/', '/storage/v1/object/public/').split('?')[0];
+    }
+
     // If it looks like a valid URL, return it
     if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('//')) {
       return cleanUrl;
