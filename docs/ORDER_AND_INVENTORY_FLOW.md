@@ -26,7 +26,9 @@
 1. `release-abandoned-orders` Edge Function finds `rental_orders` with `payment_status = 'pending'` and `created_at` older than 25 minutes.
 2. Sets `status = 'cancelled'`.
 3. `handle_inventory_return` trigger restores stock.
-4. **Cron:** Call `release-abandoned-orders` every 5–10 minutes (Supabase cron, GitHub Actions, or external cron).
+4. **Cron (choose one):**
+   - **GitHub Actions** (default): `.github/workflows/release-abandoned-orders-cron.yml` runs every 5 minutes. Uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_SERVICE_ROLE_KEY` secrets.
+   - **Supabase pg_cron**: Run migration `20250310000000_schedule_release_abandoned_orders.sql` after enabling pg_cron + pg_net and adding Vault secrets.
 
 ## 3. Payment Notification Fix (Last Night)
 
