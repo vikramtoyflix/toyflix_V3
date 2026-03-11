@@ -1,4 +1,4 @@
--- Schedule release-abandoned-orders Edge Function every 5 minutes via pg_cron + pg_net
+-- Schedule release-abandoned-orders Edge Function hourly via pg_cron + pg_net (orders >25 mins pending are cancelled)
 -- OPTIONAL: Run this manually after enabling pg_cron + pg_net and adding Vault secrets.
 -- Prerequisites:
 --   1. Supabase Dashboard > Extensions: enable pg_cron, pg_net
@@ -17,8 +17,8 @@ begin
      and exists (select 1 from vault.decrypted_secrets where name = 'service_role_key')
   then
     perform cron.schedule(
-      'release-abandoned-orders-every-5min',
-      '*/5 * * * *',
+      'release-abandoned-orders-hourly',
+      '0 * * * *',
       $$
       select net.http_post(
         url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/release-abandoned-orders',
@@ -30,7 +30,7 @@ begin
       ) as request_id;
       $$
     );
-    raise notice 'Scheduled release-abandoned-orders every 5 minutes';
+    raise notice 'Scheduled release-abandoned-orders hourly';
   else
     raise notice 'Skipped: enable pg_cron, pg_net and add vault secrets (project_url, service_role_key). Or use GitHub Actions workflow.';
   end if;
