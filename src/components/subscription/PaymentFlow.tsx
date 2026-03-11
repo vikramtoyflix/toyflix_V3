@@ -186,11 +186,17 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
   }
 
   // Calculate final amounts with discounts (apply discount to base amount, then recalculate GST)
-  const discountedBaseAmount = Math.max(0, baseAmount - promoDiscount);
+  // Round all amounts to avoid floating-point display issues (e.g. ₹0.8474576271187289)
+  const roundedPromoDiscount = Math.round(promoDiscount * 100) / 100;
+  const discountedBaseAmount = Math.round(Math.max(0, baseAmount - roundedPromoDiscount) * 100) / 100;
   const finalGstAmount = isRideOnPayment ? 
-    Math.round((1999 - promoDiscount) * 18 / 100) : 
+    Math.round((1999 - roundedPromoDiscount) * 18 / 100) : 
     PlanService.calculateGST(discountedBaseAmount);
-  const finalTotalAmount = discountedBaseAmount + finalGstAmount;
+  // ONERUPEE/FIVERUPEES target exact amounts; otherwise round calculated total
+  const calculatedTotal = discountedBaseAmount + finalGstAmount;
+  const finalTotalAmount = appliedPromo === 'ONERUPEE' ? 1 : 
+    appliedPromo === 'FIVERUPEES' ? 5 : 
+    Math.round(calculatedTotal * 100) / 100;
 
   // Handle location selection from map - SIMPLIFIED
   const handleLocationSelect = ({ lat, lng, plus_code, addressComponents }: any) => {
@@ -655,7 +661,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
     
     await initializePayment({
-      amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
+      amount: Math.round(finalTotalAmount * 100), // Convert to paise (integer required by Razorpay)
       currency: 'INR',
       orderType: isRideOnPayment ? 'ride_on' : 'subscription',
       orderItems: {
@@ -707,9 +713,9 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         return;
       }
       if (code === 'onerupee') {
-        // Target final total ₹1 (100 paise). With 18% GST: base = 1/1.18 ≈ 0.847, so discount = baseAmount - 1/1.18
-        const targetBaseForOneRupee = 1 / 1.18;
-        const discountToMakeOneRupee = baseAmount - targetBaseForOneRupee;
+        // Target final total ₹1 (100 paise). With 18% GST: base = 1/1.18 ≈ 0.85, so discount = baseAmount - 0.85
+        const targetBaseForOneRupee = Math.round((1 / 1.18) * 100) / 100;
+        const discountToMakeOneRupee = Math.round((baseAmount - targetBaseForOneRupee) * 100) / 100;
         if (discountToMakeOneRupee > 0) {
           setPromoDiscount(discountToMakeOneRupee);
           setAppliedPromo('ONERUPEE');
@@ -721,9 +727,9 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
         return;
       }
       if (code === 'fiverupees') {
-        // Target final total ₹5. With 18% GST: base = 5/1.18 ≈ 4.24, so discount = baseAmount - 5/1.18
-        const targetBaseForFiveRupees = 5 / 1.18;
-        const discountToMakeFiveRupees = baseAmount - targetBaseForFiveRupees;
+        // Target final total ₹5. With 18% GST: base = 5/1.18 ≈ 4.24, so discount = baseAmount - 4.24
+        const targetBaseForFiveRupees = Math.round((5 / 1.18) * 100) / 100;
+        const discountToMakeFiveRupees = Math.round((baseAmount - targetBaseForFiveRupees) * 100) / 100;
         if (discountToMakeFiveRupees > 0) {
           setPromoDiscount(discountToMakeFiveRupees);
           setAppliedPromo('FIVERUPEES');
@@ -815,7 +821,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             {promoDiscount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount ({appliedPromo}):</span>
-                <span>-₹{promoDiscount}</span>
+                <span>-₹{Math.round(promoDiscount * 100) / 100}</span>
               </div>
             )}
             <div className="flex justify-between">
@@ -1046,7 +1052,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             </div>
             {appliedPromo && (
               <p className="text-sm text-green-600 mt-1">
-                🎉 Promo "{appliedPromo}" applied - You save: ₹{promoDiscount}
+                🎉 Promo "{appliedPromo}" applied - You save: ₹{Math.round(promoDiscount * 100) / 100}
               </p>
             )}
           </div>
@@ -1056,10 +1062,10 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-green-800">Total Savings:</span>
-                <span className="text-lg font-bold text-green-600">₹{promoDiscount}</span>
+                <span className="text-lg font-bold text-green-600">₹{Math.round(promoDiscount * 100) / 100}</span>
               </div>
               <div className="text-xs text-green-600 mt-1">
-                {promoDiscount > 0 && `Promo Discount: ₹${promoDiscount}`}
+                {promoDiscount > 0 && `Promo Discount: ₹${Math.round(promoDiscount * 100) / 100}`}
               </div>
             </div>
           )}
@@ -1078,7 +1084,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
             {isCreatingFreeOrder ? 'Processing...' : 
              !isAddressComplete(addressData) ? 'Complete Address to Continue' :
              finalTotalAmount === 0 ? (isQueueOrder ? '🎉 Confirm Order Update' : '🎉 Confirm Free Order') :
-             isQueueOrder ? `Update Queue - ₹${finalTotalAmount}` : `Pay ₹${finalTotalAmount}`}
+             isQueueOrder ? `Update Queue - ₹${Math.round(finalTotalAmount * 100) / 100}` : `Pay ₹${Math.round(finalTotalAmount * 100) / 100}`}
           </Button>
         </div>
         
