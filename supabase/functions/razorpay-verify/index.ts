@@ -213,7 +213,7 @@ serve(async (req) => {
         }));
       const rentalOrderPayload = {
         user_id: userId,
-        status: 'confirmed',
+        status: 'pending',
         order_type: rentalOrderTypeForDb,
         subscription_plan: orderItems.planId || 'basic',
         total_amount: order.total_amount || order.amount || (order.base_amount + order.gst_amount) || 0,

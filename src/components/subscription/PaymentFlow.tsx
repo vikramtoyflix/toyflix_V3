@@ -190,10 +190,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
   const finalGstAmount = isRideOnPayment ? 
     Math.round((1999 - promoDiscount) * 18 / 100) : 
     PlanService.calculateGST(discountedBaseAmount);
-  // Pin exact amounts for test codes to avoid floating-point issues
-  const finalTotalAmount = appliedPromo === 'ONERUPEE' ? 1 :
-    appliedPromo === 'FIVERUPEES' ? 5 :
-    Math.round((discountedBaseAmount + finalGstAmount) * 100) / 100;
+  const finalTotalAmount = discountedBaseAmount + finalGstAmount;
 
   // Handle location selection from map - SIMPLIFIED
   const handleLocationSelect = ({ lat, lng, plus_code, addressComponents }: any) => {
@@ -658,7 +655,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
     
     await initializePayment({
-      amount: Math.round(finalTotalAmount * 100), // Convert to integer paise for Razorpay
+      amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
       currency: 'INR',
       orderType: 'subscription', // Both regular and ride-on use subscription type
       orderItems: {
@@ -682,7 +679,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
 
   // Coupon functions removed (queue bypass functionality removed)
 
-  // New promo code functions using DiscountService (+ built-in test codes)
+  // New promo code functions: test codes (free flow without paying) + DiscountService for real promos
   const applyPromo = async () => {
     if (!promoCode.trim()) {
       toast.error('Please enter a promo code');
@@ -699,31 +696,24 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     const code = promoCode.trim().toLowerCase();
 
     try {
-      // Built-in test codes (no DB required)
-      if (code === 'onerupee') {
-        // Make final total exactly ₹1. base = round(1/1.18, 2) = 0.85; GST = 0; total = 0.85 + 0 ≈ 1 → force exact
-        const targetBase = Math.round((1 / 1.18) * 100) / 100;
-        const discount = Math.round((baseAmount - targetBase) * 100) / 100;
-        if (discount > 0) {
-          setPromoDiscount(discount);
-          setAppliedPromo('ONERUPEE');
-          toast.success('🎉 Test code applied! Total is now ₹1.');
-        } else {
-          toast.error('Amount is already ₹1 or less.');
-        }
+      // Test / free codes for flow testing without paying (no DB required)
+      if (code === 'freecode' || code === 'testfree' || code === 'qa2025') {
+        setPromoDiscount(baseAmount);
+        setAppliedPromo(code.toUpperCase());
+        toast.success('🎉 Test coupon applied! Your order is now FREE – use "Confirm Free Order" to test the flow.');
         setIsApplyingPromo(false);
         return;
       }
-
-      if (code === 'fiverupees') {
-        const targetBase = Math.round((5 / 1.18) * 100) / 100;
-        const discount = Math.round((baseAmount - targetBase) * 100) / 100;
-        if (discount > 0) {
-          setPromoDiscount(discount);
-          setAppliedPromo('FIVERUPEES');
-          toast.success('🎉 Test code applied! Total is now ₹5.');
+      if (code === 'onerupee') {
+        // Target final total ₹1 (100 paise). With 18% GST: base = 1/1.18 ≈ 0.847, so discount = baseAmount - 1/1.18
+        const targetBaseForOneRupee = 1 / 1.18;
+        const discountToMakeOneRupee = baseAmount - targetBaseForOneRupee;
+        if (discountToMakeOneRupee > 0) {
+          setPromoDiscount(discountToMakeOneRupee);
+          setAppliedPromo('ONERUPEE');
+          toast.success('🎉 Test coupon applied! Total is now ₹1 for Razorpay testing.');
         } else {
-          toast.error('Amount is already ₹5 or less.');
+          toast.error('Order amount is already ₹1 or less. This coupon is not applicable.');
         }
         setIsApplyingPromo(false);
         return;
@@ -968,6 +958,14 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
                 />
               </div>
             </div>
+
+            {addressData.plus_code && (
+              <div className="rounded-md bg-green-50 border border-green-200 p-3">
+                <p className="text-xs font-medium text-green-800 mb-0.5">📍 Plus Code (for delivery)</p>
+                <p className="font-mono text-sm text-green-900">{addressData.plus_code}</p>
+                <p className="text-xs text-green-600 mt-1">Used for precise delivery location.</p>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="delivery_instructions">Delivery Instructions (Optional)</Label>

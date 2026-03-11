@@ -58,9 +58,15 @@ export const useRazorpay = () => {
         throw new Error(error.message);
       }
 
-      if (!orderResponse.success) {
-        console.error('❌ Order creation failed:', orderResponse.error);
-        throw new Error(orderResponse.error);
+      if (!orderResponse?.success) {
+        const errMsg = orderResponse?.error || 'Unable to create order. Please try again or contact support.';
+        console.error('❌ Order creation failed:', errMsg);
+        toast({
+          title: "Order could not be created",
+          description: errMsg,
+          variant: "destructive",
+        });
+        throw new Error(errMsg);
       }
 
       console.log('✅ Order created:', orderResponse);
@@ -124,8 +130,6 @@ export const useRazorpay = () => {
 
               if (verifyError) {
                 console.error('❌ Payment verification failed:', verifyError);
-                
-                // Track payment failure
                 try {
                   if (typeof window !== 'undefined' && window.cbq) {
                     window.cbq('track', 'PaymentFailed', {
@@ -137,22 +141,25 @@ export const useRazorpay = () => {
                       timestamp: new Date().toISOString()
                     });
                   }
-                } catch (error) {
-                  console.error('Analytics tracking error:', error);
+                } catch (e) {
+                  console.error('Analytics tracking error:', e);
                 }
-                
                 toast({
-                  title: "Payment Verification Failed",
-                  description: "Payment was successful but verification failed. Please contact support.",
+                  title: "Verification issue",
+                  description: "We couldn't confirm your payment. You will not be charged twice. Our team will check and update your order shortly.",
                   variant: "destructive",
                 });
+                queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
+                queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+                sessionStorage.removeItem('payment_success');
+                setTimeout(() => {
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
+                }, 1500);
                 return;
               }
 
               if (!verifyResponse.success) {
                 console.error('❌ Payment verification unsuccessful:', verifyResponse.error);
-                
-                // Track payment failure
                 try {
                   if (typeof window !== 'undefined' && window.cbq) {
                     window.cbq('track', 'PaymentFailed', {
@@ -164,15 +171,20 @@ export const useRazorpay = () => {
                       timestamp: new Date().toISOString()
                     });
                   }
-                } catch (error) {
-                  console.error('Analytics tracking error:', error);
+                } catch (e) {
+                  console.error('Analytics tracking error:', e);
                 }
-                
                 toast({
-                  title: "Payment Verification Failed",
-                  description: verifyResponse.error || "Unknown verification error",
+                  title: "Verification issue",
+                  description: "We couldn't confirm your order. You will not be charged twice. Our team will check and update your order shortly.",
                   variant: "destructive",
                 });
+                queryClient.invalidateQueries({ queryKey: ['userSubscription'] });
+                queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
+                sessionStorage.removeItem('payment_success');
+                setTimeout(() => {
+                  window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
+                }, 1500);
                 return;
               }
 
@@ -239,7 +251,7 @@ export const useRazorpay = () => {
                   description: "Your payment has been processed successfully.",
                 });
 
-                // Navigate based on order type
+                // Navigate based on order type (short delay so success page appears quickly)
                 if (paymentData.orderType === 'subscription') {
                   setTimeout(() => {
                     navigate('/payment-success', { 
@@ -249,41 +261,27 @@ export const useRazorpay = () => {
                         planId: paymentData.orderItems?.planId
                       }
                     });
-                  }, 1500);
+                  }, 800);
                 } else {
                   setTimeout(() => {
                     navigate('/dashboard');
-                  }, 1500);
+                  }, 800);
                 }
               }
 
             } catch (verifyException) {
             console.error('❌ Payment verification exception:', verifyException);
-            
-            // Log the full payment details for debugging
-            console.log('💳 Payment Details for Support:', {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              amount: paymentData.amount,
-              user_id: user.id,
-              timestamp: new Date().toISOString()
-            });
-            
-            // Payment was successful in Razorpay, but verification had issues
-            // Invalidate caches anyway to check if subscription was created
             queryClient.invalidateQueries({ queryKey: ['subscription-tracking'] });
             queryClient.invalidateQueries({ queryKey: ['entitlements-tracking'] });
-            
             toast({
-              title: "Payment Successful! ✅",
-              description: `Your payment was completed successfully! Redirecting to order summary to view your order details...`,
+              title: "Verification issue",
+              description: "We couldn't confirm your payment. You will not be charged twice. Our team will check and update your order shortly.",
+              variant: "destructive",
             });
-            
-            // Set payment success flag and redirect to order summary
-            sessionStorage.setItem('payment_success', 'true');
+            sessionStorage.removeItem('payment_success');
             setTimeout(() => {
-              window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
-            }, 2000);
+              window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&verification=failed`;
+            }, 1500);
             return;
           }
 
@@ -300,16 +298,16 @@ export const useRazorpay = () => {
 
             toast({
               title: "Payment Successful! 🎉",
-              description: "Your order has been confirmed successfully. Redirecting to order summary...",
+              description: "Redirecting to your order details...",
             });
 
             // Set payment success flag for order summary
             sessionStorage.setItem('payment_success', 'true');
 
-            // Navigate to order summary to show order details
+            // Navigate to order summary to show order details (short delay so success page appears quickly)
             setTimeout(() => {
               window.location.href = `/order-summary?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
-            }, 1500);
+            }, 800);
 
           } catch (error: any) {
             console.error('❌ Payment processing failed:', error);
