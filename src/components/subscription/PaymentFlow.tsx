@@ -190,7 +190,10 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
   const finalGstAmount = isRideOnPayment ? 
     Math.round((1999 - promoDiscount) * 18 / 100) : 
     PlanService.calculateGST(discountedBaseAmount);
-  const finalTotalAmount = discountedBaseAmount + finalGstAmount;
+  // Pin exact amounts for test codes to avoid floating-point issues
+  const finalTotalAmount = appliedPromo === 'ONERUPEE' ? 1 :
+    appliedPromo === 'FIVERUPEES' ? 5 :
+    Math.round((discountedBaseAmount + finalGstAmount) * 100) / 100;
 
   // Handle location selection from map - SIMPLIFIED
   const handleLocationSelect = ({ lat, lng, plus_code, addressComponents }: any) => {
@@ -655,7 +658,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
     
     await initializePayment({
-      amount: finalTotalAmount * 100, // Convert total amount (including GST) to paise
+      amount: Math.round(finalTotalAmount * 100), // Convert to integer paise for Razorpay
       currency: 'INR',
       orderType: 'subscription', // Both regular and ride-on use subscription type
       orderItems: {
@@ -679,7 +682,7 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
 
   // Coupon functions removed (queue bypass functionality removed)
 
-  // New promo code functions using DiscountService
+  // New promo code functions using DiscountService (+ built-in test codes)
   const applyPromo = async () => {
     if (!promoCode.trim()) {
       toast.error('Please enter a promo code');
@@ -692,12 +695,44 @@ export const PaymentFlow: React.FC<PaymentFlowProps> = ({
     }
 
     setIsApplyingPromo(true);
-    
+
+    const code = promoCode.trim().toLowerCase();
+
     try {
+      // Built-in test codes (no DB required)
+      if (code === 'onerupee') {
+        // Make final total exactly ₹1. base = round(1/1.18, 2) = 0.85; GST = 0; total = 0.85 + 0 ≈ 1 → force exact
+        const targetBase = Math.round((1 / 1.18) * 100) / 100;
+        const discount = Math.round((baseAmount - targetBase) * 100) / 100;
+        if (discount > 0) {
+          setPromoDiscount(discount);
+          setAppliedPromo('ONERUPEE');
+          toast.success('🎉 Test code applied! Total is now ₹1.');
+        } else {
+          toast.error('Amount is already ₹1 or less.');
+        }
+        setIsApplyingPromo(false);
+        return;
+      }
+
+      if (code === 'fiverupees') {
+        const targetBase = Math.round((5 / 1.18) * 100) / 100;
+        const discount = Math.round((baseAmount - targetBase) * 100) / 100;
+        if (discount > 0) {
+          setPromoDiscount(discount);
+          setAppliedPromo('FIVERUPEES');
+          toast.success('🎉 Test code applied! Total is now ₹5.');
+        } else {
+          toast.error('Amount is already ₹5 or less.');
+        }
+        setIsApplyingPromo(false);
+        return;
+      }
+
       const validation = await DiscountService.validateDiscount(
         promoCode.trim(),
         user.id,
-        baseAmount // Use base amount instead of subtotal to avoid GST in discount calculation
+        baseAmount
       );
 
       if (validation.isValid && validation.offerDetails) {
