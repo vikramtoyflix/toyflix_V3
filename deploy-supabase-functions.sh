@@ -3,9 +3,10 @@
 # Run from project root: ./deploy-supabase-functions.sh
 
 set -e
-echo "Deploying razorpay-order, razorpay-verify, release-abandoned-orders..."
+echo "Deploying razorpay-order, razorpay-verify, razorpay-reconcile, release-abandoned-orders..."
 supabase functions deploy razorpay-order
 supabase functions deploy razorpay-verify
+supabase functions deploy razorpay-reconcile
 supabase functions deploy release-abandoned-orders
 echo "✅ Payment functions deployed. Test a payment to verify."
 echo ""

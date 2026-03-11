@@ -42,7 +42,17 @@ Or manually:
 ```bash
 supabase functions deploy razorpay-order
 supabase functions deploy razorpay-verify
+supabase functions deploy razorpay-reconcile
+supabase functions deploy release-abandoned-orders
 ```
+
+### razorpay-reconcile (new)
+When `razorpay-verify` fails (e.g. network) but payment succeeded, the user lands on order-summary with payment_id and order_id. If no rental_order is found, OrderSummary calls `razorpay-reconcile` which:
+1. Verifies payment via Razorpay API
+2. Creates/updates rental_order from payment_orders data
+3. Creates subscription_tracking for subscription orders
+
+This ensures orders appear in admin even when the initial verify call failed.
 
 **If you skip this step, payments will succeed on Razorpay but orders will NOT appear in the admin panel.**
 

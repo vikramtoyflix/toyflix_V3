@@ -78,6 +78,9 @@ verify_jwt = false
 [functions.razorpay-verify]
 verify_jwt = false
 
+[functions.razorpay-reconcile]
+verify_jwt = false
+
 [functions.payment-monitor]
 verify_jwt = false
 

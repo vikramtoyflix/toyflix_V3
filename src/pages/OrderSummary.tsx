@@ -79,6 +79,20 @@ const OrderSummary = () => {
         }
       }
 
+      // Fallback: try razorpay_order_id (orderId from URL) - pending orders have this before payment_id
+      if (!order && orderId) {
+        const { data: orderByRazorpayId, error: orderByIdError } = await (supabase as any)
+          .from('rental_orders')
+          .select('*')
+          .eq('razorpay_order_id', orderId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!orderByIdError && orderByRazorpayId) {
+          order = orderByRazorpayId;
+          console.log('✅ Found order by razorpay_order_id');
+        }
+      }
+
       // Fallback: try most recent order if payment ID search fails
       if (!order) {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -100,13 +114,40 @@ const OrderSummary = () => {
       if (order) {
         setOrderDetails(order);
         console.log('✅ Order loaded:', order.order_number);
+      } else if (paymentId && orderId && user?.id) {
+        // Reconcile: create/update rental_order when verify failed but payment succeeded
+        console.log('🔄 Order not found, attempting reconcile...');
+        try {
+          const { data: reconcileData, error: reconcileError } = await supabase.functions.invoke('razorpay-reconcile', {
+            body: {
+              razorpay_order_id: orderId,
+              razorpay_payment_id: paymentId,
+              userId: user.id,
+            },
+          });
+          if (reconcileError) {
+            console.warn('⚠️ Reconcile failed:', reconcileError.message);
+          } else if (reconcileData?.success) {
+            console.log('✅ Reconcile succeeded, refetching order...');
+            // Refetch - order should now exist
+            const { data: refetched } = await (supabase as any)
+              .from('rental_orders')
+              .select('*')
+              .eq('razorpay_payment_id', paymentId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            if (refetched) {
+              setOrderDetails(refetched);
+            }
+          }
+        } catch (reconcileErr) {
+          console.warn('⚠️ Reconcile error:', reconcileErr);
+        }
       } else {
         console.log('⚠️ Order not found, but payment was successful');
-        // Don't show error - payment was successful, order will appear in dashboard
       }
     } catch (error) {
       console.error('❌ Error fetching order:', error);
-      // Don't show error toast - payment was successful
     } finally {
       setIsLoadingOrder(false);
     }
